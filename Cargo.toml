@@ -1,0 +1,6 @@
+[package]
+name = "tiger-rs"
+version = "0.1.0"
+authors = ["Newton Ni <nwtnni@gmail.com>"]
+
+[dependencies]
