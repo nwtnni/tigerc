@@ -42,6 +42,7 @@ pub struct Fun {
     pub args: Vec<Field>,
     pub rets: Option<Symbol>,
     pub body: Exp,
+    pub span: Span,
 }
 
 #[derive(Debug)]
@@ -49,16 +50,17 @@ pub struct Field {
     pub name: Symbol,
     pub escape: bool,
     pub ty: Symbol,
+    pub span: Span,
 }
 
 #[derive(Debug)]
 pub enum Var {
 
-    Simple(Symbol),
+    Simple(Symbol, Span),
 
-    Field(Symbol),
+    Field(Symbol, Span),
 
-    Sub(Symbol),
+    Sub(Symbol, Span),
 
 }
 

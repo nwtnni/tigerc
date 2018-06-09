@@ -3,6 +3,19 @@ use ast;
 
 grammar;
 
+Comma<T>: Vec<T> = {
+  <h: T?> <t: ("," <T>)*> => {
+    match h {
+    | None    => t,
+    | Some(e) => {
+      let mut v = vec![e];
+      v.extend(t);
+      v
+    }
+    }
+  }
+}
+
 pub Program: Vec<ast::Dec> = {
   Dec*
 }
@@ -25,24 +38,32 @@ TypeDec: ast::Dec = {
 
 Type: ast::Type = {
 
-  //
-  <l: @L> <name: Symbol> <r: @R> => {
-    ast::Type::Name(
-      name,
-      ast::to_span(l, r),
-    )
-  },
+  // ty -> type-id
+  <l: @L> <name: Symbol> <r: @R> => ast::Type::Name( name, ast::to_span(l, r)),
 
-  //
+  // ty -> { tyfields }
+  <l: @L> "{" <fields: Comma<Field>> "}" <r: @R> => ast::Type::Rec(fields, ast::to_span(l, r)),
+
+  // ty -> array of type-id
+  <l: @L> "array" "of" <name: Symbol> <r: @R> => ast::Type::Arr(name, ast::to_span(l, r)),
+
+}
+
+Field: ast::Field = {
+
+  // tyfields -> id : type-id
+  <l: @L> <name: Symbol> ":" <ty: Symbol> <r: @R> => {
+    ast::Field { name, escape: false, ty, span: ast::to_span(l, r) }
+  },
 
 }
 
 // VarDec: ast::Dec = {
-
+//   "var" <name: Symbol> ":=" 
 // }
 
 // FunDec: ast::Dec = {
 
 // }
 
-Symbol: String = <name: r""> => name.to_string();
+Symbol: String = <name: r"[a-zA-Z][a-zA-Z0-9_]*"> => name.to_string();
