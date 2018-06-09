@@ -70,7 +70,7 @@ pub enum Var {
 
     Field(Box<Var>, ID, Span),
 
-    Index(Box<Var>, Exp, Span),
+    Index(Box<Var>, Box<Exp>, Span),
 
 }
 
@@ -166,4 +166,6 @@ pub enum Binop {
     Le,
     Gt,
     Ge,
+    LAnd,
+    LOr,
 }
