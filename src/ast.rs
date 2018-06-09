@@ -1,8 +1,57 @@
 use codespan::ByteIndex;
 
-type Symbol = String;
-type Span = (ByteIndex, ByteIndex);
+pub type Symbol = String;
+pub type Span = (ByteIndex, ByteIndex);
 
+pub fn to_span(l: usize, r: usize) -> Span {
+    ((l as u32).into(), (r as u32).into())
+}
+
+#[derive(Debug)]
+pub enum Dec {
+    Fun(Vec<Fun>, Span),
+
+    Var {
+        name: Symbol,
+        escape: bool,
+        ty: Option<Symbol>,
+        init: Exp,
+        span: Span,
+    },
+
+    Type {
+        name: Symbol,
+        ty: Type,
+        span: Span,
+    },
+}
+
+#[derive(Debug)]
+pub enum Type {
+
+    Name(Symbol, Span),
+
+    Rec(Vec<Field>, Span),
+
+    Arr(Symbol, Span),
+}
+
+#[derive(Debug)]
+pub struct Fun {
+    pub name: Symbol,
+    pub args: Vec<Field>,
+    pub rets: Option<Symbol>,
+    pub body: Exp,
+}
+
+#[derive(Debug)]
+pub struct Field {
+    pub name: Symbol,
+    pub escape: bool,
+    pub ty: Symbol,
+}
+
+#[derive(Debug)]
 pub enum Var {
 
     Simple(Symbol),
@@ -13,6 +62,7 @@ pub enum Var {
 
 }
 
+#[derive(Debug)]
 pub enum Exp {
 
     Nil(Span),
@@ -88,47 +138,7 @@ pub enum Exp {
     },
 }
 
-pub enum Dec {
-    Fun(Vec<Fun>, Span),
-
-    Var {
-        name: Symbol,
-        escape: bool,
-        ty: Option<Symbol>,
-        init: Exp,
-        span: Span,
-    },
-
-    Type {
-        name: Symbol,
-        ty: Type,
-        span: Span,
-    },
-}
-
-pub enum Type {
-
-    Name(Symbol, Span),
-
-    Rec(Vec<Field>, Span),
-
-    Arr(Symbol, Span),
-
-}
-
-pub struct Fun {
-    pub name: Symbol,
-    pub args: Vec<Field>,
-    pub rets: Option<Symbol>,
-    pub body: Exp,
-}
-
-pub struct Field {
-    pub name: Symbol,
-    pub escape: bool,
-    pub ty: Symbol,
-}
-
+#[derive(Debug)]
 pub enum Binop {
     Add,
     Sub,

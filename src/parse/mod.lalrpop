@@ -1,5 +1,48 @@
-use codespan::FileMap;
+use codespan::{RawIndex, ByteIndex};
+use ast;
 
-grammar(file: &FileMap);
+grammar;
 
-pub TYPE: () = "type";
+pub Program: Vec<ast::Dec> = {
+  Dec*
+}
+
+Dec: ast::Dec = {
+  TypeDec,
+  // VarDec,
+  // FunDec,
+}
+
+TypeDec: ast::Dec = {
+  <l: @L> "type" <name: Symbol> "=" <ty: Type> <r: @R> => {
+    ast::Dec::Type{
+      name,
+      ty,
+      span: ast::to_span(l, r),
+    }
+  },
+}
+
+Type: ast::Type = {
+
+  //
+  <l: @L> <name: Symbol> <r: @R> => {
+    ast::Type::Name(
+      name,
+      ast::to_span(l, r),
+    )
+  },
+
+  //
+
+}
+
+// VarDec: ast::Dec = {
+
+// }
+
+// FunDec: ast::Dec = {
+
+// }
+
+Symbol: String = <name: r""> => name.to_string();
