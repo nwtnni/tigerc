@@ -1,6 +1,6 @@
 use codespan::ByteIndex;
 
-pub type Symbol = String;
+pub type ID = String;
 pub type Span = (ByteIndex, ByteIndex);
 
 pub fn to_span(l: usize, r: usize) -> Span {
@@ -12,9 +12,9 @@ pub enum Dec {
     Fun(Vec<FunDec>, Span),
 
     Var {
-        name: Symbol,
+        name: ID,
         escape: bool,
-        ty: Option<Symbol>,
+        ty: Option<ID>,
         init: Exp,
         span: Span,
     },
@@ -24,44 +24,51 @@ pub enum Dec {
 
 #[derive(Debug)]
 pub struct FunDec {
-    pub name: Symbol,
-    pub args: Vec<Field>,
-    pub rets: Option<Symbol>,
+    pub name: ID,
+    pub args: Vec<FieldDec>,
+    pub rets: Option<ID>,
     pub body: Exp,
     pub span: Span,
 }
 
 #[derive(Debug)]
-pub struct Field {
-    pub name: Symbol,
+pub struct FieldDec {
+    pub name: ID,
     pub escape: bool,
-    pub ty: Symbol,
+    pub ty: ID,
     pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct TypeDec {
-    pub name: Symbol,
+    pub name: ID,
     pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub struct Field {
+    pub name: ID,
+    pub exp: Box<Exp>,
     pub span: Span,
 }
 
 #[derive(Debug)]
 pub enum Type {
 
-    Name(Symbol, Span),
+    Name(ID, Span),
 
-    Rec(Vec<Field>, Span),
+    Rec(Vec<FieldDec>, Span),
 
-    Arr(Symbol, Span),
+    Arr(ID, Span),
 }
 
 #[derive(Debug)]
 pub enum Var {
 
-    Simple(Symbol, Span),
+    Simple(ID, Span),
 
-    Field(Box<Var>, Symbol, Span),
+    Field(Box<Var>, ID, Span),
 
     Index(Box<Var>, Box<Exp>, Span),
 
@@ -79,10 +86,12 @@ pub enum Exp {
     Str(String, Span),
 
     Call {
-        name: Symbol,
+        name: ID,
         args: Vec<Exp>,
         span: Span,
     },
+
+    Neg(Box<Exp>, Span),
 
     Bin {
         lhs: Box<Exp>,
@@ -92,15 +101,15 @@ pub enum Exp {
     },
 
     Rec {
-        name: Symbol,
-        fields: Vec<(Symbol, Exp)>,
+        name: ID,
+        fields: Vec<Field>,
         span: Span,
     },
 
     Seq(Vec<Exp>, Span),
 
     Ass {
-        name: Symbol,
+        name: ID,
         exp: Box<Exp>,
         span: Span,
     },
@@ -119,7 +128,7 @@ pub enum Exp {
     },
 
     For {
-        name: Symbol,
+        name: ID,
         escape: bool,
         lo: Box<Exp>,
         hi: Box<Exp>,
@@ -136,7 +145,7 @@ pub enum Exp {
     },
 
     Arr {
-        ty: Symbol,
+        name: ID,
         size: Box<Exp>,
         init: Box<Exp>,
         span: Span,

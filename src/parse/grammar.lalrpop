@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use ast;
+use parse::literal;
 
 grammar;
 
@@ -51,18 +52,18 @@ Type: ast::Type = {
   <l: @L> <name: ID> <r: @R> => ast::Type::Name( name, ast::to_span(l, r)),
 
   // ty -> { tyfields }
-  <l: @L> LBRACK <fields: Comma<Field>> RBRACK <r: @R> => ast::Type::Rec(fields, ast::to_span(l, r)),
+  <l: @L> LBRACK <fields: Comma<FieldDec>> RBRACK <r: @R> => ast::Type::Rec(fields, ast::to_span(l, r)),
 
   // ty -> array of type-id
   <l: @L> ARRAY OF <name: ID> <r: @R> => ast::Type::Arr(name, ast::to_span(l, r)),
 
 }
 
-Field: ast::Field = {
+FieldDec: ast::FieldDec = {
 
   // tyfields -> id : type-id
   <l: @L> <name: ID> COLON <ty: ID> <r: @R> => {
-    ast::Field { name, escape: false, ty, span: ast::to_span(l, r) }
+    ast::FieldDec { name, escape: false, ty, span: ast::to_span(l, r) }
   },
 
 }
@@ -116,19 +117,49 @@ FunDecRec: Vec<ast::Dec> = {
 FunDec: ast::FunDec = {
 
   // fundec -> function id ( tyfields ) = exp
-  <l: @L> FUNCTION <name: ID> LPAREN <args: Field*> RPAREN EQ <body: Exp> <r: @R> => {
+  <l: @L> FUNCTION <name: ID> LPAREN <args: FieldDec*> RPAREN EQ <body: Exp> <r: @R> => {
     ast::FunDec { name, args, rets: None, body, span: ast::to_span(l, r) }
   },
 
   // fundec -> function id ( tyfields ) : type-id = exp
-  <l: @L> FUNCTION <name: ID> LPAREN <args: Field*> RPAREN COLON <rets: ID> EQ <body: Exp> <r: @R> => {
+  <l: @L> FUNCTION <name: ID> LPAREN <args: FieldDec*> RPAREN COLON <rets: ID> EQ <body: Exp> <r: @R> => {
     ast::FunDec { name, args, rets: Some(rets), body, span: ast::to_span(l, r) }
   },
 
 }
 
 Exp: ast::Exp = {
+}
+
+Atom: ast::Exp = {
+
+  // <l: @L> <name: Var> <r: @R> => ast::Exp::Var(name, ast::to_span(l, r)),
+  <l: @L> <val: INT> <r: @R> => ast::Exp::Int(val, ast::to_span(l, r)),
   <l: @L> NIL <r: @R> => ast::Exp::Nil(ast::to_span(l, r)),
+  <l: @L> SUB <exp: Exp> <r: @R> => ast::Exp::Neg(Box::new(exp), ast::to_span(l, r)),
+
+  <l: @L> <name: ID> LBRACE <size: Exp> RBRACE OF <init: Exp> <r: @R> => {
+    ast::Exp::Arr{ name, size: Box::new(size), init: Box::new(init), span: ast::to_span(l, r) }
+  },
+
+  <l: @L> <name: ID> LBRACK <fields: Comma<Field>> RBRACK <r: @R> => {
+    ast::Exp::Rec{ name, fields, span: ast::to_span(l, r) }
+  },
+
+  <l: @L> <name: ID> LPAREN <args: Exp*> RPAREN <r: @R> => {
+    ast::Exp::Call{ name, args, span: ast::to_span(l, r) }
+  },
+
+  LPAREN <Exp> RPAREN,
+}
+
+Field: ast::Field = {
+  <l: @L> <name: ID> EQ <exp: Exp> <r: @R> => ast::Field { name, exp: Box::new(exp), span: ast::to_span(l, r) },
+}
+
+Call: ast::Exp = {
+
+
 }
 
 // Keywords
@@ -180,5 +211,6 @@ SEMICOLON : () = ";";
 COLON     : () = ":";
 COMMA     : () = ",";
 
-INT: i32 = <r"[0-9]+"> => i32::from_str(<>).unwrap();
 ID: String = <r"[a-zA-Z][a-zA-Z0-9_]*"> => String::from(<>);
+INT: i32 = <r"[0-9]+"> => i32::from_str(<>).unwrap();
+STR: String = <"[^\"]*"> => literal::escape_str(<>);
