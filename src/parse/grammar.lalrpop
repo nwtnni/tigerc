@@ -49,6 +49,10 @@ TypeDecRec: Vec<ast::Dec> = {
     rest
   },
 
+  <l: @L> <decs: TypeDec+> <r: @R> => {
+    vec![ast::Dec::Type(decs, ast::to_span(l, r))]  
+  },
+
 }
 
 TypeDec: ast::TypeDec = {
@@ -82,17 +86,13 @@ FieldDec: ast::FieldDec = {
 
 VarDecRec: Vec<ast::Dec> = {
 
-  <dec: VarDec> <rest: TypeDecRec> => {
+  <dec: VarDec> <rest: Program> => {
     let mut rest = rest;
     rest.insert(0, dec);
     rest
   },
 
-  <dec: VarDec> <rest: FunDecRec> => {
-    let mut rest = rest;
-    rest.insert(0, dec);
-    rest
-  },
+  <dec: VarDec> => { vec![dec] },
 
 }
 
@@ -115,11 +115,11 @@ Var: ast::Var = {
   // Simple variable
   <l: @L> <name: ID> <r: @R> => ast::Var::Simple(name, ast::to_span(l, r)),
 
-  // // Field lookup
-  // <l: @L> <name: Var> DOT <field: ID> <r: @R> => ast::Var::Field(Box::new(name), field, ast::to_span(l, r)),
+  // Field lookup
+  <l: @L> <name: Var> DOT <field: ID> <r: @R> => ast::Var::Field(Box::new(name), field, ast::to_span(l, r)),
 
-  // // Array index
-  // <l: @L> <name: Var> LBRACE <idx: Exp> RBRACE => ast::Var::Index(Box::new(name), idx, ast::to_span(l, r)),
+  // Array index
+  <l: @L> <name: Var> LBRACE <idx: Exp> RBRACE <r: @R> => ast::Var::Index(Box::new(name), Box::new(idx), ast::to_span(l, r)),
 
 }
 
@@ -136,6 +136,10 @@ FunDecRec: Vec<ast::Dec> = {
     rest.insert(0, ast::Dec::Fun(decs, ast::to_span(l, r)));
     rest
   },
+
+  <l: @L> <decs: FunDec+> <r: @R> => {
+    vec![ast::Dec::Fun(decs, ast::to_span(l, r))]
+  }
 
 }
 
@@ -187,11 +191,11 @@ Exp: ast::Exp = {
   // },
 
   // Let statement
-  <l: @L> LET <decs: Program> IN <lb: @L> <body: Semicolon<Exp>> <rb: @R> END <r: @R> => {
+  <l: @L> LET <decs: Program> IN <lb: @L> <body: Semicolon<Stm>> <rb: @R> END <r: @R> => {
     ast::Exp::Let{ decs, body: Box::new(ast::Exp::Seq(body, ast::to_span(lb, rb))), span: ast::to_span(l, r) }
   },
 
-  Unary,
+  Or,
 
 }
 
@@ -238,7 +242,7 @@ CompareOp: ast::Binop = {
 }
 
 Term: ast::Exp = {
-  
+
   // Addition and subtraction
   <l: @L> <lhs: Term> <op: TermOp> <rhs: Factor> <r: @R> => {
     ast::Exp::Bin{ lhs: Box::new(lhs), op, rhs: Box::new(rhs), span: ast::to_span(l, r) }
@@ -280,16 +284,19 @@ Unary: ast::Exp = {
 
 Atom: ast::Exp = {
 
+  // Variable
+  <l: @L> <v: Var> <r: @R> => ast::Exp::Var(v, ast::to_span(l, r)),
+
   // Literal int
   <l: @L> <val: INT> <r: @R> => ast::Exp::Int(val, ast::to_span(l, r)),
 
   // Literal nil
   <l: @L> NIL <r: @R> => ast::Exp::Nil(ast::to_span(l, r)),
 
-  // Literal array
-  <l: @L> <name: ID> LBRACE <size: Exp> RBRACE OF <init: Exp> <r: @R> => {
-    ast::Exp::Arr{ name, size: Box::new(size), init: Box::new(init), span: ast::to_span(l, r) }
-  },
+  // // Literal array
+  // <l: @L> <name: ID> LBRACE <size: Exp> RBRACE OF <init: Exp> <r: @R> => {
+  //   ast::Exp::Arr{ name, size: Box::new(size), init: Box::new(init), span: ast::to_span(l, r) }
+  // },
 
   // Literal record
   <l: @L> <name: ID> LBRACK <fields: Comma<Field>> RBRACK <r: @R> => {
@@ -301,11 +308,12 @@ Atom: ast::Exp = {
     ast::Exp::Call{ name, args, span: ast::to_span(l, r) }
   },
 
+  // Sequence
+  <l: @L> LPAREN <exps: Semicolon<Stm>> RPAREN <r: @R> => ast::Exp::Seq(exps, ast::to_span(l, r)),
+
   // Break
   <@L> BREAK <@R> => ast::Exp::Break(ast::to_span(<>)),
 
-  // Sequence
-  <l: @L> LPAREN <exps: Semicolon<Stm>> RPAREN <r: @R> => ast::Exp::Seq(exps, ast::to_span(l, r)),
 }
 
 Field: ast::Field = {

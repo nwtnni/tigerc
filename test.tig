@@ -1,7 +1,5 @@
-type asdf = {
-  walao : hehe
-}
-
-type lmao = array of hoohoo
-
-type derp = derp2_
+var x := let
+  var y := 1 + 2 * 3 * 4
+  in
+    z[1][1 | 5]  
+  end
