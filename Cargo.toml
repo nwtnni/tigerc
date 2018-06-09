@@ -7,14 +7,11 @@ authors = ["Newton Ni <nwtnni@gmail.com>"]
 lalrpop = "0.15.2"
 
 [dependencies]
+codespan = "0.1.2"
 failure = "0.1.1"
 lalrpop-util = "0.15.2"
 regex = "1.0.0"
 structopt = "0.2"
-
-[lib]
-name = "tiger-rs"
-path = "src/lib.rs"
 
 [[bin]]
 name = "tc"

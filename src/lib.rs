@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate failure;
+extern crate codespan;
 
-pub mod parse;
 pub mod ast;
+pub mod parse;

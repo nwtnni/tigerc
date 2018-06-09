@@ -1,0 +1,5 @@
+use codespan::FileMap;
+
+grammar(file: &FileMap);
+
+pub TYPE: () = "type";
