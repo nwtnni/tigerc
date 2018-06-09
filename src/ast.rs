@@ -70,12 +70,14 @@ pub enum Var {
 
     Field(Box<Var>, ID, Span),
 
-    Index(Box<Var>, Box<Exp>, Span),
+    Index(Box<Var>, Exp, Span),
 
 }
 
 #[derive(Debug)]
 pub enum Exp {
+
+    Unit(Span),
 
     Nil(Span),
 
@@ -109,7 +111,7 @@ pub enum Exp {
     Seq(Vec<Exp>, Span),
 
     Ass {
-        name: ID,
+        name: Var,
         exp: Box<Exp>,
         span: Span,
     },

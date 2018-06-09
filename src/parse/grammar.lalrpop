@@ -17,6 +17,18 @@ Comma<T>: Vec<T> = {
   }
 }
 
+Semicolon<T> : Vec<T> = {
+  <h: T?> <t: (SEMICOLON <T>)*> => {
+    match h {
+    | None    => t,
+    | Some(e) => {
+      let mut v = vec![e];
+      v.extend(t);
+      v
+    }}
+  }
+}
+
 pub Program: Vec<ast::Dec> = {
   TypeDecRec,
   VarDecRec,
@@ -129,37 +141,101 @@ FunDec: ast::FunDec = {
 }
 
 Exp: ast::Exp = {
+  <l: @L> LPAREN <exps: Semicolon<Stm>> RPAREN <r: @R> => ast::Exp::Seq(exps, ast::to_span(l, r)),
+  Stm,
+}
+
+Stm: ast::Exp = {
+
+  // If statement without else block
+  <l: @L> IF <guard: StmElse> THEN <then: StmElse> <r: @R> => {
+    ast::Exp::If{ guard: Box::new(guard), then: Box::new(then), or: None, span: ast::to_span(l, r) }
+  },
+
+  // While statement
+  <l: @L> WHILE <guard: StmElse> DO <body: StmElse> <r: @R> => {
+    ast::Exp::While{ guard: Box::new(guard), body: Box::new(body), span: ast::to_span(l, r) }
+  },
+
+  // For statement
+  <l: @L> FOR <name: ID> ASSIGN <lo: StmElse> TO <hi: StmElse> DO <body: StmElse> <r: @R> => {
+    ast::Exp::For{ name, escape: false, lo: Box::new(lo), hi: Box::new(hi), body: Box::new(body), span: ast::to_span(l, r) }
+  },
+
+  // Let statement
+  <l: @L> LET <decs: Program> IN <lb: @L> <body: Semicolon<Exp>> <rb: @R> END <r: @R> => {
+    ast::Exp::Let{ decs, body: Box::new(ast::Exp::Seq(body, ast::to_span(lb, rb))), span: ast::to_span(l, r) }
+  },
+
+  // Assignment
+  <l: @L> <name: StmElse> ASSIGN <exp: Exp> <r: @R> => {
+    ast::Exp::Ass{ name, exp: Box::new(exp), span: ast::to_span(l, r) }
+  },
+
+  StmElse,
+}
+
+StmElse: ast::Exp = {
+
+  // If with else
+  <l: @L> IF <guard: Exp> THEN <body: Compare> ELSE <or: Exp> <r: @R> => {
+    ast::Exp::If{ guard: Box::new(guard), then: Box::new(body), or: Some(Box::new(or)), span: ast::to_span(l, r) }
+  },
+
+  Compare,
+
+}
+
+Compare: ast::Exp = {
+
+  Atom,
+
 }
 
 Atom: ast::Exp = {
 
-  // <l: @L> <name: Var> <r: @R> => ast::Exp::Var(name, ast::to_span(l, r)),
+  // Literal int
   <l: @L> <val: INT> <r: @R> => ast::Exp::Int(val, ast::to_span(l, r)),
-  <l: @L> NIL <r: @R> => ast::Exp::Nil(ast::to_span(l, r)),
-  <l: @L> SUB <exp: Exp> <r: @R> => ast::Exp::Neg(Box::new(exp), ast::to_span(l, r)),
 
+  // Literal nil
+  <l: @L> NIL <r: @R> => ast::Exp::Nil(ast::to_span(l, r)),
+
+  // Literal array or
   <l: @L> <name: ID> LBRACE <size: Exp> RBRACE OF <init: Exp> <r: @R> => {
     ast::Exp::Arr{ name, size: Box::new(size), init: Box::new(init), span: ast::to_span(l, r) }
   },
 
+  // Literal record
   <l: @L> <name: ID> LBRACK <fields: Comma<Field>> RBRACK <r: @R> => {
     ast::Exp::Rec{ name, fields, span: ast::to_span(l, r) }
   },
 
+  // Function call
   <l: @L> <name: ID> LPAREN <args: Exp*> RPAREN <r: @R> => {
     ast::Exp::Call{ name, args, span: ast::to_span(l, r) }
   },
 
+  // Break
+  <@L> BREAK <@R> => ast::Exp::Break(ast::to_span(<>)),
+
+  // Unary negation
+  <l: @L> SUB <exp: Exp> <r: @R> => ast::Exp::Neg(Box::new(exp), ast::to_span(l, r)),
+
+  // lvalue -> id
+  <l: @L> <name: ID> <r: @R> => ast::Var::Simple(name, ast::to_span(l, r)),
+
+  // lvalue -> lvalue . id
+  <l: @L> <name: Exp> DOT <field: ID> <r: @R> => ast::Var::Field(Box::new(name), field, ast::to_span(l, r)),
+
+  // lvalue -> lvalue [ exp ]
+  <l: @L> <name: Exp> LBRACE <idx: Exp> RBRACE => ast::Var::Index(Box::new(name), idx, ast::to_span(l, r)),
+
+  // Parenthesized expression
   LPAREN <Exp> RPAREN,
 }
 
 Field: ast::Field = {
   <l: @L> <name: ID> EQ <exp: Exp> <r: @R> => ast::Field { name, exp: Box::new(exp), span: ast::to_span(l, r) },
-}
-
-Call: ast::Exp = {
-
-
 }
 
 // Keywords
