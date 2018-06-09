@@ -1,0 +1,184 @@
+use std::str::FromStr;
+
+use ast;
+
+grammar;
+
+Comma<T>: Vec<T> = {
+  <h: T?> <t: (COMMA <T>)*> => {
+    match h {
+    | None    => t,
+    | Some(e) => {
+      let mut v = vec![e];
+      v.extend(t);
+      v
+    }}
+  }
+}
+
+pub Program: Vec<ast::Dec> = {
+  TypeDecRec,
+  VarDecRec,
+  FunDecRec,
+}
+
+TypeDecRec: Vec<ast::Dec> = {
+
+  <l: @L> <decs: TypeDec+> <r: @R> <rest: VarDecRec> => {
+    let mut rest = rest;
+    rest.insert(0, ast::Dec::Type(decs, ast::to_span(l, r)));
+    rest
+  },
+
+  <l: @L> <decs: TypeDec+> <r: @R> <rest: FunDecRec> => {
+    let mut rest = rest;
+    rest.insert(0, ast::Dec::Type(decs, ast::to_span(l, r)));
+    rest
+  },
+
+}
+
+TypeDec: ast::TypeDec = {
+
+  // type type-id = ty
+  <l: @L> TYPE <name: ID> "=" <ty: Type> <r: @R> => { ast::TypeDec{ name, ty, span: ast::to_span(l, r) } },
+
+}
+
+Type: ast::Type = {
+
+  // ty -> type-id
+  <l: @L> <name: ID> <r: @R> => ast::Type::Name( name, ast::to_span(l, r)),
+
+  // ty -> { tyfields }
+  <l: @L> LBRACK <fields: Comma<Field>> RBRACK <r: @R> => ast::Type::Rec(fields, ast::to_span(l, r)),
+
+  // ty -> array of type-id
+  <l: @L> ARRAY OF <name: ID> <r: @R> => ast::Type::Arr(name, ast::to_span(l, r)),
+
+}
+
+Field: ast::Field = {
+
+  // tyfields -> id : type-id
+  <l: @L> <name: ID> COLON <ty: ID> <r: @R> => {
+    ast::Field { name, escape: false, ty, span: ast::to_span(l, r) }
+  },
+
+}
+
+VarDecRec: Vec<ast::Dec> = {
+
+  <dec: VarDec> <rest: TypeDecRec> => {
+    let mut rest = rest;
+    rest.insert(0, dec);
+    rest
+  },
+
+  <dec: VarDec> <rest: FunDecRec> => {
+    let mut rest = rest;
+    rest.insert(0, dec);
+    rest
+  },
+
+}
+
+VarDec: ast::Dec = {
+
+  // var id := exp
+  <l: @L> VAR <name: ID> ASSIGN <init: Exp> <r: @R> => {
+    ast::Dec::Var { name, escape: false, ty: None, init, span: ast::to_span(l, r) }
+  },
+
+  // var id: type-id := exp
+  <l: @L> VAR <name: ID> COLON <ty: ID> ASSIGN <init: Exp> <r: @R> => {
+    ast::Dec::Var { name, escape: false, ty: Some(ty), init, span: ast::to_span(l, r) }
+  },
+
+}
+
+FunDecRec: Vec<ast::Dec> = {
+
+  <l: @L> <decs: FunDec+> <r: @R> <rest: TypeDecRec> => {
+    let mut rest = rest;
+    rest.insert(0, ast::Dec::Fun(decs, ast::to_span(l, r)));
+    rest
+  },
+
+  <l: @L> <decs: FunDec+> <r: @R> <rest: VarDecRec> => {
+    let mut rest = rest;
+    rest.insert(0, ast::Dec::Fun(decs, ast::to_span(l, r)));
+    rest
+  },
+
+}
+
+FunDec: ast::FunDec = {
+
+  // fundec -> function id ( tyfields ) = exp
+  <l: @L> FUNCTION <name: ID> LPAREN <args: Field*> RPAREN EQ <body: Exp> <r: @R> => {
+    ast::FunDec { name, args, rets: None, body, span: ast::to_span(l, r) }
+  },
+
+  // fundec -> function id ( tyfields ) : type-id = exp
+  <l: @L> FUNCTION <name: ID> LPAREN <args: Field*> RPAREN COLON <rets: ID> EQ <body: Exp> <r: @R> => {
+    ast::FunDec { name, args, rets: Some(rets), body, span: ast::to_span(l, r) }
+  },
+
+}
+
+Exp: ast::Exp = {
+  <l: @L> NIL <r: @R> => ast::Exp::Nil(ast::to_span(l, r)),
+}
+
+// Keywords
+
+TYPE     : () = "type";
+VAR      : () = "var";
+FUNCTION : () = "function";
+BREAK    : () = "break";
+OF       : () = "of";
+END      : () = "end";
+IN       : () = "in";
+NIL      : () = "nil";
+LET      : () = "let";
+DO       : () = "do";
+TO       : () = "to";
+FOR      : () = "for";
+WHILE    : () = "while";
+ELSE     : () = "else";
+THEN     : () = "then";
+IF       : () = "if";
+ARRAY    : () = "array";
+
+// Operators
+
+ASSIGN    : () = ":=";
+OR        : () = "|";
+AND       : () = "&";
+GE        : () = ">=";
+GT        : () = ">";
+LE        : () = "<=";
+LT        : () = "<";
+NEQ       : () = "<>";
+EQ        : () = "=";
+DIV       : () = "/";
+MUL       : () = "*";
+SUB       : () = "-";
+ADD       : () = "+";
+DOT       : () = ".";
+
+// Miscellaneous
+
+LBRACE    : () = "[";
+RBRACE    : () = "]";
+LBRACK    : () = "{";
+RBRACK    : () = "}";
+LPAREN    : () = "(";
+RPAREN    : () = ")";
+SEMICOLON : () = ";";
+COLON     : () = ":";
+COMMA     : () = ",";
+
+INT: i32 = <r"[0-9]+"> => i32::from_str(<>).unwrap();
+ID: String = <r"[a-zA-Z][a-zA-Z0-9_]*"> => String::from(<>);

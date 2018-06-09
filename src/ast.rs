@@ -9,7 +9,7 @@ pub fn to_span(l: usize, r: usize) -> Span {
 
 #[derive(Debug)]
 pub enum Dec {
-    Fun(Vec<Fun>, Span),
+    Fun(Vec<FunDec>, Span),
 
     Var {
         name: Symbol,
@@ -19,25 +19,11 @@ pub enum Dec {
         span: Span,
     },
 
-    Type {
-        name: Symbol,
-        ty: Type,
-        span: Span,
-    },
+    Type(Vec<TypeDec>, Span),
 }
 
 #[derive(Debug)]
-pub enum Type {
-
-    Name(Symbol, Span),
-
-    Rec(Vec<Field>, Span),
-
-    Arr(Symbol, Span),
-}
-
-#[derive(Debug)]
-pub struct Fun {
+pub struct FunDec {
     pub name: Symbol,
     pub args: Vec<Field>,
     pub rets: Option<Symbol>,
@@ -54,13 +40,30 @@ pub struct Field {
 }
 
 #[derive(Debug)]
+pub struct TypeDec {
+    pub name: Symbol,
+    pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub enum Type {
+
+    Name(Symbol, Span),
+
+    Rec(Vec<Field>, Span),
+
+    Arr(Symbol, Span),
+}
+
+#[derive(Debug)]
 pub enum Var {
 
     Simple(Symbol, Span),
 
-    Field(Symbol, Span),
+    Field(Box<Var>, Symbol, Span),
 
-    Sub(Symbol, Span),
+    Index(Box<Var>, Box<Exp>, Span),
 
 }
 
