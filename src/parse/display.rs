@@ -40,8 +40,7 @@ macro_rules! enclose {
 ///
 /// ```
 /// (
-///   var <NAME> : <TYPEID>
-///   :=
+///   var <NAME> : <TYPEID> :=
 ///   <INIT>
 /// )
 /// ```
@@ -64,11 +63,10 @@ impl DisplayIndent for Dec {
             | Dec::Var { name, ty, init, .. } => {
 
                 match ty {
-                | None     => indent!(fmt, level, format!("var {}", name)),
-                | Some(ty) => indent!(fmt, level, format!("var {} : {}", name, ty)),
+                | None     => indent!(fmt, level, format!("var {} :=", name)),
+                | Some(ty) => indent!(fmt, level, format!("var {} : {} :=", name, ty)),
                 };
 
-                indent!(fmt, level, ":=");
                 init.display_indent(level, fmt)?;
             },
             | Dec::Type(decs, _) => for d in decs { d.display_indent(level, fmt)?; },
@@ -110,6 +108,7 @@ impl DisplayIndent for FunDec {
                 for a in args { a.display_indent(level, fmt)?; }
             });
 
+            indent!(fmt, level, "=");
             body.display_indent(level, fmt)?;
         });
 
@@ -120,9 +119,7 @@ impl DisplayIndent for FunDec {
 /// ### `FieldDec`
 ///
 /// ```
-/// (
-///   <NAME> : <TYPEID>
-/// )
+/// <NAME> : <TYPEID>
 /// ```
 impl DisplayIndent for FieldDec {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -138,8 +135,7 @@ impl DisplayIndent for FieldDec {
 ///
 /// ```
 /// (
-///   type <NAME>
-///   =
+///   type <NAME> =
 ///   <TYPE>
 /// )
 /// ```
@@ -149,8 +145,7 @@ impl DisplayIndent for TypeDec {
         enclose!(fmt, level, {
             let level = level + 1;
             let TypeDec { name, ty, .. } = self;
-            indent!(fmt, level, format!("type {}", name));
-            indent!(fmt, level, "=");
+            indent!(fmt, level, format!("type {} =", name));
             ty.display_indent(level, fmt)?;
         });
 
@@ -162,8 +157,7 @@ impl DisplayIndent for TypeDec {
 ///
 /// ```
 /// (
-///   <NAME>
-///   :
+///   <NAME> :
 ///   <EXP>
 /// )
 /// ```
@@ -173,8 +167,7 @@ impl DisplayIndent for Field {
         enclose!(fmt, level, {
             let level = level + 1;
             let Field { name, exp, .. } = self;
-            indent!(fmt, level, name);
-            indent!(fmt, level, ":");
+            indent!(fmt, level, format!("{} :", name));
             (**exp).display_indent(level, fmt)?;
         });
 
@@ -425,7 +418,7 @@ impl DisplayIndent for Var {
 /// ```
 /// (
 ///   <NAME>
-///   []
+///   size
 ///   <EXP>
 ///   of
 ///   <EXP>
@@ -520,7 +513,7 @@ impl DisplayIndent for Exp {
             },
             | Exp::Arr { name, size, init, .. } => {
                 indent!(fmt, level, name);
-                indent!(fmt, level, "[]");
+                indent!(fmt, level, "size");
                 (**size).display_indent(level, fmt)?;
                 indent!(fmt, level, "of");
                 (**init).display_indent(level, fmt)?;
