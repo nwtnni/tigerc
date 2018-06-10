@@ -77,6 +77,8 @@ pub enum Var {
 #[derive(Debug)]
 pub enum Exp {
 
+    Break(Span),
+
     Nil(Span),
 
     Var(Var, Span),
@@ -135,8 +137,6 @@ pub enum Exp {
         body: Box<Exp>,
         span: Span,
     },
-
-    Break(Span),
 
     Let {
         decs: Vec<Dec>,

@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::io::prelude::*;
 
-use tiger_rs::parse::ProgramParser;
+use tiger_rs::parse::*;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "c--")]
@@ -36,7 +36,12 @@ fn main() -> Result<(), Error> {
     for path in &opt.files {
         
         let file = code.add_filemap_from_disk(path).unwrap();
-        println!("{:?}", parser.parse(file.src()));
+        let parsed = parser.parse(file.src());
+
+        match parsed {
+        | Err(err) => println!("{:?}", err),
+        | Ok(program) => println!("{}", program),
+        };
     }
 
     Ok(())
