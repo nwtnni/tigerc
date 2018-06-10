@@ -77,8 +77,6 @@ pub enum Var {
 #[derive(Debug)]
 pub enum Exp {
 
-    Unit(Span),
-
     Nil(Span),
 
     Var(Var, Span),
