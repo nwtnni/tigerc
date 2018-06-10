@@ -31,8 +31,9 @@ Semicolon<T> : Vec<T> = {
   }
 }
 
-// Program is a list of declarations
-pub Program: Vec<ast::Dec> = {
+pub Program: ast::Exp = Stm;
+
+Decs: Vec<ast::Dec> = {
   TypeDecRec,
   VarDecRec,
   FunDecRec,
@@ -89,7 +90,7 @@ FieldDec: ast::FieldDec = {
 
 VarDecRec: Vec<ast::Dec> = {
 
-  <dec: VarDec> <rest: Program> => {
+  <dec: VarDec> <rest: Decs> => {
     let mut rest = rest;
     rest.insert(0, dec);
     rest
@@ -156,12 +157,12 @@ FunDecRec: Vec<ast::Dec> = {
 FunDec: ast::FunDec = {
 
   // fundec -> function id ( tyfields ) = exp
-  <l: @L> FUNCTION <name: ID> LPAREN <args: FieldDec*> RPAREN EQ <body: Stm> <r: @R> => {
+  <l: @L> FUNCTION <name: ID> LPAREN <args: Comma<FieldDec>> RPAREN EQ <body: Stm> <r: @R> => {
     ast::FunDec { name, args, rets: None, body, span: ast::to_span(l, r) }
   },
 
   // fundec -> function id ( tyfields ) : type-id = exp
-  <l: @L> FUNCTION <name: ID> LPAREN <args: FieldDec*> RPAREN COLON <rets: ID> EQ <body: Stm> <r: @R> => {
+  <l: @L> FUNCTION <name: ID> LPAREN <args: Comma<FieldDec>> RPAREN COLON <rets: ID> EQ <body: Stm> <r: @R> => {
     ast::FunDec { name, args, rets: Some(rets), body, span: ast::to_span(l, r) }
   },
 
@@ -231,7 +232,7 @@ Exp: ast::Exp = {
   },
 
   // Let statement
-  <l: @L> LET <decs: Program> IN <lb: @L> <body: Semicolon<Stm>> <rb: @R> END <r: @R> => {
+  <l: @L> LET <decs: Decs> IN <lb: @L> <body: Semicolon<Stm>> <rb: @R> END <r: @R> => {
     ast::Exp::Let { decs, body: Box::new(ast::Exp::Seq(body, ast::to_span(lb, rb))), span: ast::to_span(l, r) }
   },
 
@@ -410,4 +411,4 @@ COMMA     : () = ",";
 
 ID: String = <r"[a-zA-Z][a-zA-Z0-9_]*"> => String::from(<>);
 INT: i32 = <r"[0-9]+"> => i32::from_str(<>).unwrap();
-STR: String = <"[^\"]*"> => literal::escape_str(<>);
+STR: String = <r##""[^"]*""##> => literal::escape_str(<>);

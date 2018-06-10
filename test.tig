@@ -1,5 +1,0 @@
-var x := let
-  var y := 1 + 2 * 3 * 4
-  in
-    z[1][1 | 5]  
-  end
