@@ -157,20 +157,46 @@ FunDec: ast::FunDec = {
 
 }
 
+// Refer to http://www.parsifalsoft.com/ifelse.html
 Stm: ast::Exp = {
 
-  // If statement without else block
+  OpenStm,
+
+  ClosedStm,
+
+}
+
+OpenStm: ast::Exp = {
+
   <l: @L> IF <guard: Exp> THEN <then: Stm> <r: @R> => {
     ast::Exp::If{ guard: Box::new(guard), then: Box::new(then), or: None, span: ast::to_span(l, r) }
   },
 
+  <l: @L> IF <guard: Exp> THEN <then: ClosedStm> ELSE <or: OpenStm> <r: @R> => {
+    ast::Exp::If{ guard: Box::new(guard), then: Box::new(then), or: Some(Box::new(or)), span: ast::to_span(l, r) }
+  },
+
   // While statement
-  <l: @L> WHILE <guard: Exp> DO <body: Stm> <r: @R> => {
+  <l: @L> WHILE <guard: Exp> DO <body: OpenStm> <r: @R> => {
     ast::Exp::While{ guard: Box::new(guard), body: Box::new(body), span: ast::to_span(l, r) }
   },
 
   // For statement
-  <l: @L> FOR <name: ID> ASSIGN <lo: Exp> TO <hi: Exp> DO <body: Stm> <r: @R> => {
+  <l: @L> FOR <name: ID> ASSIGN <lo: Exp> TO <hi: Exp> DO <body: OpenStm> <r: @R> => {
+    ast::Exp::For{ name, escape: false, lo: Box::new(lo), hi: Box::new(hi), body: Box::new(body), span: ast::to_span(l, r) }
+  },
+
+}
+
+ClosedStm: ast::Exp = {
+
+  // While statement
+  <l: @L> WHILE <guard: Exp> DO <body: ClosedStm> <r: @R> => {
+    ast::Exp::While{ guard: Box::new(guard), body: Box::new(body), span: ast::to_span(l, r) }
+  },
+
+  // For statement
+  <l: @L> FOR <name: ID> ASSIGN <lo: Exp> TO <hi: Exp> DO <body: ClosedStm> <r: @R> => {
     ast::Exp::For{ name, escape: false, lo: Box::new(lo), hi: Box::new(hi), body: Box::new(body), span: ast::to_span(l, r) }
   },
 
@@ -185,10 +211,10 @@ Stm: ast::Exp = {
 
 Exp: ast::Exp = {
 
-  // // If with else
-  // <l: @L> IF <guard: Exp> THEN <body: Stm> ELSE <or: Stm> <r: @R> => {
-  //   ast::Exp::If{ guard: Box::new(guard), then: Box::new(body), or: Some(Box::new(or)), span: ast::to_span(l, r) }
-  // },
+  // If with else
+  <l: @L> IF <guard: Exp> THEN <body: ClosedStm> ELSE <or: ClosedStm> <r: @R> => {
+    ast::Exp::If{ guard: Box::new(guard), then: Box::new(body), or: Some(Box::new(or)), span: ast::to_span(l, r) }
+  },
 
   // Let statement
   <l: @L> LET <decs: Program> IN <lb: @L> <body: Semicolon<Stm>> <rb: @R> END <r: @R> => {
