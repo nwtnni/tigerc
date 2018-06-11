@@ -8,8 +8,6 @@ use failure::Error;
 use structopt::StructOpt;
 
 use std::path::PathBuf;
-use std::fs::File;
-use std::io::prelude::*;
 
 use tiger_rs::parse::*;
 
@@ -30,7 +28,7 @@ fn main() -> Result<(), Error> {
 
     let opt = Opt::from_args();
     
-    let parser = ProgramParser::new();
+    let parser = Parser::new();
     let mut code = CodeMap::new();
 
     for path in &opt.files {
