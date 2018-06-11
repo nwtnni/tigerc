@@ -60,12 +60,6 @@ impl <'input> Lexer<'input> {
         self.next = self.stream.next();
     }
 
-    fn step(&mut self) -> Option<(usize, char)> {
-        let current = self.next;
-        self.skip();
-        current
-    }
-
     fn peek(&self) -> Option<(usize, char)> {
         self.next
     }
