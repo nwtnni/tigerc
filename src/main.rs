@@ -37,10 +37,7 @@ fn main() -> Result<(), Error> {
         let lexer = Lexer::new(file.src());
         let parsed = parser.parse(lexer);
 
-        match parsed {
-        | Err(err) => println!("{:?}", err),
-        | Ok(program) => println!("{}", program),
-        };
+        println!("{}", parsed?);
     }
 
     Ok(())

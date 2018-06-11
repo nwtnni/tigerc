@@ -28,8 +28,8 @@ extern {
     IF        => Token::If,
     ARRAY     => Token::Array,
     ASSIGN    => Token::Assign,
-    OR        => Token::Or,
-    AND       => Token::And,
+    LOR       => Token::LOr,
+    LAND      => Token::LAnd,
     GE        => Token::Ge,
     GT        => Token::Gt,
     LE        => Token::Le,
@@ -299,7 +299,7 @@ Exp: ast::Exp = {
 Or: ast::Exp = {
 
   // Logical OR
-  <l: @L> <lhs: Or> OR <rhs: And> <r: @R> => {
+  <l: @L> <lhs: Or> LOR <rhs: And> <r: @R> => {
     ast::Exp::Bin { lhs: Box::new(lhs), op: ast::Binop::LOr, rhs: Box::new(rhs), span: ast::to_span(l, r) }
   },
 
@@ -310,7 +310,7 @@ Or: ast::Exp = {
 And: ast::Exp = {
 
   // Logical AND
-  <l: @L> <lhs: And> AND <rhs: Compare> <r: @R> => {
+  <l: @L> <lhs: And> LAND <rhs: Compare> <r: @R> => {
     ast::Exp::Bin { lhs: Box::new(lhs), op: ast::Binop::LAnd, rhs: Box::new(rhs), span: ast::to_span(l, r) }
   },
 

@@ -6,7 +6,6 @@ pub struct LexError {
 
 #[derive(Debug)]
 pub enum LexErrorCode {
-    UnknownSymbol,
     UnknownToken,
     UnopenedComment,
     InvalidInteger,

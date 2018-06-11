@@ -61,10 +61,10 @@ pub enum Token {
     Assign,
 
     /// `|`
-    Or,
+    LOr,
 
     /// `&`
-    And,
+    LAnd,
 
     /// `>=`
     Ge,

@@ -60,6 +60,12 @@ impl <'input> Lexer<'input> {
         self.next = self.stream.next();
     }
 
+    fn step(&mut self) -> Option<(usize, char)> {
+        let current = self.next;
+        self.skip();
+        current
+    }
+
     fn peek(&self) -> Option<(usize, char)> {
         self.next
     }
@@ -106,9 +112,10 @@ impl <'input> Lexer<'input> {
     fn take_string(&mut self, start: usize) -> (usize, &'input str) {
         let valid = self.peek().map(|(_, c)| c == '"').unwrap_or(false);
         if !valid { return (start, "") }
+        self.skip();
         let (end, _) = self.take_until(start, |c| c == '"');
         self.skip();
-        (end, self.slice(start + 1, end - 1))
+        (end, self.slice(start + 1, end))
     }
 
 }
@@ -129,39 +136,51 @@ impl <'input> Iterator for Lexer<'input> {
             | Mode::Source => {
 
                 // Look for symbol
-                let (end, symbol) = self.take_symbol(start);
-                let token = match symbol {
-                | ""   => None,
-                | ":=" => Some(Token::Assign),
-                | "|"  => Some(Token::Or),
-                | "&"  => Some(Token::And),
-                | ">=" => Some(Token::Ge),
-                | ">"  => Some(Token::Gt),
-                | "<=" => Some(Token::Le),
-                | "<"  => Some(Token::Lt),
-                | "<>" => Some(Token::Neq),
-                | "="  => Some(Token::Eq),
-                | "/"  => Some(Token::Div),
-                | "*"  => Some(Token::Mul),
-                | "-"  => Some(Token::Sub),
-                | "+"  => Some(Token::Add),
-                | "."  => Some(Token::Dot),
-                | "["  => Some(Token::LBrace),
-                | "]"  => Some(Token::RBrace),
-                | "{"  => Some(Token::LBrack),
-                | "}"  => Some(Token::RBrack),
-                | "("  => Some(Token::LParen),
-                | ")"  => Some(Token::RParen),
-                | ";"  => Some(Token::Semicolon),
-                | ":"  => Some(Token::Colon),
-                | ","  => Some(Token::Comma),
-                | "/*" => { self.mode = Mode::Comment; continue; },
-                | "*/" => return Some(Err(LexError::new(start, end, LexErrorCode::UnopenedComment))),
-                | _    => return Some(Err(LexError::new(start, end, LexErrorCode::UnknownSymbol))),
-                };
+                if is_symbol(c) {
+                    self.skip(); 
+                    let (double, token) = match c {
+                    | '|' => (false, Token::LOr),
+                    | '&' => (false, Token::LAnd),
+                    | '=' => (false, Token::Eq),
+                    | '-' => (false, Token::Sub),
+                    | '+' => (false, Token::Add),
+                    | '.' => (false, Token::Dot),
+                    | '[' => (false, Token::LBrace),
+                    | ']' => (false, Token::RBrace),
+                    | '{' => (false, Token::LBrack),
+                    | '}' => (false, Token::RBrack),
+                    | '(' => (false, Token::LParen),
+                    | ')' => (false, Token::RParen),
+                    | ';' => (false, Token::Semicolon),
+                    | ',' => (false, Token::Comma),
+                    | ':' => match self.peek() {
+                             | Some((_, '=')) => (true, Token::Assign),
+                             | _              => (false, Token::Colon),
+                             },
+                    | '>' => match self.peek() {
+                             | Some((_, '=')) => (true, Token::Ge),
+                             | _              => (false, Token::Gt),
+                             },
+                    | '<' => match self.peek() {
+                             | Some((_, '=')) => (true, Token::Le),
+                             | Some((_, '>')) => (true, Token::Neq),
+                             | _              => (false, Token::Lt),
+                             },
+                    | '*' => match self.peek() {
+                             | Some((_, '/')) => return Some(Err(LexError::new(start, start + 2, LexErrorCode::UnopenedComment))),
+                             | _              => (false, Token::Mul),
+                             },
+                    | '/' => match self.peek() {
+                             | Some((_, '*')) => { self.mode = Mode::Comment; self.skip(); continue; },
+                             | _              => (false, Token::Div),
+                             },
+                    _ => panic!("Internal error in is_symbol function"),
+                    };
 
-                // Successfully lexed symbol
-                if let Some(token) = token { return Some(Ok((start, token, end))); }
+                    // Successfully lexed symbol
+                    if double { self.skip() }
+                    return Some(Ok((start, token, if double { start + 2 } else { start })));
+                }
 
                 // Otherwise look for identifier
                 let (end, ident) = self.take_ident(start);
