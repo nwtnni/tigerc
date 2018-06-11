@@ -115,7 +115,7 @@ impl <'input> Lexer<'input> {
         self.skip();
         let (end, _) = self.take_until(start, |c| c == '"');
         self.skip();
-        (end, self.slice(start + 1, end))
+        (end + 1, self.slice(start, end + 1))
     }
 
 }
@@ -226,7 +226,10 @@ impl <'input> Iterator for Lexer<'input> {
                 // Check for literal string
                 match self.take_string(start) {
                 | (_, "")  => (),
-                | (end, s) => return Some(Ok((start, Token::Str(String::from(s)), end))),
+                | (end, _) => {
+                    let string = String::from(self.slice(start + 1, end - 1));
+                    return Some(Ok((start + 1, Token::Str(string), end - 1)));
+                },
                 };
 
                 // Failure to lex: consume until next whitespace and throw error
