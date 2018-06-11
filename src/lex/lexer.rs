@@ -2,7 +2,7 @@ use std::str::CharIndices;
 use std::str::FromStr;
 
 use token::Token;
-use lex::{LexError, LexErrorCode};
+use error::{Error, Lex};
 
 pub struct Lexer<'input> {
     mode: Mode,
@@ -16,7 +16,7 @@ enum Mode {
     Comment,
 }
 
-type Spanned = Result<(usize, Token, usize), LexError>;
+type Spanned = Result<(usize, Token, usize), Error>;
 
 fn is_symbol(c: char) -> bool {
     match c {
@@ -56,12 +56,23 @@ impl <'input> Lexer<'input> {
         Lexer { mode: Mode::Source, source, stream, next }
     }
 
+    pub fn len(&self) -> usize {
+        self.source.len()
+    }
+
     fn skip(&mut self) {
         self.next = self.stream.next();
     }
 
     fn peek(&self) -> Option<(usize, char)> {
         self.next
+    }
+
+    fn test_peek<F>(&self, condition: F) -> bool where F: FnOnce(char) -> bool {
+        match self.peek() {
+        | None         => false,
+        | Some((_, c)) => condition(c),
+        }
     }
 
     fn slice(&self, start: usize, end: usize) -> &'input str {
@@ -114,6 +125,15 @@ impl <'input> Lexer<'input> {
 
 }
 
+fn error(start: usize, end: usize, err: Lex) -> Option<Spanned> {
+    Some(Err(Error::lexical(start, end, err)))
+}
+
+fn success(start: usize, end: usize, token: Token) -> Option<Spanned> {
+    Some(Ok((start, token, end)))
+}
+
+
 impl <'input> Iterator for Lexer<'input> {
 
     type Item = Spanned;
@@ -147,33 +167,21 @@ impl <'input> Iterator for Lexer<'input> {
                     | ')' => (false, Token::RParen),
                     | ';' => (false, Token::Semicolon),
                     | ',' => (false, Token::Comma),
-                    | ':' => match self.peek() {
-                             | Some((_, '=')) => (true, Token::Assign),
-                             | _              => (false, Token::Colon),
-                             },
-                    | '>' => match self.peek() {
-                             | Some((_, '=')) => (true, Token::Ge),
-                             | _              => (false, Token::Gt),
-                             },
-                    | '<' => match self.peek() {
-                             | Some((_, '=')) => (true, Token::Le),
-                             | Some((_, '>')) => (true, Token::Neq),
-                             | _              => (false, Token::Lt),
-                             },
-                    | '*' => match self.peek() {
-                             | Some((_, '/')) => return Some(Err(LexError::new(start, start + 2, LexErrorCode::UnopenedComment))),
-                             | _              => (false, Token::Mul),
-                             },
-                    | '/' => match self.peek() {
-                             | Some((_, '*')) => { self.mode = Mode::Comment; self.skip(); continue; },
-                             | _              => (false, Token::Div),
-                             },
+                    | ':' => if self.test_peek(|c| c == '=') { (true, Token::Assign) } else { (false, Token::Colon) },
+                    | '>' => if self.test_peek(|c| c == '=') { (true, Token::Ge) } else { (false, Token::Gt) }
+                    | '*' => if self.test_peek(|c| c == '/') { return error(start, start + 2, Lex::Comment) } else { (false, Token::Mul) },
+                    | '/' => if self.test_peek(|c| c == '*') { self.mode = Mode::Comment; self.skip(); continue } else { (false, Token::Div) },
+                    | '<' => {
+                        if self.test_peek(|c| c == '=')      { (true, Token::Le) }
+                        else if self.test_peek(|c| c == '>') { (true, Token::Neq) }
+                        else                                 { (false, Token::Lt) }
+                    },
                     _ => panic!("Internal error in is_symbol function"),
                     };
 
                     // Successfully lexed symbol
-                    if double { self.skip() }
-                    return Some(Ok((start, token, if double { start + 2 } else { start })));
+                    let end = if double { self.skip(); start + 2 } else { start + 1 };
+                    return success(start, end, token);
                 }
 
                 // Otherwise look for identifier
@@ -202,19 +210,19 @@ impl <'input> Iterator for Lexer<'input> {
                 };
 
                 // Successfully lexed keyword
-                if let Some(token) = token { return Some(Ok((start, token, end))); }
+                if let Some(token) = token { return success(start, end, token); }
 
                 // Check for identifier
                 match ident {
                 | "" => (),
-                | id => return Some(Ok((start, Token::Ident(String::from(id)), end))),
+                | id => return success(start, end, Token::Ident(String::from(id))),
                 };
 
                 // Check for literal int
                 match self.take_int(start) {
                 | (_, "")                              => (),
-                | (end, n) if i32::from_str(n).is_ok() => return Some(Ok((start, Token::Int(i32::from_str(n).unwrap()), end))),
-                | (end, _)                             => return Some(Err(LexError::new(start, end, LexErrorCode::InvalidInteger))),
+                | (end, n) if i32::from_str(n).is_ok() => return success(start, end, Token::Int(i32::from_str(n).unwrap())),
+                | (end, _)                             => return error(start, end, Lex::Integer),
                 };
 
                 // Check for literal string
@@ -222,23 +230,29 @@ impl <'input> Iterator for Lexer<'input> {
                 | (_, "")  => (),
                 | (end, _) => {
                     let string = String::from(self.slice(start + 1, end - 1));
-                    return Some(Ok((start + 1, Token::Str(string), end - 1)));
+                    return success(start + 1, end - 1, Token::Str(string));
                 },
                 };
 
                 // Failure to lex: consume until next whitespace and throw error
                 let (end, _) = self.take_until(start, is_whitespace);
-                return Some(Err(LexError::new(start, end, LexErrorCode::UnknownToken)));
+                return error(start, end, Lex::Unknown);
             },
 
             | Mode::Comment => {
 
-                let (_, symbol) = self.take_symbol(start);
-                match symbol {
-                | "/*" => comment_level += 1,
-                | "*/" => if comment_level == 0 { self.mode = Mode::Source; },
-                | ""   => self.skip(),
-                | _    => (),
+                self.skip();
+
+                match c {
+                | '/' => if self.test_peek(|c| c == '*') { comment_level += 1 },
+                | '*' => if self.test_peek(|c| c == '/') {
+                            if comment_level == 0 {
+                                self.mode = Mode::Source;
+                            } else {
+                                comment_level -= 1
+                            }
+                         },
+                | _   => (),
                 };
             },
             };

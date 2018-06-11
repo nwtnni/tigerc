@@ -1,5 +1,6 @@
 use ast;
 use lex;
+use error::Error;
 use token::Token;
 
 grammar;
@@ -7,7 +8,7 @@ grammar;
 // Lexer integration
 extern {
   type Location = usize;
-  type Error = lex::LexError;
+  type Error = Error;
 
   enum Token {
     TYPE      => Token::Type,
