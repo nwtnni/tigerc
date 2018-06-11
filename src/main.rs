@@ -3,22 +3,24 @@ extern crate codespan;
 extern crate codespan_reporting;
 extern crate tiger_rs;
 
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::PathBuf;
+
 use codespan::CodeMap;
 use codespan_reporting::emit;
 use codespan_reporting::termcolor::{StandardStream, ColorChoice};
 use structopt::StructOpt;
-
-use std::path::PathBuf;
 
 use tiger_rs::parse::*;
 use tiger_rs::lex::*;
 use tiger_rs::error::*;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "c--")]
+#[structopt(name = "tigerc")]
 struct Opt {
 
-    /// Write parsing diagnostics to file.
+    /// Write parsing and lexing diagnostics to file.
     #[structopt(short = "p", long = "parse")]
     parse: bool,
 
@@ -35,13 +37,23 @@ fn main() -> Result<(), Error> {
     let parser = Parser::new();
     let mut code = CodeMap::new();
 
-    for path in &opt.files {
+    for input in &opt.files {
         
-        let file = code.add_filemap_from_disk(path).unwrap();
-        let lexer = Lexer::new(&file);
-        let parsed = parser.parse(lexer);
+        let infile = code.add_filemap_from_disk(&input).unwrap();
+        let lexer = Lexer::new(&infile);
+        let result = parser.parse(lexer);
 
-        match parsed {
+        if opt.parse {
+            let output = input.with_extension("parsed");
+            let mut outfile = File::create(output).unwrap();
+            
+            match &result {
+            | Err(err) => write!(outfile, "{}", err.to_debug(&code)).unwrap(),
+            | Ok(ast)  => write!(outfile, "{}", ast).unwrap(),
+            };
+        }
+
+        match result {
         | Err(err) => emit(&mut stderr, &code, &err.into()).unwrap(),
         | Ok(ast) => println!("{}", ast),
         };

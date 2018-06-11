@@ -1,4 +1,4 @@
-use codespan::{ByteIndex, ByteSpan};
+use codespan::{ByteIndex, ByteSpan, CodeMap};
 use codespan_reporting::{Diagnostic, Label};
 use lalrpop_util::ParseError;
 
@@ -11,6 +11,20 @@ pub struct Error {
 }
 
 impl Error {
+    pub fn to_debug(&self, files: &CodeMap) -> String {
+        let file = files.find_file(self.span.start()).unwrap();
+        let (row, col) = file.location(self.span.start()).unwrap();
+
+        let category = match self.kind {
+        | Kind::Lexical(_)   => "lexical", 
+        | Kind::Syntactic(_) => "syntactic",
+        | Kind::Semantic(_)  => "semantic",
+        };
+        
+        let message: String = (&self.kind).into();
+        format!("{}:{} {} error: {}", row.number(), col.number(), category, message)
+    }
+
     pub fn lexical(start: ByteIndex, end: ByteIndex, err: Lex) -> Self {
         Error { span: ByteSpan::new(start, end), kind: Kind::Lexical(err), }
     }
@@ -27,7 +41,7 @@ impl Error {
 impl Into<Diagnostic> for Error {
     fn into(self) -> Diagnostic {
         let Error { span, kind } = self;
-        Diagnostic::new_error(kind).with_label(Label::new_primary(span))
+        Diagnostic::new_error(&kind).with_label(Label::new_primary(span))
     }
 }
 
@@ -38,7 +52,7 @@ pub enum Kind {
     Semantic(Type),
 }
 
-impl Into<String> for Kind {
+impl <'a> Into<String> for &'a Kind {
     fn into(self) -> String {
         match self {
         | Kind::Lexical(err)   => err.into(),
@@ -55,7 +69,7 @@ pub enum Lex {
     Unknown,
 }
 
-impl Into<String> for Lex {
+impl <'a> Into<String> for &'a Lex {
     fn into(self) -> String {
         match self {
         | Lex::Comment => "Comments must begin with [/*].".to_string(),
@@ -90,7 +104,7 @@ impl Into<Error> for ParseError<ByteIndex, Token, Error> {
     }
 }
 
-impl Into<String> for Parse {
+impl <'a> Into<String> for &'a Parse {
     fn into(self) -> String {
         match self {
         | Parse::Extra      => "Extra tokens encountered.".to_string(),
@@ -99,7 +113,7 @@ impl Into<String> for Parse {
     }
 }
 
-impl Into<String> for Type {
+impl <'a> Into<String> for &'a Type {
     fn into(self) -> String {
         String::new()
     }
