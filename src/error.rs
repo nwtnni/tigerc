@@ -1,23 +1,33 @@
+use codespan::{ByteIndex, ByteSpan};
+use codespan_reporting::{Diagnostic, Label};
 use lalrpop_util::ParseError;
+
 use token::Token;
 
 #[derive(Debug)]
 pub struct Error {
-    span: (usize, usize),
+    span: ByteSpan,
     kind: Kind,
 }
 
 impl Error {
-    pub fn lexical(start: usize, end: usize, err: Lex) -> Self {
-        Error { span: (start, end), kind: Kind::Lexical(err), }
+    pub fn lexical(start: ByteIndex, end: ByteIndex, err: Lex) -> Self {
+        Error { span: ByteSpan::new(start, end), kind: Kind::Lexical(err), }
     }
 
-    pub fn syntactic(start: usize, end: usize, err: Parse) -> Self {
-        Error { span: (start, end), kind: Kind::Syntactic(err), }
+    pub fn syntactic(start: ByteIndex, end: ByteIndex, err: Parse) -> Self {
+        Error { span: ByteSpan::new(start, end), kind: Kind::Syntactic(err), }
     }
 
-    pub fn semantic(start: usize, end: usize, err: Type) -> Self {
-        Error { span: (start, end), kind: Kind::Semantic(err), }
+    pub fn semantic(start: ByteIndex, end: ByteIndex, err: Type) -> Self {
+        Error { span: ByteSpan::new(start, end), kind: Kind::Semantic(err), }
+    }
+}
+
+impl Into<Diagnostic> for Error {
+    fn into(self) -> Diagnostic {
+        let Error { span, kind } = self;
+        Diagnostic::new_error(kind).with_label(Label::new_primary(span))
     }
 }
 
@@ -28,6 +38,16 @@ pub enum Kind {
     Semantic(Type),
 }
 
+impl Into<String> for Kind {
+    fn into(self) -> String {
+        match self {
+        | Kind::Lexical(err)   => err.into(),
+        | Kind::Syntactic(err) => err.into(),
+        | Kind::Semantic(err)  => err.into(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Lex {
     Comment,
@@ -36,7 +56,6 @@ pub enum Lex {
 }
 
 impl Into<String> for Lex {
-
     fn into(self) -> String {
         match self {
         | Lex::Comment => "Comments must begin with [/*].".to_string(),
@@ -53,11 +72,9 @@ pub enum Parse {
 }
 
 #[derive(Debug)]
-pub enum Type {
+pub enum Type {}
 
-}
-
-impl Into<Error> for ParseError<usize, Token, Error> {
+impl Into<Error> for ParseError<ByteIndex, Token, Error> {
     fn into(self) -> Error {
         match self {
         | ParseError::InvalidToken { .. }                   => panic!("Internal error: should be covered by custom lexer"),

@@ -1,10 +1,10 @@
-use codespan::ByteIndex;
+use codespan::{ByteIndex, ByteSpan};
 
 pub type ID = String;
-pub type Span = (ByteIndex, ByteIndex);
+pub type Span = ByteSpan;
 
-pub fn to_span(l: usize, r: usize) -> Span {
-    ((l as u32).into(), (r as u32).into())
+pub fn to_span(start: ByteIndex, end: ByteIndex) -> ByteSpan {
+    ByteSpan::new(start, end)
 }
 
 #[derive(Debug)]

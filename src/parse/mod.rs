@@ -1,7 +1,7 @@
 mod display;
 mod grammar;
 
-use lalrpop_util::ParseError;
+use lalrpop_util::ParseError as LalrpopError;
 
 use ast::Exp;
 use lex::Lexer;
@@ -18,11 +18,11 @@ impl Parser {
     }
 
     pub fn parse(&self, input: Lexer) -> Result<Exp, Error> {
-        let len = input.len();
+        let len = input.len() as u32;
         self.0.parse(input).map_err(|err| {
-            if let ParseError::UnrecognizedToken { token: None, expected } = err {
-                (ParseError::UnrecognizedToken {
-                    token: Some((len - 1, Token::Str("".to_string()), len)),
+            if let LalrpopError::UnrecognizedToken { token: None, expected } = err {
+                (LalrpopError::UnrecognizedToken {
+                    token: Some(((len - 1).into(), Token::Str("".to_string()), len.into())),
                     expected
                 }).into()
             } else {

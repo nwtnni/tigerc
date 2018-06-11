@@ -1,12 +1,14 @@
 use std::str::CharIndices;
 use std::str::FromStr;
 
+use codespan::{ByteIndex, ByteOffset, ByteSpan, FileMap};
+
 use token::Token;
 use error::{Error, Lex};
 
 pub struct Lexer<'input> {
     mode: Mode,
-    source: &'input str,
+    source: &'input FileMap,
     stream: CharIndices<'input>,
     next: Option<(usize, char)>,
 }
@@ -16,7 +18,7 @@ enum Mode {
     Comment,
 }
 
-type Spanned = Result<(usize, Token, usize), Error>;
+type Spanned = Result<(ByteIndex, Token, ByteIndex), Error>;
 
 fn is_symbol(c: char) -> bool {
     match c {
@@ -50,22 +52,25 @@ fn is_whitespace(c: char) -> bool {
 
 impl <'input> Lexer<'input> {
 
-    pub fn new(source: &'input str) -> Self {
-        let mut stream = source.char_indices();
+    pub fn new(source: &'input FileMap) -> Self {
+        let mut stream = source.src().char_indices();
         let next = stream.next();
         Lexer { mode: Mode::Source, source, stream, next }
     }
 
     pub fn len(&self) -> usize {
-        self.source.len()
+        self.source.src().len()
     }
 
     fn skip(&mut self) {
         self.next = self.stream.next();
     }
 
-    fn peek(&self) -> Option<(usize, char)> {
-        self.next
+    fn peek(&self) -> Option<(ByteIndex, char)> {
+        self.next.map(|(index, c)| {
+            let offset = index as i64;
+            (self.source.span().start() + ByteOffset(offset), c)
+        })
     }
 
     fn test_peek<F>(&self, condition: F) -> bool where F: FnOnce(char) -> bool {
@@ -75,17 +80,17 @@ impl <'input> Lexer<'input> {
         }
     }
 
-    fn slice(&self, start: usize, end: usize) -> &'input str {
-        &self.source[start..end]
+    fn slice(&self, start: ByteIndex, end: ByteIndex) -> &'input str {
+        &self.source.src_slice(ByteSpan::new(start, end)).unwrap()
     }
 
-    fn take_while<F>(&mut self, start: usize, mut condition: F) -> (usize, &'input str)
+    fn take_while<F>(&mut self, start: ByteIndex, mut condition: F) -> (ByteIndex, &'input str)
         where F: FnMut(char) -> bool
     {
         self.take_until(start, |c| !condition(c))
     }
 
-    fn take_until<F>(&mut self, start: usize, mut stop: F) -> (usize, &'input str)
+    fn take_until<F>(&mut self, start: ByteIndex, mut stop: F) -> (ByteIndex, &'input str)
         where F: FnMut(char) -> bool
     {
         while let Some((end, c)) = self.peek() {
@@ -95,42 +100,46 @@ impl <'input> Lexer<'input> {
             }
         }
 
-        let eof = self.source.len();
+        let eof = self.source.span().end();
         (eof, self.slice(start, eof))
     }
 
-    fn take_symbol(&mut self, start: usize) -> (usize, &'input str) {
-        self.take_while(start, is_symbol)
-    }
-
-    fn take_ident(&mut self, start: usize) -> (usize, &'input str) {
+    fn take_ident(&mut self, start: ByteIndex) -> (ByteIndex, &'input str) {
         let valid = self.peek().map(|(_, c)| is_ident_start(c)).unwrap_or(false);
         if !valid { return (start, "") }
-        let (end, _) = self.take_while(start + 1, is_ident);
+        let (end, _) = self.take_while(start + ByteOffset(1), is_ident);
         (end, self.slice(start, end))
     }
 
-    fn take_int(&mut self, start: usize) -> (usize, &'input str) {
+    fn take_int(&mut self, start: ByteIndex) -> (ByteIndex, &'input str) {
         self.take_while(start, is_digit)
     }
 
-    fn take_string(&mut self, start: usize) -> (usize, &'input str) {
+    fn take_string(&mut self, start: ByteIndex) -> (ByteIndex, &'input str) {
         let valid = self.peek().map(|(_, c)| c == '"').unwrap_or(false);
         if !valid { return (start, "") }
         self.skip();
         let (end, _) = self.take_until(start, |c| c == '"');
         self.skip();
-        (end + 1, self.slice(start, end + 1))
+        (end + ByteOffset(1), self.slice(start, end + ByteOffset(1)))
     }
 
 }
 
-fn error(start: usize, end: usize, err: Lex) -> Option<Spanned> {
-    Some(Err(Error::lexical(start, end, err)))
+fn error(start: ByteIndex, end: ByteIndex, err: Lex) -> Option<Spanned> {
+    Some(
+        Err(
+            Error::lexical(start, end, err)
+        )
+    )
 }
 
-fn success(start: usize, end: usize, token: Token) -> Option<Spanned> {
-    Some(Ok((start, token, end)))
+fn success(start: ByteIndex, end: ByteIndex, token: Token) -> Option<Spanned> {
+    Some(
+        Ok(
+            (start, token, end)
+        )
+    )
 }
 
 
@@ -169,7 +178,7 @@ impl <'input> Iterator for Lexer<'input> {
                     | ',' => (false, Token::Comma),
                     | ':' => if self.test_peek(|c| c == '=') { (true, Token::Assign) } else { (false, Token::Colon) },
                     | '>' => if self.test_peek(|c| c == '=') { (true, Token::Ge) } else { (false, Token::Gt) }
-                    | '*' => if self.test_peek(|c| c == '/') { return error(start, start + 2, Lex::Comment) } else { (false, Token::Mul) },
+                    | '*' => if self.test_peek(|c| c == '/') { return error(start, start + ByteOffset(2), Lex::Comment) } else { (false, Token::Mul) },
                     | '/' => if self.test_peek(|c| c == '*') { self.mode = Mode::Comment; self.skip(); continue } else { (false, Token::Div) },
                     | '<' => {
                         if self.test_peek(|c| c == '=')      { (true, Token::Le) }
@@ -180,7 +189,7 @@ impl <'input> Iterator for Lexer<'input> {
                     };
 
                     // Successfully lexed symbol
-                    let end = if double { self.skip(); start + 2 } else { start + 1 };
+                    let end = if double { self.skip(); start + ByteOffset(2) } else { start + ByteOffset(1) };
                     return success(start, end, token);
                 }
 
@@ -229,8 +238,10 @@ impl <'input> Iterator for Lexer<'input> {
                 match self.take_string(start) {
                 | (_, "")  => (),
                 | (end, _) => {
-                    let string = String::from(self.slice(start + 1, end - 1));
-                    return success(start + 1, end - 1, Token::Str(string));
+                    // Cut off literal quotation marks
+                    let (start, end) = (start + ByteOffset(1), end + ByteOffset(1));
+                    let string = String::from(self.slice(start, end));
+                    return success(start, end, Token::Str(string));
                 },
                 };
 
@@ -244,8 +255,9 @@ impl <'input> Iterator for Lexer<'input> {
                 self.skip();
 
                 match c {
-                | '/' => if self.test_peek(|c| c == '*') { comment_level += 1 },
+                | '/' => if self.test_peek(|c| c == '*') { self.skip(); comment_level += 1 },
                 | '*' => if self.test_peek(|c| c == '/') {
+                            self.skip();
                             if comment_level == 0 {
                                 self.mode = Mode::Source;
                             } else {

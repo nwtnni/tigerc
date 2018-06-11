@@ -1,4 +1,5 @@
 extern crate codespan;
+extern crate codespan_reporting;
 extern crate lalrpop_util;
 
 pub mod ast;

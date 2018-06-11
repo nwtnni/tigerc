@@ -1,3 +1,5 @@
+use codespan::ByteIndex;
+
 use ast;
 use lex;
 use error::Error;
@@ -7,7 +9,7 @@ grammar;
 
 // Lexer integration
 extern {
-  type Location = usize;
+  type Location = ByteIndex;
   type Error = Error;
 
   enum Token {
