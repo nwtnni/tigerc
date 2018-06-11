@@ -27,32 +27,32 @@ macro_rules! enclose {
     }
 }
 
-/// ### `Dec::Fun`
-///
-/// ```
-/// (
-///   <FUNDEC>
-///   <FUNDEC>
-/// )
-/// ```
-///
-/// ### `Dec::Var`
-///
-/// ```
-/// (
-///   var <NAME> : <TYPEID> :=
-///   <INIT>
-/// )
-/// ```
-///
-/// ### `Dec::Type`
-///
-/// ```
-/// (
-///   <TYPEDEC>
-///   <TYPEDEC>
-/// )
-/// ```
+// ### `Dec::Fun`
+//
+// ```
+// (
+//   <FUNDEC>
+//   <FUNDEC>
+// )
+// ```
+//
+// ### `Dec::Var`
+//
+// ```
+// (
+//   var <NAME> : <TYPEID> :=
+//   <INIT>
+// )
+// ```
+//
+// ### `Dec::Type`
+//
+// ```
+// (
+//   <TYPEDEC>
+//   <TYPEDEC>
+// )
+// ```
 impl DisplayIndent for Dec {
 
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -78,19 +78,19 @@ impl DisplayIndent for Dec {
     }
 }
 
-/// ### FunDec
-///
-/// ```
-/// (
-///   function <NAME> : <TYPEID>
-///   (
-///     <FIELDDEC>
-///     <FIELDDEC>
-///   )
-///   =
-///   <BODY>
-/// )
-/// ```
+// ### FunDec
+//
+// ```
+// (
+//   function <NAME> : <TYPEID>
+//   (
+//     <FIELDDEC>
+//     <FIELDDEC>
+//   )
+//   =
+//   <BODY>
+// )
+// ```
 impl DisplayIndent for FunDec {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
@@ -116,11 +116,11 @@ impl DisplayIndent for FunDec {
     }
 }
 
-/// ### `FieldDec`
-///
-/// ```
-/// <NAME> : <TYPEID>
-/// ```
+// ### `FieldDec`
+//
+// ```
+// <NAME> : <TYPEID>
+// ```
 impl DisplayIndent for FieldDec {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
@@ -131,14 +131,14 @@ impl DisplayIndent for FieldDec {
     }
 }
 
-/// ### `TypeDec`
-///
-/// ```
-/// (
-///   type <NAME> =
-///   <TYPE>
-/// )
-/// ```
+// ### `TypeDec`
+//
+// ```
+// (
+//   type <NAME> =
+//   <TYPE>
+// )
+// ```
 impl DisplayIndent for TypeDec {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
@@ -153,14 +153,14 @@ impl DisplayIndent for TypeDec {
     }
 }
 
-/// ### `Field`
-///
-/// ```
-/// (
-///   <NAME> :
-///   <EXP>
-/// )
-/// ```
+// ### `Field`
+//
+// ```
+// (
+//   <NAME> :
+//   <EXP>
+// )
+// ```
 impl DisplayIndent for Field {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
@@ -175,26 +175,26 @@ impl DisplayIndent for Field {
     }
 }
 
-/// ### `Type::Name`
-///
-/// ```
-/// <NAME>
-/// ```
-///
-/// ### `Type::Rec`
-///
-/// ```
-/// (
-///   <FIELDDEC>
-///   <FIELDDEC>
-/// )
-/// ```
-///
-/// ### `Type::Arr`
-///
-/// ```
-/// <NAME> array
-/// ```
+// ### `Type::Name`
+//
+// ```
+// <NAME>
+// ```
+//
+// ### `Type::Rec`
+//
+// ```
+// (
+//   <FIELDDEC>
+//   <FIELDDEC>
+// )
+// ```
+//
+// ### `Type::Arr`
+//
+// ```
+// <NAME> array
+// ```
 impl DisplayIndent for Type {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
@@ -214,32 +214,32 @@ impl DisplayIndent for Type {
     }
 }
 
-/// ### `Var::Simple`
-///
-/// ```
-/// <NAME>
-/// ```
-///
-/// ### `Var::Field`
-///
-/// ```
-/// (
-///   <VAR>
-///   .
-///   <NAME>
-/// )
-/// ```
-///
-/// ### `Var::Index`
-///
-/// ```
-/// (
-///   <VAR>
-///   []
-///   <EXP>
-/// )
-///
-///
+// ### `Var::Simple`
+//
+// ```
+// <NAME>
+// ```
+//
+// ### `Var::Field`
+//
+// ```
+// (
+//   <VAR>
+//   .
+//   <NAME>
+// )
+// ```
+//
+// ### `Var::Index`
+//
+// ```
+// (
+//   <VAR>
+//   []
+//   <EXP>
+// )
+//
+//
 impl DisplayIndent for Var {
 
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -269,161 +269,161 @@ impl DisplayIndent for Var {
     }
 }
 
-/// ### `Exp::Break`
-///
-/// ```
-/// break
-/// ```
-///
-/// ### `Exp::Nil`
-///
-/// ```
-/// nil
-/// ```
-///
-/// ### `Exp::Var`
-///
-/// ```
-/// <VAR>
-/// ```
-///
-/// ### `Exp::Int`
-///
-/// ```
-/// <VALUE>
-/// ```
-///
-/// ### `Exp::Str`
-///
-/// ```
-/// "<VALUE>"
-/// ```
-///
-/// ### `Exp::Call`
-///
-/// ```
-/// (
-///   call <NAME>
-///   (
-///     <EXP>
-///     <EXP>
-///   )
-/// )
-/// ```
-///
-/// ### `Exp::Neg`
-///
-/// ```
-/// (
-///   -
-///   <EXP>
-/// )
-///
-/// ### `Exp::Bin`
-///
-/// ```
-/// (
-///   <EXP>
-///   <OP>
-///   <EXP>
-/// )
-/// ```
-///
-/// ### `Exp::Rec`
-///
-/// ```
-/// (
-///   <NAME>
-///   (
-///     <FIELD>
-///     <FIELD>
-///   )
-/// )
-/// ```
-///
-/// ### `Exp::Seq`
-///
-/// ```
-/// (
-///   <EXP>
-///   ;
-///   <EXP>
-/// )
-/// ```
-///
-/// ### `Exp::Ass`
-///
-/// ```
-/// (
-///   <VAR>
-///   :=
-///   <EXP>
-/// )
-/// ```
-///
-/// ### `Exp::If`
-///
-/// ```
-/// (
-///   if
-///   <EXP>
-///   then
-///   <EXP>
-///   else
-///   <EXP>
-/// )
-/// ```
-///
-/// ### `Exp::While`
-///
-/// ```
-/// (
-///   while
-///   <EXP>
-///   do
-///   <EXP>
-/// )
-/// ```
-///
-/// ### `Exp::For`
-///
-/// ```
-/// (
-///   for <NAME> :=
-///   <EXP>
-///   to
-///   <EXP>
-///   do
-///   <EXP>
-/// )
-/// ```
-///
-/// ### `Exp::Let`
-///
-/// ```
-/// (
-///   let
-///   (
-///     <DEC>
-///     <DEC>
-///   )
-///   in
-///   <EXP>
-/// )
-///
-/// ```
-///
-/// ### `Exp::Arr`
-///
-/// ```
-/// (
-///   <NAME>
-///   size
-///   <EXP>
-///   of
-///   <EXP>
-/// )
-/// ```
+// ### `Exp::Break`
+//
+// ```
+// break
+// ```
+//
+// ### `Exp::Nil`
+//
+// ```
+// nil
+// ```
+//
+// ### `Exp::Var`
+//
+// ```
+// <VAR>
+// ```
+//
+// ### `Exp::Int`
+//
+// ```
+// <VALUE>
+// ```
+//
+// ### `Exp::Str`
+//
+// ```
+// "<VALUE>"
+// ```
+//
+// ### `Exp::Call`
+//
+// ```
+// (
+//   call <NAME>
+//   (
+//     <EXP>
+//     <EXP>
+//   )
+// )
+// ```
+//
+// ### `Exp::Neg`
+//
+// ```
+// (
+//   -
+//   <EXP>
+// )
+//
+// ### `Exp::Bin`
+//
+// ```
+// (
+//   <EXP>
+//   <OP>
+//   <EXP>
+// )
+// ```
+//
+// ### `Exp::Rec`
+//
+// ```
+// (
+//   <NAME>
+//   (
+//     <FIELD>
+//     <FIELD>
+//   )
+// )
+// ```
+//
+// ### `Exp::Seq`
+//
+// ```
+// (
+//   <EXP>
+//   ;
+//   <EXP>
+// )
+// ```
+//
+// ### `Exp::Ass`
+//
+// ```
+// (
+//   <VAR>
+//   :=
+//   <EXP>
+// )
+// ```
+//
+// ### `Exp::If`
+//
+// ```
+// (
+//   if
+//   <EXP>
+//   then
+//   <EXP>
+//   else
+//   <EXP>
+// )
+// ```
+//
+// ### `Exp::While`
+//
+// ```
+// (
+//   while
+//   <EXP>
+//   do
+//   <EXP>
+// )
+// ```
+//
+// ### `Exp::For`
+//
+// ```
+// (
+//   for <NAME> :=
+//   <EXP>
+//   to
+//   <EXP>
+//   do
+//   <EXP>
+// )
+// ```
+//
+// ### `Exp::Let`
+//
+// ```
+// (
+//   let
+//   (
+//     <DEC>
+//     <DEC>
+//   )
+//   in
+//   <EXP>
+// )
+//
+// ```
+//
+// ### `Exp::Arr`
+//
+// ```
+// (
+//   <NAME>
+//   size
+//   <EXP>
+//   of
+//   <EXP>
+// )
+// ```
 impl DisplayIndent for Exp {
 
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {

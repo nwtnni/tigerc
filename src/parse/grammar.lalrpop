@@ -1,7 +1,6 @@
 use codespan::ByteIndex;
 
 use ast;
-use lex;
 use error::Error;
 use token::Token;
 

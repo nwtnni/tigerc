@@ -45,6 +45,7 @@ fn main() -> Result<(), Error> {
 
         if opt.parse {
             let output = input.with_extension("parsed");
+            println!("{:?}", output);
             let mut outfile = File::create(output).unwrap();
             
             match &result {
