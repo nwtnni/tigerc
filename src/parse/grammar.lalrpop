@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use ast;
 use lex;
 use token::Token;
@@ -290,7 +288,7 @@ Exp: ast::Exp = {
   },
 
   // Literal array
-  <l: @L> <name: ID> <rn: @R> LBRACE <size: Exp> RBRACE OF <init: Or> <r: @R> => {
+  <l: @L> <name: ID> LBRACE <size: Exp> RBRACE OF <init: Or> <r: @R> => {
     ast::Exp::Arr { name, size: Box::new(size), init: Box::new(init), span: ast::to_span(l, r) }
   },
 

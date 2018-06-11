@@ -1,16 +1,15 @@
 #[macro_use] extern crate structopt;
 extern crate codespan;
-extern crate failure;
 extern crate tiger_rs;
 
 use codespan::CodeMap;
-use failure::Error;
 use structopt::StructOpt;
 
 use std::path::PathBuf;
 
 use tiger_rs::parse::*;
 use tiger_rs::lex::*;
+use tiger_rs::error::*;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "c--")]

@@ -1,5 +1,3 @@
-#[macro_use]
-extern crate failure;
 extern crate codespan;
 extern crate lalrpop_util;
 
