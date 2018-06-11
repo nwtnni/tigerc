@@ -10,6 +10,7 @@ use structopt::StructOpt;
 use std::path::PathBuf;
 
 use tiger_rs::parse::*;
+use tiger_rs::lex::*;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "c--")]
@@ -34,7 +35,8 @@ fn main() -> Result<(), Error> {
     for path in &opt.files {
         
         let file = code.add_filemap_from_disk(path).unwrap();
-        let parsed = parser.parse(file.src());
+        let lexer = Lexer::new(file.src());
+        let parsed = parser.parse(lexer);
 
         match parsed {
         | Err(err) => println!("{:?}", err),

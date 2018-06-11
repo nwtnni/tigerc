@@ -49,8 +49,6 @@ extern {
     RBRACK    => Token::RBrack,
     LPAREN    => Token::LParen,
     RPAREN    => Token::RParen,
-    LCOMMENT  => Token::LComment,
-    RCOMMENT  => Token::RComment,
     SEMICOLON => Token::Semicolon,
     COLON     => Token::Colon,
     COMMA     => Token::Comma,

@@ -118,12 +118,6 @@ pub enum Token {
 
     /// `)`
     RParen,
-
-    /// `/*`
-    LComment,
-
-    /// `*/`
-    RComment,
     
     /// `;`
     Semicolon,

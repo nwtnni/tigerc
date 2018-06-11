@@ -3,6 +3,7 @@ mod error;
 mod grammar;
 
 use ast::Exp;
+use lex::Lexer;
 use error::Error;
 
 pub use self::error::ParseError;
@@ -16,7 +17,7 @@ impl Parser {
         Parser(grammar::ProgramParser::new())
     }
 
-    pub fn parse<'input>(&self, input: &'input str) -> Result<Exp, Error> {
+    pub fn parse<'input>(&self, input: Lexer) -> Result<Exp, Error> {
         self.0.parse(input).map_err(|err| ParseError::new(err).into())
     }
 
