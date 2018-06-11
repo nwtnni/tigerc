@@ -1,8 +1,64 @@
 use std::str::FromStr;
 
 use ast;
+use lex;
+use token::Token;
 
 grammar;
+
+// Lexer integration
+extern {
+  type Location = usize;
+  type Error = lex::LexError;
+
+  enum Token {
+    TYPE      => Token::Type,
+    VAR       => Token::Var,
+    FUNCTION  => Token::Function,
+    BREAK     => Token::Break,
+    OF        => Token::Of,
+    END       => Token::End,
+    IN        => Token::In,
+    NIL       => Token::Nil,
+    LET       => Token::Let,
+    DO        => Token::Do,
+    TO        => Token::To,
+    FOR       => Token::For,
+    WHILE     => Token::While,
+    ELSE      => Token::Else,
+    THEN      => Token::Then,
+    IF        => Token::If,
+    ARRAY     => Token::Array,
+    ASSIGN    => Token::Assign,
+    OR        => Token::Or,
+    AND       => Token::And,
+    GE        => Token::Ge,
+    GT        => Token::Gt,
+    LE        => Token::Le,
+    LT        => Token::Lt,
+    NEQ       => Token::Neq,
+    EQ        => Token::Eq,
+    DIV       => Token::Div,
+    MUL       => Token::Mul,
+    SUB       => Token::Sub,
+    ADD       => Token::Add,
+    DOT       => Token::Dot,
+    LBRACE    => Token::LBrace,
+    RBRACE    => Token::RBrace,
+    LBRACK    => Token::LBrack,
+    RBRACK    => Token::RBrack,
+    LPAREN    => Token::LParen,
+    RPAREN    => Token::RParen,
+    LCOMMENT  => Token::LComment,
+    RCOMMENT  => Token::RComment,
+    SEMICOLON => Token::Semicolon,
+    COLON     => Token::Colon,
+    COMMA     => Token::Comma,
+    INT       => Token::Int(<i32>),
+    STR       => Token::Str(<String>),
+    ID        => Token::Ident(<String>),
+  }
+}
 
 // Comma-separated list of T
 Comma<T>: Vec<T> = {
@@ -63,7 +119,7 @@ TypeDecRec: Vec<ast::Dec> = {
 TypeDec: ast::TypeDec = {
 
   // type type-id = ty
-  <l: @L> TYPE <name: ID> "=" <ty: Type> <r: @R> => ast::TypeDec { name, ty, span: ast::to_span(l, r) },
+  <l: @L> TYPE <name: ID> EQ <ty: Type> <r: @R> => ast::TypeDec { name, ty, span: ast::to_span(l, r) },
 
 }
 
@@ -358,56 +414,3 @@ Atom: ast::Exp = {
 Field: ast::Field = {
   <l: @L> <name: ID> EQ <exp: Exp> <r: @R> => ast::Field { name, exp: Box::new(exp), span: ast::to_span(l, r) },
 }
-
-// Keywords
-
-TYPE     : () = "type";
-VAR      : () = "var";
-FUNCTION : () = "function";
-BREAK    : () = "break";
-OF       : () = "of";
-END      : () = "end";
-IN       : () = "in";
-NIL      : () = "nil";
-LET      : () = "let";
-DO       : () = "do";
-TO       : () = "to";
-FOR      : () = "for";
-WHILE    : () = "while";
-ELSE     : () = "else";
-THEN     : () = "then";
-IF       : () = "if";
-ARRAY    : () = "array";
-
-// Operators
-
-ASSIGN    : () = ":=";
-OR        : () = "|";
-AND       : () = "&";
-GE        : () = ">=";
-GT        : () = ">";
-LE        : () = "<=";
-LT        : () = "<";
-NEQ       : () = "<>";
-EQ        : () = "=";
-DIV       : () = "/";
-MUL       : () = "*";
-SUB       : () = "-";
-ADD       : () = "+";
-DOT       : () = ".";
-
-// Miscellaneous
-
-LBRACE    : () = "[";
-RBRACE    : () = "]";
-LBRACK    : () = "{";
-RBRACK    : () = "}";
-LPAREN    : () = "(";
-RPAREN    : () = ")";
-SEMICOLON : () = ";";
-COLON     : () = ":";
-COMMA     : () = ",";
-
-ID: String = <r"[a-zA-Z][a-zA-Z0-9_]*"> => String::from(<>);
-INT: i32 = <r"[0-9]+"> => i32::from_str(<>).unwrap();
-STR: String = <r##""[^"]*""##> => String::from(<>);

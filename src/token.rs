@@ -72,6 +72,9 @@ pub enum Token {
     /// `>`
     Gt,
 
+    /// `<=`
+    Le,
+
     /// `<`
     Lt,
 
