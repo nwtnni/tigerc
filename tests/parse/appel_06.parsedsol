@@ -1,0 +1,17 @@
+(
+  let
+  (
+    (
+      (
+        function do_nothing1 (a: int b: string) =
+        (call do_nothing2 ((a + 1)))
+      )
+      (
+        function do_nothing2 (d : int) =
+        (call do_nothing1 (d "str"))
+      )
+    )
+  )
+  in
+  ((call do_nothing1 (0 "str2")))
+)

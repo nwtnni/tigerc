@@ -1,0 +1,29 @@
+(
+  let
+  (
+    (
+      (type intlist = (
+        hd : int
+        tl : intlist
+      ))
+
+      (type tree = (
+        key : int
+        children : treelist
+      ))
+
+      (type treelist = (
+        hd : tree
+        tl : treelist
+      ))
+    )
+    (var lis:intlist := (
+      intlist (
+        hd = 0
+        tl = nil
+      ) 
+    ))
+  )
+  in
+  (lis)
+)

@@ -156,20 +156,14 @@ impl DisplayIndent for TypeDec {
 // ### `Field`
 //
 // ```
-// (
-//   <NAME> :
-//   <EXP>
-// )
+// <NAME> = <EXP>
 // ```
 impl DisplayIndent for Field {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
-        enclose!(fmt, level, {
-            let level = level + 1;
-            let Field { name, exp, .. } = self;
-            indent!(fmt, level, format!("{} :", name));
-            (**exp).display_indent(level, fmt)?;
-        });
+        let Field { name, exp, .. } = self;
+        indent!(fmt, level, format!("{} =", name));
+        (**exp).display_indent(level, fmt)?;
 
         Ok(())
     }
@@ -193,13 +187,13 @@ impl DisplayIndent for Field {
 // ### `Type::Arr`
 //
 // ```
-// <NAME> array
+// array of <NAME>
 // ```
 impl DisplayIndent for Type {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
         match self {
-        | Type::Arr(name, _)  => indent!(fmt, level, format!("{} array", name)),
+        | Type::Arr(name, _)  => indent!(fmt, level, format!("array of {}", name)),
         | Type::Name(name, _) => indent!(fmt, level, name),
         | Type::Rec(decs, _)  => {
             enclose!(fmt, level, {
@@ -332,12 +326,10 @@ impl DisplayIndent for Var {
 // ### `Exp::Rec`
 //
 // ```
+// <NAME>
 // (
-//   <NAME>
-//   (
-//     <FIELD>
-//     <FIELD>
-//   )
+//   <FIELD>
+//   <FIELD>
 // )
 // ```
 //
@@ -346,8 +338,8 @@ impl DisplayIndent for Var {
 // ```
 // (
 //   <EXP>
-//   ;
 //   <EXP>
+//   ...
 // )
 // ```
 //
@@ -464,12 +456,7 @@ impl DisplayIndent for Exp {
                 });
             },
             | Exp::Seq(exps, _) => {
-                if !exps.is_empty() {
-                    exps[0].display_indent(level, fmt)?;
-                }
-
-                for e in exps.iter().skip(1) {
-                    indent!(fmt, level, ";");
+                for e in exps {
                     e.display_indent(level, fmt)?;
                 }
             },

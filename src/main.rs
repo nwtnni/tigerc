@@ -1,7 +1,7 @@
 #[macro_use] extern crate structopt;
 extern crate codespan;
 extern crate codespan_reporting;
-extern crate tiger_rs;
+extern crate tigerc;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -12,9 +12,9 @@ use codespan_reporting::emit;
 use codespan_reporting::termcolor::{StandardStream, ColorChoice};
 use structopt::StructOpt;
 
-use tiger_rs::parse::*;
-use tiger_rs::lex::*;
-use tiger_rs::error::*;
+use tigerc::parse::*;
+use tigerc::lex::*;
+use tigerc::error::*;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tigerc")]
