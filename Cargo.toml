@@ -1,5 +1,5 @@
 [package]
-name = "tiger-rs"
+name = "tigerc"
 version = "0.1.0"
 authors = ["Newton Ni <nwtnni@gmail.com>"]
 
