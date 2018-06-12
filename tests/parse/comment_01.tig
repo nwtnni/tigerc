@@ -1,0 +1,2 @@
+/* should not show up in AST */
+x := 5

@@ -1,0 +1,16 @@
+let
+/* Nested comments
+/* with more text
+/* and symbols
+/* <> * = :=
+/* let function ())
+*/
+*/
+*/
+*/ abcdefg
+*/
+  var x := 5
+in
+  x
+end
+    

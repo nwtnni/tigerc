@@ -1,0 +1,7 @@
+let /*
+  var x := 10
+*/
+  var x := 5
+in
+  x
+end
