@@ -116,12 +116,11 @@ impl <'input> Lexer<'input> {
     }
 
     fn take_string(&mut self, start: ByteIndex) -> (ByteIndex, &'input str) {
-        let valid = self.peek().map(|(_, c)| c == '"').unwrap_or(false);
-        if !valid { return (start, "") }
+        if !self.test_peek(|c| c == '"') { return (start, "") }
         self.skip();
         let (end, _) = self.take_until(start, |c| c == '"');
         self.skip();
-        (end + ByteOffset(1), self.slice(start, end + ByteOffset(1)))
+        (end, self.slice(start, end))
     }
 
 }
@@ -239,7 +238,7 @@ impl <'input> Iterator for Lexer<'input> {
                 | (_, "")  => (),
                 | (end, _) => {
                     // Cut off literal quotation marks
-                    let (start, end) = (start + ByteOffset(1), end + ByteOffset(1));
+                    let (start, end) = (start + ByteOffset(1), end);
                     let string = String::from(self.slice(start, end));
                     return success(start, end, Token::Str(string));
                 },
