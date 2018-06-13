@@ -429,22 +429,20 @@ impl Checker {
             },
             }
         },
-        | Dec::Type(types, span) => {
+        | Dec::Type(decs, _) => {
 
             // Initialize top-level declarations
-            for ty in types {
-                tc.insert_mut(ty.name.clone(), Ty::Name(ty.name.clone(), None));
+            for dec in decs {
+                tc.insert_mut(dec.name.clone(), Ty::Name(dec.name.clone(), None));
             }
 
             // Fill in type bodies
-            for ty in types {
-            
-
-
+            for dec in decs {
+                let ty = self.check_type(tc.clone(), &dec.ty)?;
+                tc.insert_mut(dec.name.clone(), Ty::Name(dec.name.clone(), Some(Box::new(ty))));
             }
-            
 
-            unreachable!()
+            Ok((vc, tc))
         },
         }
     }
