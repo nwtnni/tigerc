@@ -33,8 +33,8 @@ impl Error {
         Error { span: ByteSpan::new(start, end), kind: Kind::Syntactic(err), }
     }
 
-    pub fn semantic(start: ByteIndex, end: ByteIndex, err: TypeError) -> Self {
-        Error { span: ByteSpan::new(start, end), kind: Kind::Semantic(err), }
+    pub fn semantic(span: ByteSpan, err: TypeError) -> Self {
+        Error { span, kind: Kind::Semantic(err), }
     }
 }
 
@@ -86,7 +86,9 @@ pub enum ParseError {
 }
 
 #[derive(Debug)]
-pub enum TypeError {}
+pub enum TypeError {
+    Break,
+}
 
 impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {
     fn into(self) -> Error {

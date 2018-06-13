@@ -1,3 +1,4 @@
+use codespan::ByteSpan;
 use im::HashMap;
 use uuid::Uuid;
 
@@ -16,11 +17,11 @@ pub enum Ty {
 
 pub struct Typed {
     ty: Ty,
-    exp: (),
+    _exp: (),
 }
 
 pub enum Binding {
-    Var(Ty),
+    Var(Ty, bool),
     Fun(Vec<Ty>, Ty),
 }
 
@@ -28,22 +29,51 @@ type Context<T> = HashMap<String, T>;
 type TypeContext = Context<Ty>;
 type VarContext = Context<Binding>;
 
-pub fn check_var(vc: VarContext, tc: TypeContext, var: Var) -> Result<Typed, Error> {
-
-    unreachable!()
+fn ok(ty: Ty) -> Result<Typed, Error> {
+    Ok(Typed { ty, _exp: () })
 }
 
-pub fn check_exp(vc: VarContext, tc: TypeContext, exp: Exp) -> Result<Typed, Error> {
-
-    unreachable!()
+fn error<T>(span: ByteSpan, err: TypeError) -> Result<T, Error> {
+    Err(Error::semantic(span, err))
 }
 
-pub fn check_dec(vc: VarContext, tc: TypeContext, dec: Dec) -> Result<(VarContext, TypeContext), Error> {
-
-    unreachable!()
+pub struct Checker {
+    loops: Vec<()>,
 }
 
-pub fn check_type(tc: TypeContext, ty: Type) -> Result<Ty, Error> {
+impl Checker {
 
-    unreachable!()
+    fn check_var(&self, vc: VarContext, tc: TypeContext, var: Var) -> Result<Typed, Error> {
+
+        unreachable!()
+    }
+
+    fn check_exp(&mut self, vc: VarContext, tc: TypeContext, exp: Exp) -> Result<Typed, Error> {
+
+        match exp {
+        | Exp::Break(span)             => if self.loops.is_empty() { error(span, TypeError::Break) } else { ok(Ty::Unit) },
+        | Exp::Nil(_)                  => ok(Ty::Nil),
+        | Exp::Int(_, _)               => ok(Ty::Int),
+        | Exp::Str(_, _)               => ok(Ty::Str),
+        | Exp::Var(var, _)             => self.check_var(vc, tc, var),
+        // | Exp::Call {name, args, span} => { },
+                
+        | _ => unreachable!(),
+
+
+
+        }
+
+    }
+
+    fn check_dec(&self, vc: VarContext, tc: TypeContext, dec: Dec) -> Result<(VarContext, TypeContext), Error> {
+
+        unreachable!()
+    }
+
+    fn check_type(&self, tc: TypeContext, ty: Type) -> Result<Ty, Error> {
+
+        unreachable!()
+    }
+
 }
