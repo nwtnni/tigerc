@@ -15,14 +15,19 @@ use structopt::StructOpt;
 use tigerc::parse::*;
 use tigerc::lex::*;
 use tigerc::error::*;
+use tigerc::ty::Checker;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tigerc")]
 struct Opt {
 
-    /// Write parsing and lexing diagnostics to file.
+    /// Write parsing diagnostics to file.
     #[structopt(short = "p", long = "parse")]
     parse: bool,
+
+    /// Write type-checking diagnostics to file.
+    #[structopt(short = "t", long = "type")]
+    ty: bool,
 
     /// Files to compile.
     #[structopt(name = "FILE", parse(from_os_str))]
@@ -45,7 +50,6 @@ fn main() -> Result<(), Error> {
 
         if opt.parse {
             let output = input.with_extension("parsed");
-            println!("{:?}", output);
             let mut outfile = File::create(output).unwrap();
             
             match &result {
@@ -54,10 +58,21 @@ fn main() -> Result<(), Error> {
             };
         }
 
-        match result {
-        | Err(err) => emit(&mut stderr, &code, &err.into()).unwrap(),
-        | Ok(ast) => println!("{}", ast),
-        };
+        if opt.ty {
+            let output = input.with_extension("typed");
+            let mut outfile = File::create(output).unwrap();
+            
+            match Checker::check(&result.unwrap()) {
+            | Err(err) => {
+                write!(outfile, "{}", err.to_debug(&code)).unwrap();
+                emit(&mut stderr, &code, &err.into()).unwrap();
+            },
+            | Ok(_)  => {
+                write!(outfile, "Valid Tiger Program").unwrap();
+                println!("Valid Tiger Program");
+            },
+            };
+        }
     }
 
     Ok(())

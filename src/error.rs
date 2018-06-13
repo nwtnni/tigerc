@@ -105,6 +105,7 @@ pub enum TypeError {
     UnusedExp,
 
     UnboundVar,
+    NotVar,
     VarMismatch,
 
     GuardMismatch,
@@ -156,6 +157,34 @@ impl <'a> Into<String> for &'a ParseError {
 
 impl <'a> Into<String> for &'a TypeError {
     fn into(self) -> String {
-        String::new()
+        match self {
+        | TypeError::Break            => "Cannot break outside of a loop.".to_string(),
+        | TypeError::CallMismatch     => "Wrong arguments to function.".to_string(),
+        | TypeError::UnboundFunction  => "Could not find function.".to_string(),
+        | TypeError::NotFunction      => "Not a function.".to_string(),
+        | TypeError::ReturnMismatch   => "Function return type doesn't match body.".to_string(),
+        | TypeError::Neg              => "Can only negate integers.".to_string(),
+        | TypeError::BinaryMismatch   => "Wrong arguments for binary operator.".to_string(),
+        | TypeError::UnboundRecord    => "Could not find record.".to_string(),
+        | TypeError::NotRecord        => "Not a record.".to_string(),
+        | TypeError::FieldMismatch    => "Incorrect type for field.".to_string(),
+        | TypeError::UnusedExp        => "Unused expression.".to_string(),
+        | TypeError::UnboundVar       => "Could not find variable.".to_string(),
+        | TypeError::NotVar           => "Expected variable.".to_string(),
+        | TypeError::VarMismatch      => "Incorrect type for variable.".to_string(),
+        | TypeError::GuardMismatch    => "Guard expression must be an integer.".to_string(),
+        | TypeError::BranchMismatch   => "Branches must return the same type.".to_string(),
+        | TypeError::UnusedBranch     => "If branches must return unit.".to_string(),
+        | TypeError::UnusedWhileBody  => "While body must return unit.".to_string(),
+        | TypeError::ForBound         => "For bounds must be integers.".to_string(),
+        | TypeError::UnusedForBody    => "For body must return unit.".to_string(),
+        | TypeError::UnboundArr       => "Could not find array.".to_string(),
+        | TypeError::NotArr           => "Not an array.".to_string(),
+        | TypeError::ArrMismatch      => "Array initializer doesn't match array type.".to_string(),
+        | TypeError::UnboundType      => "Could not find type.".to_string(),
+        | TypeError::UnboundField     => "Unbound record field.".to_string(),
+        | TypeError::IndexMismatch    => "Array indices must be integers.".to_string(),
+        | TypeError::UnknownNil       => "Cannot infer type for nil.".to_string(),
+        }
     }
 }
