@@ -87,6 +87,17 @@ impl Checker {
         Ok(())
     }
 
+    pub fn lookup(tc: TypeContext, alias: &str) -> Ty {
+        let mut actual = (*tc.get(alias).unwrap()).clone();
+        while let Ty::Name(_, ty) = actual {
+            match ty {
+            | None => panic!("Internal error: unfilled recursive type"),
+            | Some(ty) => actual = *ty,
+            }
+        }
+        actual
+    }
+
     fn check_var(&mut self, vc: VarContext, tc: TypeContext, var: &Var) -> Result<Typed, Error> {
 
         macro_rules! is_int {
@@ -101,7 +112,7 @@ impl Checker {
                 return error(span, TypeError::UnboundType)
             }
 
-            ok(tc[name].clone())
+            ok(Self::lookup(tc, name))
         },
         | Var::Field(rec, field, span) => {
 
@@ -234,7 +245,7 @@ impl Checker {
                 return error(span, TypeError::UnboundRecord)
             }
 
-            match &tc[name] {
+            match Self::lookup(tc.clone(), name) {
             | Ty::Rec(fields_ty, _) => {
 
                 if fields.len() != fields_ty.len() {
@@ -243,12 +254,12 @@ impl Checker {
 
                 // Check all field name - value pairs
                 for (field, (field_name, field_ty)) in fields.iter().zip(fields_ty) {
-                    if &field.name != field_name || &self.check_exp(vc.clone(), tc.clone(), &*field.exp)?.ty != field_ty {
+                    if field.name != field_name || self.check_exp(vc.clone(), tc.clone(), &*field.exp)?.ty != field_ty {
                         return error(span, TypeError::FieldMismatch)
                     }
                 }
 
-                ok((&tc[name]).clone())
+                ok(Self::lookup(tc, name))
             },
             | _ => error(span, TypeError::NotRecord),
             }
@@ -367,8 +378,8 @@ impl Checker {
                 return error(span, TypeError::UnboundArr)
             }
 
-            let elem = match &tc[name] {
-            | Ty::Arr(elem, _) => &**elem,
+            let elem = match Self::lookup(tc.clone(), name) {
+            | Ty::Arr(elem, _) => *elem,
             | _                => return error(span, TypeError::NotArr),
             };
 
@@ -376,16 +387,16 @@ impl Checker {
                 return error(span, TypeError::ForBound)
             }
 
-            if &self.check_exp(vc.clone(), tc.clone(), &*init)?.ty != elem {
+            if self.check_exp(vc.clone(), tc.clone(), &*init)?.ty != elem {
                 return error(span, TypeError::ArrMismatch)
             }
 
-            ok((&tc[name]).clone())
+            ok(Self::lookup(tc, name))
         },
         }
     }
 
-    fn check_dec(&mut self, vc: VarContext, tc: TypeContext, dec: &Dec) -> Result<(VarContext, TypeContext), Error> {
+    fn check_dec(&mut self, vc: VarContext, mut tc: TypeContext, dec: &Dec) -> Result<(VarContext, TypeContext), Error> {
         match dec {
         | Dec::Fun(funs, span) => {
 
@@ -408,7 +419,7 @@ impl Checker {
                     return error(span, TypeError::UnboundType)
                 }
 
-                let name_ty = tc[name].clone();
+                let name_ty = Self::lookup(tc.clone(), name);
 
                 if name_ty != init_ty && !(name_ty.is_rec() && init_ty == Ty::Nil) {
                     return error(span, TypeError::VarMismatch)
@@ -420,9 +431,20 @@ impl Checker {
         },
         | Dec::Type(types, span) => {
 
+            // Initialize top-level declarations
+            for ty in types {
+                tc.insert_mut(ty.name.clone(), Ty::Name(ty.name.clone(), None));
+            }
+
+            // Fill in type bodies
+            for ty in types {
+            
+
+
+            }
+            
 
             unreachable!()
-
         },
         }
     }
