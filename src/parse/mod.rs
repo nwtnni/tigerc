@@ -22,7 +22,7 @@ impl Parser {
         self.0.parse(input).map_err(|err| {
             if let LalrpopError::UnrecognizedToken { token: None, expected } = err {
                 (LalrpopError::UnrecognizedToken {
-                    token: Some(((len - 1).into(), Token::Str("".to_string()), len.into())),
+                    token: Some((len.into(), Token::Str("".to_string()), len.into())),
                     expected
                 }).into()
             } else {

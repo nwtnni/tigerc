@@ -4,7 +4,7 @@ use std::str::FromStr;
 use codespan::{ByteIndex, ByteOffset, ByteSpan, FileMap};
 
 use token::Token;
-use error::{Error, Lex};
+use error::{Error, LexError};
 
 pub struct Lexer<'input> {
     mode: Mode,
@@ -125,7 +125,7 @@ impl <'input> Lexer<'input> {
 
 }
 
-fn error(start: ByteIndex, end: ByteIndex, err: Lex) -> Option<Spanned> {
+fn error(start: ByteIndex, end: ByteIndex, err: LexError) -> Option<Spanned> {
     Some(
         Err(
             Error::lexical(start, end, err)
@@ -177,7 +177,7 @@ impl <'input> Iterator for Lexer<'input> {
                     | ',' => (false, Token::Comma),
                     | ':' => if self.test_peek(|c| c == '=') { (true, Token::Assign) } else { (false, Token::Colon) },
                     | '>' => if self.test_peek(|c| c == '=') { (true, Token::Ge) } else { (false, Token::Gt) }
-                    | '*' => if self.test_peek(|c| c == '/') { return error(start, start + ByteOffset(2), Lex::Comment) } else { (false, Token::Mul) },
+                    | '*' => if self.test_peek(|c| c == '/') { return error(start, start + ByteOffset(2), LexError::Comment) } else { (false, Token::Mul) },
                     | '/' => if self.test_peek(|c| c == '*') { self.mode = Mode::Comment; self.skip(); continue } else { (false, Token::Div) },
                     | '<' => {
                         if self.test_peek(|c| c == '=')      { (true, Token::Le) }
@@ -230,7 +230,7 @@ impl <'input> Iterator for Lexer<'input> {
                 match self.take_int(start) {
                 | (_, "")                              => (),
                 | (end, n) if i32::from_str(n).is_ok() => return success(start, end, Token::Int(i32::from_str(n).unwrap())),
-                | (end, _)                             => return error(start, end, Lex::Integer),
+                | (end, _)                             => return error(start, end, LexError::Integer),
                 };
 
                 // Check for literal string
@@ -246,7 +246,7 @@ impl <'input> Iterator for Lexer<'input> {
 
                 // Failure to lex: consume until next whitespace and throw error
                 let (end, _) = self.take_until(start, is_whitespace);
-                return error(start, end, Lex::Unknown);
+                return error(start, end, LexError::Unknown);
             },
 
             | Mode::Comment => {
