@@ -59,16 +59,16 @@ fn main() -> Result<(), Error> {
         }
 
         if opt.ty {
-            let output = input.with_extension("typed");
-            let mut outfile = File::create(output).unwrap();
+            // let output = input.with_extension("typed");
+            // let mut outfile = File::create(output).unwrap();
             
             match Checker::check(&result.unwrap()) {
             | Err(err) => {
-                write!(outfile, "{}", err.to_debug(&code)).unwrap();
+                // write!(outfile, "{}", err.to_debug(&code)).unwrap();
                 emit(&mut stderr, &code, &err.into()).unwrap();
             },
             | Ok(_)  => {
-                write!(outfile, "Valid Tiger Program").unwrap();
+                // write!(outfile, "Valid Tiger Program").unwrap();
                 println!("Valid Tiger Program");
             },
             };

@@ -5,7 +5,7 @@ use uuid::Uuid;
 use ast::*;
 use error::{Error, TypeError};
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub enum Ty {
     Nil,
     Int,
@@ -33,13 +33,28 @@ impl Ty {
     }
 }
 
-#[derive(PartialEq, Eq)]
+impl PartialEq for Ty {
+
+    fn eq(&self, rhs: &Self) -> bool {
+        match (self, rhs) {
+        | (Ty::Nil, Ty::Rec(_, _)) | (Ty::Rec(_, _), Ty::Nil) => true,
+        | (Ty::Int, Ty::Int) | (Ty::Str, Ty::Str) | (Ty::Unit, Ty::Unit) | (Ty::Nil, Ty::Nil) => true,
+        | (Ty::Arr(_, lid), Ty::Arr(_, rid)) => lid == rid,
+        | (Ty::Rec(_, lid), Ty::Rec(_, rid)) => lid == rid,
+        | (Ty::Name(_, ty), _) => (&*ty.clone().unwrap()).eq(rhs),
+        | (_, Ty::Name(_, ty)) => self.eq(&*ty.clone().unwrap()),
+        _ => false,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Typed {
     ty: Ty,
     _exp: (),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Binding {
     Var(Ty, bool),
     Fun(Vec<Ty>, Ty),
@@ -88,7 +103,7 @@ impl Checker {
         Ok(())
     }
 
-    fn lookup(tc: TypeContext, alias: &str) -> Ty {
+    fn lookup_ty(tc: &TypeContext, alias: &str) -> Ty {
         let mut actual = (*tc.get(alias).unwrap()).clone();
         while let Ty::Name(_, ty) = actual {
             match ty {
@@ -108,12 +123,16 @@ impl Checker {
         match var {
         | Var::Simple(name, span) => {
 
-            // Unbound in type context
-            if !tc.contains_key(name) {
-                return error(span, TypeError::UnboundType)
+            // Unbound in var context
+            if !vc.contains_key(name) {
+                return error(span, TypeError::UnboundVar)
             }
 
-            ok(Self::lookup(tc, name))
+            // Search for var binding
+            match &vc[name] {
+            | Binding::Var(ty, _) => ok(ty.clone()),
+            | _                   => error(span, TypeError::NotVar),
+            }
         },
         | Var::Field(rec, field, span) => {
 
@@ -246,7 +265,7 @@ impl Checker {
                 return error(span, TypeError::UnboundRecord)
             }
 
-            match Self::lookup(tc.clone(), name) {
+            match Self::lookup_ty(&tc, name) {
             | Ty::Rec(fields_ty, _) => {
 
                 if fields.len() != fields_ty.len() {
@@ -260,7 +279,7 @@ impl Checker {
                     }
                 }
 
-                ok(Self::lookup(tc, name))
+                ok(Self::lookup_ty(&tc, name))
             },
             | _ => error(span, TypeError::NotRecord),
             }
@@ -369,6 +388,8 @@ impl Checker {
                 let (new_vc, new_tc) = self.check_dec(let_vc, let_tc, &*dec)?;
                 let_vc = new_vc;
                 let_tc = new_tc;
+                println!("{:?}", let_vc);
+                println!("{:?}", let_tc);
             }
 
             self.check_exp(let_vc, let_tc, &*body)
@@ -379,7 +400,7 @@ impl Checker {
                 return error(span, TypeError::UnboundArr)
             }
 
-            let elem = match Self::lookup(tc.clone(), name) {
+            let elem = match Self::lookup_ty(&tc, name) {
             | Ty::Arr(elem, _) => *elem,
             | _                => return error(span, TypeError::NotArr),
             };
@@ -392,7 +413,7 @@ impl Checker {
                 return error(span, TypeError::ArrMismatch)
             }
 
-            ok(Self::lookup(tc, name))
+            ok(Self::lookup_ty(&tc, name))
         },
         }
     }
@@ -461,13 +482,13 @@ impl Checker {
 
             match ty {
             | None       => Ok((vc.insert(name.clone(), Binding::Var(init_ty.clone(), true)), tc)),
-            | Some(name) => {
+            | Some(ty) => {
 
-                if !tc.contains_key(name) {
+                if !tc.contains_key(ty) {
                     return error(span, TypeError::UnboundType)
                 }
 
-                let name_ty = Self::lookup(tc.clone(), name);
+                let name_ty = Self::lookup_ty(&tc, ty);
 
                 if name_ty != init_ty && !(name_ty.is_rec() && init_ty == Ty::Nil) {
                     return error(span, TypeError::VarMismatch)
@@ -516,7 +537,7 @@ impl Checker {
                     return error(span, TypeError::UnboundType)
                 }
 
-                fields.push((dec.name.clone(), tc[&dec.name].clone()));
+                fields.push((dec.name.clone(), tc[&dec.ty].clone()));
             }
 
             Ok(Ty::Rec(fields, Uuid::new_v4()))
