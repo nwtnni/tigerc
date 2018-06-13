@@ -119,6 +119,12 @@ pub enum TypeError {
     NotArr,
     ArrMismatch,
 
+    UnboundType,
+
+    UnboundField,
+    
+    IndexMismatch,
+
 }
 
 impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {

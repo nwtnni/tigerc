@@ -62,9 +62,55 @@ pub struct Checker {
 
 impl Checker {
 
-    fn check_var(&self, vc: VarContext, tc: TypeContext, var: &Var) -> Result<Typed, Error> {
+    fn check_var(&mut self, vc: VarContext, tc: TypeContext, var: &Var) -> Result<Typed, Error> {
 
-        unreachable!()
+        macro_rules! is_int {
+            ($exp:expr) => { self.check_exp(vc.clone(), tc.clone(), $exp)?.ty == Ty::Int }
+        }
+
+        match var {
+        | Var::Simple(name, span) => {
+
+            // Unbound in type context
+            if !tc.contains_key(name) {
+                return error(span, TypeError::UnboundType)
+            }
+
+            ok(tc[name].clone())
+        },
+        | Var::Field(rec, field, span) => {
+
+            // Must be bound to record type
+            match self.check_var(vc, tc, &*rec)?.ty {
+            | Ty::Rec(fields, _) => {
+
+                // Find corresponding field
+                let ty = fields.iter()
+                    .find(|(name, _)| field == name)
+                    .map(|(_, ty)| ty);
+
+                match ty {
+                | Some(ty) => ok(ty.clone()),
+                | None     => error(span, TypeError::UnboundField),
+                }
+            },
+            | _ => error(span, TypeError::NotRecord),
+            }
+        },
+        | Var::Index(arr, index, span) => {
+
+            // Index must be integer
+            if !is_int!(&*index) {
+                return error(span, TypeError::IndexMismatch)
+            }
+
+            // Get element type
+            match self.check_var(vc, tc, &*arr)?.ty {
+            | Ty::Arr(elem, _) => ok(*elem.clone()),
+            | _                => error(span, TypeError::NotArr),
+            }
+        },
+        }
     }
 
     fn check_exp(&mut self, vc: VarContext, tc: TypeContext, exp: &Exp) -> Result<Typed, Error> {
@@ -72,7 +118,7 @@ impl Checker {
         macro_rules! is_int {
             ($exp:expr) => { self.check_exp(vc.clone(), tc.clone(), $exp)?.ty == Ty::Int }
         }
-        
+
         macro_rules! is_unit {
             ($exp:expr) => { self.check_exp(vc.clone(), tc.clone(), $exp)?.ty == Ty::Unit }
         }
@@ -245,6 +291,9 @@ impl Checker {
                 return error(span, TypeError::GuardMismatch)
             }
 
+            // Enter loop body
+            self.loops.push(());
+
             // Body must be unit
             if !is_unit!(&*body) {
                 return error(span, TypeError::UnusedWhileBody)
@@ -262,7 +311,13 @@ impl Checker {
                 return error(span, TypeError::ForBound)
             }
 
+            // Bind loop variable as immutable
             let for_vc = vc.insert(name.clone(), Binding::Var(Ty::Int, false));
+
+            // Enter loop body
+            self.loops.push(());
+
+            // Check body with updated VarContext
             if self.check_exp(for_vc, tc, &*body)?.ty != Ty::Unit {
                 return error(span, TypeError::UnusedForBody)
             }
@@ -299,7 +354,7 @@ impl Checker {
             if &self.check_exp(vc.clone(), tc.clone(), &*init)?.ty != elem {
                 return error(span, TypeError::ArrMismatch)
             }
-            
+
             ok((&tc[name]).clone())
         },
         }
