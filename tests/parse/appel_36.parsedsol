@@ -1,0 +1,8 @@
+(
+  let
+  (
+    ((function g : int (a: int b: string) = a))
+  )
+  in
+  ((call g (3 "one" 5)))
+)

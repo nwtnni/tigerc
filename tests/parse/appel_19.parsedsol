@@ -1,0 +1,23 @@
+(
+  let
+  (
+    (
+      (
+        function do_nothing1 : int (a: int b: string) =
+        (
+          (call do_nothing2 ((a + 1)))
+          0
+        )
+      )
+      (
+        function do_nothing2 : string (d: int) =
+        (
+          (call do_nothing1 (a "str"))
+          " "
+        )
+      )
+    )
+  )
+  in
+  ((call do_nothing1 (0 "str2")))
+)

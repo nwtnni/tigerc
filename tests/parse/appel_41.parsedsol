@@ -1,0 +1,13 @@
+(
+  let
+  (((type a = int)))
+  in
+  (
+    (
+      let
+      (((type a = string)))
+      in
+      (0)
+    )
+  )
+)

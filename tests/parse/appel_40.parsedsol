@@ -1,0 +1,6 @@
+(
+  let
+  (((function g (a: int) = a)))
+  in
+  ((call g (2)))
+)

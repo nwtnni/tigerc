@@ -1,0 +1,9 @@
+(
+  let
+  (
+    (var a := 0)
+    ((function g : int (a : int) = a))
+  )
+  in
+  ((call g (2)))
+)

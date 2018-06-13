@@ -1,0 +1,11 @@
+(
+  let
+  (
+    (
+      (type a = int)
+      (type a = string)
+    )
+  )
+  in
+  (0)
+)

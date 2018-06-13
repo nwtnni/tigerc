@@ -1,0 +1,11 @@
+(
+  let
+  (
+    (
+      (function g : int (a : int) = a)
+      (function g : int (a : int) = a)
+    )
+  )
+  in
+  (0)
+)

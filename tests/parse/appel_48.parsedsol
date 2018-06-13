@@ -1,0 +1,10 @@
+(
+  let
+  (
+    ((function g : int (a : int) = a))
+    ((type t = int))
+    ((function g : int (a : int) = a))
+  )
+  in
+  (0)
+)

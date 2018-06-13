@@ -1,0 +1,13 @@
+(
+  let
+  (
+    (
+      (
+        function nfactor (n : int) =
+        (if (n = 0) then 1 else (n * (call nfactor ((n - 1)))))
+      )
+    )
+  )
+  in
+  ((call nfactor (10)))
+)

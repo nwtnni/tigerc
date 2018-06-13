@@ -1,0 +1,14 @@
+(
+  let
+  (
+    (
+      (type arrtype1 = array of int)
+      (type arrtype2 = array of int)
+    )
+    (
+      var arr1: arrtype1 := (arrtype2 size 10 of 0)
+    )
+  )
+  in
+  (arr1)
+)

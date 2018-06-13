@@ -1,0 +1,6 @@
+(
+  let
+  ((var a := (rectype ())))
+  in
+  (0)
+)
