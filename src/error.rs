@@ -95,6 +95,30 @@ pub enum TypeError {
 
     Neg,
 
+    BinaryMismatch,
+
+    UnboundRecord,
+    NotRecord,
+    FieldMismatch,
+
+    UnusedExp,
+
+    UnboundVar,
+    VarMismatch,
+
+    GuardMismatch,
+    BranchMismatch,
+    UnusedBranch,
+
+    UnusedWhileBody,
+
+    ForBound,
+    UnusedForBody,
+
+    UnboundArr,
+    NotArr,
+    ArrMismatch,
+
 }
 
 impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {
