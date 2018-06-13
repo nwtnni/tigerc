@@ -407,6 +407,7 @@ impl Checker {
         
             let init_ty = self.check_exp(vc.clone(), tc.clone(), &init)?.ty;
 
+            // Can't assign nil without type annotation
             if init_ty == Ty::Nil && ty.is_none() {
                 return error(span, TypeError::UnknownNil)
             }
@@ -449,7 +450,40 @@ impl Checker {
 
     fn check_type(&self, tc: TypeContext, ty: &Type) -> Result<Ty, Error> {
 
-        unreachable!()
-    }
+        match ty {
+        | Type::Name(name, span) => {
 
+            if !tc.contains_key(name) {
+                return error(span, TypeError::UnboundType)
+            }
+
+            Ok(tc[name].clone())
+        },
+        | Type::Rec(decs, span) => {
+
+            let mut fields = Vec::new();
+
+            // Look up each field type
+            for dec in decs {
+                if !tc.contains_key(&dec.ty) {
+                    return error(span, TypeError::UnboundType)
+                }
+
+                fields.push((dec.name.clone(), tc[&dec.name].clone()));
+            }
+
+            Ok(Ty::Rec(fields, Uuid::new_v4()))
+
+        },
+        | Type::Arr(name, span) => {
+
+            if !tc.contains_key(name) {
+                return error(span, TypeError::UnboundType)
+            }
+
+            // Look up array type
+            Ok(Ty::Arr(Box::new(tc[name].clone()), Uuid::new_v4()))
+        },
+        }
+    }
 }
