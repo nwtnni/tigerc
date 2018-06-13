@@ -1,7 +1,8 @@
+#[macro_use]
+extern crate im;
 extern crate codespan;
 extern crate codespan_reporting;
 extern crate lalrpop_util;
-extern crate im;
 extern crate uuid;
 
 pub mod ast;

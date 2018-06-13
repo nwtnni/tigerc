@@ -62,6 +62,31 @@ pub struct Checker {
 
 impl Checker {
 
+    pub fn check(ast: &Exp) -> Result<(), Error> {
+
+        let vc = hashmap! {
+            "print".to_string()     => Binding::Fun(vec![Ty::Str], Ty::Unit),
+            "flush".to_string()     => Binding::Fun(vec![], Ty::Unit),
+            "getchar".to_string()   => Binding::Fun(vec![], Ty::Str),
+            "ord".to_string()       => Binding::Fun(vec![Ty::Str], Ty::Int),
+            "chr".to_string()       => Binding::Fun(vec![Ty::Int], Ty::Str),
+            "size".to_string()      => Binding::Fun(vec![Ty::Str], Ty::Int),
+            "substring".to_string() => Binding::Fun(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str),
+            "concat".to_string()    => Binding::Fun(vec![Ty::Str, Ty::Str], Ty::Str),
+            "not".to_string()       => Binding::Fun(vec![Ty::Int], Ty::Int),
+            "exit".to_string()      => Binding::Fun(vec![Ty::Int], Ty::Unit)
+        };
+
+        let tc = hashmap! {
+            "int".to_string()    => Ty::Int,
+            "string".to_string() => Ty::Str
+        };
+
+        let mut checker = Checker { loops: Vec::new() };
+        let _ = checker.check_exp(vc, tc, ast)?;
+        Ok(())
+    }
+
     fn check_var(&mut self, vc: VarContext, tc: TypeContext, var: &Var) -> Result<Typed, Error> {
 
         macro_rules! is_int {
