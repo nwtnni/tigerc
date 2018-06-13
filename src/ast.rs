@@ -167,3 +167,20 @@ pub enum Binop {
     LAnd,
     LOr,
 }
+
+impl Binop {
+    pub fn is_equality(&self) -> bool {
+        match self {
+        | Binop::Eq | Binop::Neq => true,
+        _                        => false,
+        }
+    }
+
+    pub fn is_comparison(&self) -> bool {
+        match self {
+        | Binop::Eq | Binop::Neq | Binop::Gt
+        | Binop::Ge | Binop::Lt | Binop::Le => true,
+        _                                   => false,
+        }
+    }
+}
