@@ -88,6 +88,13 @@ pub enum ParseError {
 #[derive(Debug)]
 pub enum TypeError {
     Break,
+
+    CallMismatch,
+    UnboundFunction,
+    NotFunction,
+
+    Neg,
+
 }
 
 impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {
