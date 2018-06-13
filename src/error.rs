@@ -125,6 +125,7 @@ pub enum TypeError {
     
     IndexMismatch,
 
+    UnknownNil,
 }
 
 impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {

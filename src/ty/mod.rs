@@ -149,6 +149,10 @@ impl Checker {
         }
 
         match exp {
+        | Exp::Nil(_)      => ok(Ty::Nil),
+        | Exp::Int(_, _)   => ok(Ty::Int),
+        | Exp::Str(_, _)   => ok(Ty::Str),
+        | Exp::Var(var, _) => self.check_var(vc, tc, var),
         | Exp::Break(span) => {
 
             if self.loops.is_empty() {
@@ -158,10 +162,6 @@ impl Checker {
             ok(Ty::Unit)
 
         },
-        | Exp::Nil(_)                  => ok(Ty::Nil),
-        | Exp::Int(_, _)               => ok(Ty::Int),
-        | Exp::Str(_, _)               => ok(Ty::Str),
-        | Exp::Var(var, _)             => self.check_var(vc, tc, var),
         | Exp::Call{name, args, span} => {
 
             if !vc.contains_key(name) { return error(span, TypeError::UnboundFunction) }
@@ -385,9 +385,46 @@ impl Checker {
         }
     }
 
-    fn check_dec(&self, vc: VarContext, tc: TypeContext, dec: &Dec) -> Result<(VarContext, TypeContext), Error> {
+    fn check_dec(&mut self, vc: VarContext, tc: TypeContext, dec: &Dec) -> Result<(VarContext, TypeContext), Error> {
+        match dec {
+        | Dec::Fun(funs, span) => {
 
-        unreachable!()
+            unreachable!()
+
+        },
+        | Dec::Var{name, ty, init, span, ..} => {
+        
+            let init_ty = self.check_exp(vc.clone(), tc.clone(), &init)?.ty;
+
+            if init_ty == Ty::Nil && ty.is_none() {
+                return error(span, TypeError::UnknownNil)
+            }
+
+            match ty {
+            | None       => Ok((vc.insert(name.clone(), Binding::Var(init_ty.clone(), true)), tc)),
+            | Some(name) => {
+                
+                if !tc.contains_key(name) {
+                    return error(span, TypeError::UnboundType)
+                }
+
+                let name_ty = tc[name].clone();
+
+                if name_ty != init_ty && !(name_ty.is_rec() && init_ty == Ty::Nil) {
+                    return error(span, TypeError::VarMismatch)
+                }
+
+                Ok((vc.insert(name.clone(), Binding::Var(name_ty, true)), tc))
+            },
+            }
+        },
+        | Dec::Type(types, span) => {
+
+
+            unreachable!()
+
+        },
+        }
     }
 
     fn check_type(&self, tc: TypeContext, ty: &Type) -> Result<Ty, Error> {
