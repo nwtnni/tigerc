@@ -39,6 +39,7 @@ pub struct Typed {
     _exp: (),
 }
 
+#[derive(Clone)]
 pub enum Binding {
     Var(Ty, bool),
     Fun(Vec<Ty>, Ty),
@@ -87,7 +88,7 @@ impl Checker {
         Ok(())
     }
 
-    pub fn lookup(tc: TypeContext, alias: &str) -> Ty {
+    fn lookup(tc: TypeContext, alias: &str) -> Ty {
         let mut actual = (*tc.get(alias).unwrap()).clone();
         while let Ty::Name(_, ty) = actual {
             match ty {
@@ -396,15 +397,61 @@ impl Checker {
         }
     }
 
-    fn check_dec(&mut self, vc: VarContext, mut tc: TypeContext, dec: &Dec) -> Result<(VarContext, TypeContext), Error> {
+    fn check_dec(&mut self, mut vc: VarContext, mut tc: TypeContext, dec: &Dec) -> Result<(VarContext, TypeContext), Error> {
         match dec {
         | Dec::Fun(funs, span) => {
 
-            unreachable!()
+            // Initialize top-level bindings
+            for fun in funs {
 
+                let mut args = Vec::new();
+
+                // Get formal parameter types
+                for arg in &fun.args {
+
+                    if !tc.contains_key(&arg.ty) {
+                        return error(span, TypeError::UnboundType)
+                    }
+
+                    args.push(tc[&arg.ty].clone());
+                }
+
+                let ret = match &fun.rets {
+                | None => Ty::Unit,
+                | Some(name) => {
+                    if !tc.contains_key(name) {
+                        return error(span, TypeError::UnboundType)
+                    }
+                    tc[name].clone()
+                },
+                };
+
+                vc.insert_mut(fun.name.clone(), Binding::Fun(args, ret));
+            }
+
+            // Evaluate bodies with new bindings
+            for fun in funs {
+
+                let mut body_vc = vc.clone();
+
+                // Add parameter bindings to body context
+                for arg in &fun.args {
+                    body_vc.insert_mut(arg.name.clone(), Binding::Var(tc[&arg.ty].clone(), true));
+                }
+
+                // Evaluate body with updated context
+                let body_ty = self.check_exp(body_vc, tc.clone(), &fun.body)?.ty;
+                let ret_ty = if let Some(name) = &fun.rets { tc[name].clone() } else { Ty::Nil };
+
+                if body_ty != ret_ty {
+                    return error(&fun.span, TypeError::ReturnMismatch)
+                }
+            }
+
+            Ok((vc, tc))
         },
         | Dec::Var{name, ty, init, span, ..} => {
-        
+
             let init_ty = self.check_exp(vc.clone(), tc.clone(), &init)?.ty;
 
             // Can't assign nil without type annotation
@@ -415,7 +462,7 @@ impl Checker {
             match ty {
             | None       => Ok((vc.insert(name.clone(), Binding::Var(init_ty.clone(), true)), tc)),
             | Some(name) => {
-                
+
                 if !tc.contains_key(name) {
                     return error(span, TypeError::UnboundType)
                 }

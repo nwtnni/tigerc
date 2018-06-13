@@ -92,6 +92,7 @@ pub enum TypeError {
     CallMismatch,
     UnboundFunction,
     NotFunction,
+    ReturnMismatch,
 
     Neg,
 
