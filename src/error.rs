@@ -97,6 +97,7 @@ pub enum TypeError {
 
     Neg,
 
+    AssignImmutable,
     BinaryMismatch,
 
     UnboundRecord,
@@ -168,6 +169,7 @@ impl <'a> Into<String> for &'a TypeError {
         | TypeError::NotFun           => "Not a function.".to_string(),
         | TypeError::ReturnMismatch   => "Function return type doesn't match body.".to_string(),
         | TypeError::Neg              => "Can only negate integers.".to_string(),
+        | TypeError::AssignImmutable  => "Cannot assign to immutable variable".to_string(),
         | TypeError::BinaryMismatch   => "Wrong arguments for binary operator.".to_string(),
         | TypeError::UnboundRecord    => "Could not find record.".to_string(),
         | TypeError::NotRecord        => "Not a record.".to_string(),

@@ -60,11 +60,11 @@ impl VarContext {
         self.0.pop();
     }
 
-    pub fn get_var(&self, span: &ByteSpan, name: &str) -> Result<Ty, Error> {
+    pub fn get_var(&self, span: &ByteSpan, name: &str) -> Result<(Ty, bool), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
             | Some(Binding::Fun(_, _))  => return Err(Error::semantic(span.clone(), TypeError::NotVar)),
-            | Some(Binding::Var(ty, _)) => return Ok(ty.clone()),
+            | Some(Binding::Var(ty, mutable)) => return Ok((ty.clone(), *mutable)),
             | None                      => (),
             };
         }

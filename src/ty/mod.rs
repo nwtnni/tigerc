@@ -47,11 +47,12 @@ impl PartialEq for Ty {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Typed {
     ty: Ty,
+    mutable: bool,
     _exp: (),
 }
 
 fn ok(ty: Ty) -> Result<Typed, Error> {
-    Ok(Typed { ty, _exp: () })
+    Ok(Typed { ty, mutable: true, _exp: () })
 }
 
 fn error<T>(span: &ByteSpan, err: TypeError) -> Result<T, Error> {
@@ -84,7 +85,10 @@ impl Checker {
         }
 
         match var {
-        | Var::Simple(name, span) => ok(self.vc.get_var(span, name)?),
+        | Var::Simple(name, span) => {
+            let (ty, mutable) = self.vc.get_var(span, name)?;
+            Ok(Typed { ty, mutable, _exp: () })
+        },
         | Var::Field(box rec, field, span) => {
 
             // Must be bound to record type
@@ -96,6 +100,7 @@ impl Checker {
                     .find(|(name, _)| field == name)
                     .map(|(_, ty)| self.tc.trace_full(span, ty));
 
+                // Check field type
                 match ty {
                 | Some(ty) => ok(ty?.clone()),
                 | None     => error(span, TypeError::UnboundField),
@@ -138,12 +143,15 @@ impl Checker {
         | Exp::Break(span) => if self.loops.is_empty() { return error(span, TypeError::Break) } else { ok(Ty::Unit) },
         | Exp::Call{name, args, span} => {
 
+            // Get function header
             let (args_ty, ret_ty) = self.vc.get_fun(span, name)?;
 
+            // Check number of arguments
             if args.len() != args_ty.len() {
                 return error(span, TypeError::CallMismatch)
             }
 
+            // Check that each argument subtypes formal parameter type
             for (arg, ty) in args.iter().zip(args_ty) {
                 if !self.check_exp(arg)?.ty.subtypes(&ty) { return error(span, TypeError::CallMismatch) }
             }
@@ -152,6 +160,7 @@ impl Checker {
         },
         | Exp::Neg(exp, span) => {
 
+            // Unary negation only works on integers
             if !is_int!(&*exp) { return error(span, TypeError::Neg) }
 
             ok(Ty::Int)
@@ -219,25 +228,23 @@ impl Checker {
         | Exp::Seq(exps, _) => {
 
             // Empty sequence is just unit
-            if exps.len() == 0 {
-                return ok(Ty::Unit)
-            }
+            if exps.len() == 0 { return ok(Ty::Unit) }
 
-            // Make sure all intermediate steps return unit
-            if exps.len() > 1 {
-                for i in 0..exps.len() - 1 {
-                    self.check_exp(&exps[i])?;
-                }
-            }
+            // Check intermediate expressions
+            for i in 0..exps.len() - 1 { self.check_exp(&exps[i])?; }
 
             // Result is type of last exp
             self.check_exp(&exps.last().unwrap())
         },
         | Exp::Ass{name, exp, span} => {
 
-            let var = self.check_var(name)?.ty;
+            let var = self.check_var(name)?;
 
-            if !self.check_exp(exp)?.ty.subtypes(&var) {
+            if !var.mutable {
+                return error(span, TypeError::AssignImmutable)
+            }
+
+            if !self.check_exp(exp)?.ty.subtypes(&var.ty) {
                 return error(span, TypeError::VarMismatch)
             }
 
@@ -328,15 +335,18 @@ impl Checker {
         },
         | Exp::Arr{name, size, init, span} => {
 
+            // Look up element type
             let elem = match self.tc.get_full(span, name)? {
             | Ty::Arr(elem, _) => *elem,
             | _                => return error(span, TypeError::NotArr),
             };
 
+            // Size must be integer
             if !is_int!(&*size) {
                 return error(span, TypeError::ForBound)
             }
 
+            // Initialization expression must subtype element type
             if !self.check_exp(&*init)?.ty.subtypes(&elem) {
                 return error(span, TypeError::ArrMismatch)
             }
@@ -360,15 +370,17 @@ impl Checker {
                     args.push(self.tc.get_full(span, &arg.ty)?);
                 }
 
+                // Get return type
                 let ret = match &fun.rets {
                 | None => Ty::Unit,
                 | Some(name) => self.tc.get_full(span, name)?,
                 };
 
+                // Update environment with function header
                 self.vc.insert(fun.name.clone(), Binding::Fun(args, ret));
             }
 
-            // Evaluate bodies with new bindings
+            // Evaluate bodies with all function headers
             for fun in funs {
 
                 self.vc.push();
@@ -384,11 +396,13 @@ impl Checker {
 
                 self.vc.pop();
 
+                // Get return type
                 let ret_ty = match &fun.rets {
                 | None      => Ty::Unit,
                 | Some(ret) => self.tc.get_full(span, ret)?,
                 };
 
+                // Make sure body expression subtypes return
                 if !body_ty.subtypes(&ret_ty) {
                     return error(&fun.span, TypeError::ReturnMismatch)
                 }
@@ -398,6 +412,7 @@ impl Checker {
         },
         | Dec::Var{name, ty, init, span, ..} => {
 
+            // Initialization expression type
             let init_ty = self.check_exp(&init)?.ty;
 
             // Can't assign nil without type annotation
@@ -405,10 +420,12 @@ impl Checker {
                 return error(span, TypeError::UnknownNil)
             }
 
+            // Type annotation on variable
             match ty {
             | None     => self.vc.insert(name.clone(), Binding::Var(init_ty.clone(), true)),
             | Some(id) => {
 
+                // Make sure initialization matches annotation
                 let name_ty = self.tc.get_full(span, id)?;
                 if !init_ty.subtypes(&name_ty) {
                     return error(span, TypeError::VarMismatch)
