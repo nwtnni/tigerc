@@ -199,12 +199,15 @@ impl Checker {
                     return error(span, TypeError::FieldMismatch)
                 }
 
+                // Make sure all record fields are fully resolved
+                let fields_ty = fields_ty.iter().map(|(name, ty)| (name, tc.trace_full(ty)));
+
                 // Check all field name - value pairs
                 for (field, (field_name, field_ty)) in fields.iter().zip(fields_ty) {
 
                     let exp_ty = self.check_exp(vc.clone(), tc.clone(), &*field.exp)?.ty;
 
-                    if field.name != field_name && !exp_ty.subtypes(&field_ty) {
+                    if &field.name != field_name && !exp_ty.subtypes(&field_ty) {
                         return error(span, TypeError::FieldMismatch)
                     }
                 }
