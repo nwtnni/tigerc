@@ -6,8 +6,8 @@ use token::Token;
 
 #[derive(Debug)]
 pub struct Error {
-    span: ByteSpan,
-    kind: Kind,
+    pub span: ByteSpan,
+    pub kind: Kind,
 }
 
 impl Error {

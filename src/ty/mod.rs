@@ -322,7 +322,6 @@ impl Checker {
                 let (new_vc, new_tc) = self.check_dec(let_vc, let_tc, &*dec)?;
                 let_vc = new_vc;
                 let_tc = new_tc;
-                println!("{:#?}", let_tc);
             }
 
             self.check_exp(let_vc, let_tc, &*body)
