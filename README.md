@@ -23,6 +23,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [x] Decouple lexer from parser
   - [x] Integrate lexing phase into CLI
   - [ ] Implement string unescaping
+  - [ ] Handle MIN\_INT - might have to store literal ints as strings?
   - [ ] Write test cases for lexing
 
 - Parsing
