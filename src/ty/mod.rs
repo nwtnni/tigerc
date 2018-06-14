@@ -20,17 +20,10 @@ pub enum Ty {
 }
 
 impl Ty {
-    pub fn is_arr(&self) -> bool {
-        match self {
-        | Ty::Arr(_, _) => true,
-        | _             => false,
-        }
-    }
-
-    pub fn is_rec(&self) -> bool {
-        match self {
-        | Ty::Rec(_, _) => true,
-        | _             => false,
+    pub fn subtypes(&self, rhs: &Self) -> bool {
+        match (self, rhs) {
+        | (Ty::Nil, Ty::Rec(_, _)) => true,
+        | _                        => self == rhs,
         }
     }
 }
@@ -40,10 +33,12 @@ impl PartialEq for Ty {
         match (self, rhs) {
         | (Ty::Int, Ty::Int)
         | (Ty::Str, Ty::Str)
-        | (Ty::Unit, Ty::Unit)
-        | (Ty::Nil, Ty::Nil) => true,
-        | (Ty::Arr(_, lid), Ty::Arr(_, rid)) => lid == rid,
+        | (Ty::Nil, Ty::Nil)
+        | (Ty::Unit, Ty::Unit) => true,
+        | (Ty::Arr(_, lid), Ty::Arr(_, rid))
         | (Ty::Rec(_, lid), Ty::Rec(_, rid)) => lid == rid,
+        | (Ty::Name(_, _), _)
+        | (_, Ty::Name(_, _)) => panic!("Internal error: should never compare names"),
         _ => false,
         }
     }
@@ -151,7 +146,7 @@ impl Checker {
             }
 
             for (arg, ty) in args.iter().zip(args_ty) {
-                if self.check_exp(vc.clone(), tc.clone(), arg)?.ty != ty {
+                if self.check_exp(vc.clone(), tc.clone(), arg)?.ty.subtypes(&ty) {
                     return error(span, TypeError::CallMismatch)
                 }
             }
@@ -175,15 +170,8 @@ impl Checker {
                 return error(span, TypeError::BinaryMismatch)
             }
 
-            // Equality checking is valid for:
-            // - Rec and Nil
-            // - Nil and Rec
-            // - Rec and Rec
-            // - Nil and Nil
-            // - Str and Str
-            // - Int and Int
-            // - Arr and Arr
-            if op.is_equality() && (lt == rt || lt.is_rec() && rt == Ty::Nil || lt == Ty::Nil && rt.is_rec()) {
+            // Equality checking is valid for any L<>R, L=R where R: L
+            if op.is_equality() && lt.subtypes(&rt) {
                 return ok(Ty::Int)
             }
 
@@ -216,9 +204,7 @@ impl Checker {
 
                     let exp_ty = self.check_exp(vc.clone(), tc.clone(), &*field.exp)?.ty;
 
-                    if field.name != field_name
-                    && !(exp_ty == field_ty || (exp_ty == Ty::Nil && field_ty.is_rec()))
-                    {
+                    if field.name != field_name && !exp_ty.subtypes(&field_ty) {
                         return error(span, TypeError::FieldMismatch)
                     }
                 }
@@ -249,7 +235,7 @@ impl Checker {
 
             let var = self.check_var(vc.clone(), tc.clone(), name)?.ty;
 
-            if self.check_exp(vc, tc, exp)?.ty != var {
+            if !self.check_exp(vc, tc, exp)?.ty.subtypes(&var) {
                 return error(span, TypeError::VarMismatch)
             }
 
@@ -268,7 +254,8 @@ impl Checker {
             if let Some(exp) = or {
 
                 // For if-else, both branches must return the same type
-                if self.check_exp(vc, tc, &*exp)?.ty != then_ty {
+                let or_ty = self.check_exp(vc, tc, &*exp)?.ty;
+                if !then_ty.subtypes(&or_ty) && !or_ty.subtypes(&then_ty) {
                     return error(span, TypeError::BranchMismatch)
                 }
 
@@ -348,7 +335,7 @@ impl Checker {
                 return error(span, TypeError::ForBound)
             }
 
-            if self.check_exp(vc.clone(), tc.clone(), &*init)?.ty != elem {
+            if self.check_exp(vc.clone(), tc.clone(), &*init)?.ty.subtypes(&elem) {
                 return error(span, TypeError::ArrMismatch)
             }
 
@@ -394,7 +381,7 @@ impl Checker {
                 let body_ty = self.check_exp(body_vc, tc.clone(), &fun.body)?.ty;
                 let ret_ty = if let Some(ret) = &fun.rets { tc.get_full(span, ret)? } else { Ty::Unit };
 
-                if body_ty != ret_ty {
+                if !body_ty.subtypes(&ret_ty) {
                     return error(&fun.span, TypeError::ReturnMismatch)
                 }
             }
@@ -415,7 +402,7 @@ impl Checker {
             | Some(id) => {
 
                 let name_ty = tc.get_full(span, id)?;
-                if name_ty != init_ty && !(name_ty.is_rec() && init_ty == Ty::Nil) {
+                if !init_ty.subtypes(&name_ty) {
                     return error(span, TypeError::VarMismatch)
                 }
 
