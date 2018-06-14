@@ -167,7 +167,7 @@ impl fmt::Display for Token {
         | Token::Gt            => write!(fmt, "OPERATOR >"),
         | Token::Le            => write!(fmt, "OPERATOR <="),
         | Token::Lt            => write!(fmt, "OPERATOR <"),
-        | Token::Neq           => write!(fmt, "OPERATOR !="),
+        | Token::Neq           => write!(fmt, "OPERATOR <>"),
         | Token::Eq            => write!(fmt, "OPERATOR ="),
         | Token::Div           => write!(fmt, "OPERATOR /"),
         | Token::Mul           => write!(fmt, "OPERATOR *"),

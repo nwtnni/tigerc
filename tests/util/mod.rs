@@ -81,7 +81,7 @@ pub fn run(arg: &str, file: &PathBuf) {
 
 /// Return the error locations in a String
 pub fn get_location(text: String) -> (usize, usize) {
-    let re = Regex::new(r"^(\d+):(\d+) ").unwrap();
+    let re = Regex::new(r"^(\d+):(\d+)").unwrap();
     let caps = re.captures(&text).unwrap();
     (usize::from_str(&caps[1]).unwrap(), usize::from_str(&caps[2]).unwrap())
 }
