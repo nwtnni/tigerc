@@ -337,7 +337,7 @@ impl Checker {
                 return error(span, TypeError::ForBound)
             }
 
-            if self.check_exp(vc.clone(), tc.clone(), &*init)?.ty.subtypes(&elem) {
+            if !self.check_exp(vc.clone(), tc.clone(), &*init)?.ty.subtypes(&elem) {
                 return error(span, TypeError::ArrMismatch)
             }
 
