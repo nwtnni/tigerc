@@ -16,11 +16,11 @@ impl Error {
         let (row, col) = file.location(self.span.start()).unwrap();
 
         let category = match self.kind {
-        | Kind::Lexical(_)   => "lexical", 
+        | Kind::Lexical(_)   => "lexical",
         | Kind::Syntactic(_) => "syntactic",
         | Kind::Semantic(_)  => "semantic",
         };
-        
+
         let message: String = (&self.kind).into();
         format!("{}:{} {} error: {}", row.number(), col.number(), category, message)
     }
@@ -125,10 +125,12 @@ pub enum TypeError {
     UnboundType,
 
     UnboundField,
-    
+
     IndexMismatch,
 
     UnknownNil,
+
+    NotIndirect,
 }
 
 impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {
@@ -187,6 +189,7 @@ impl <'a> Into<String> for &'a TypeError {
         | TypeError::UnboundField     => "Unbound record field.".to_string(),
         | TypeError::IndexMismatch    => "Array indices must be integers.".to_string(),
         | TypeError::UnknownNil       => "Cannot infer type for nil.".to_string(),
+        | TypeError::NotIndirect      => "Recursive types must pass through arrays or records.".to_string(),
         }
     }
 }

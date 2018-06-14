@@ -1,12 +1,24 @@
 use codespan::{ByteIndex, ByteSpan};
-use im::HashMap;
+use fnv::FnvHashMap;
 
 use error::{Error, TypeError};
 use ty::Ty;
 
-pub type Context<T> = HashMap<String, T>;
+macro_rules! hashmap {
+    ( $( $key:expr => $value:expr ),* ) => {
+        {
+            let mut map = FnvHashMap::default();
+            $(
+                map.insert($key, $value);
+            )*
+            map
+        }
+    }
+}
 
-#[derive(Debug, Clone)]
+pub type Context<T> = Vec<FnvHashMap<String, T>>;
+
+#[derive(Debug)]
 pub struct VarContext(Context<Binding>);
 
 #[derive(Debug, Clone)]
@@ -17,7 +29,7 @@ pub enum Binding {
 
 impl Default for VarContext {
     fn default() -> Self {
-        VarContext(
+        VarContext(vec![
             hashmap! {
                 "print".to_string()     => Binding::Fun(vec![Ty::Str], Ty::Unit),
                 "flush".to_string()     => Binding::Fun(vec![], Ty::Unit),
@@ -30,67 +42,73 @@ impl Default for VarContext {
                 "not".to_string()       => Binding::Fun(vec![Ty::Int], Ty::Int),
                 "exit".to_string()      => Binding::Fun(vec![Ty::Int], Ty::Unit)
             }
-        )
+        ])
     }
 }
 
 impl VarContext {
 
-    pub fn new() -> Self {
-        VarContext(HashMap::default())
+    pub fn insert(&mut self, name: String, binding: Binding) {
+        self.0.last_mut().unwrap().insert(name, binding);
+    }
+
+    pub fn push(&mut self) {
+        self.0.push(FnvHashMap::default());
+    }
+
+    pub fn pop(&mut self) {
+        self.0.pop();
     }
 
     pub fn get_var(&self, span: &ByteSpan, name: &str) -> Result<Ty, Error> {
-        match self.0.get(name) {
-        | None          => Err(Error::semantic(span.clone(), TypeError::UnboundVar)),
-        | Some(binding) => match &*binding {
-            | Binding::Fun(_, _) => Err(Error::semantic(span.clone(), TypeError::NotVar)),
-            | Binding::Var(ty, _) => Ok(ty.clone()),
-        },
+        for env in self.0.iter().rev() {
+            match env.get(name) {
+            | Some(Binding::Fun(_, _))  => return Err(Error::semantic(span.clone(), TypeError::NotVar)),
+            | Some(Binding::Var(ty, _)) => return Ok(ty.clone()),
+            | None                      => (),
+            };
         }
+        Err(Error::semantic(span.clone(), TypeError::UnboundVar))
     }
 
     pub fn get_fun(&self, span: &ByteSpan, name: &str) -> Result<(Vec<Ty>, Ty), Error> {
-        match self.0.get(name) {
-        | None          => Err(Error::semantic(span.clone(), TypeError::UnboundFun)),
-        | Some(binding) => match &*binding {
-            | Binding::Var(_, _)      => Err(Error::semantic(span.clone(), TypeError::NotFun)),
-            | Binding::Fun(args, ret) => Ok((args.clone(), ret.clone())),
-        },
+        for env in self.0.iter().rev() {
+            match env.get(name) {
+            | Some(Binding::Var(_, _))      => return Err(Error::semantic(span.clone(), TypeError::NotFun)),
+            | Some(Binding::Fun(args, ret)) => return Ok((args.clone(), ret.clone())),
+            | None                          => (),
+            }
         }
-    }
-
-    pub fn insert(&self, name: String, binding: Binding) -> Self {
-        VarContext(self.0.insert(name, binding))
-    }
-
-    pub fn insert_mut(&mut self, name: String, binding: Binding) {
-        self.0.insert_mut(name, binding)
+        Err(Error::semantic(span.clone(), TypeError::UnboundFun))
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TypeContext(Context<Ty>);
 
 impl Default for TypeContext {
     fn default() -> Self {
-        TypeContext(
+        TypeContext(vec![
             hashmap! {
                 "int".to_string()    => Ty::Int,
                 "string".to_string() => Ty::Str
             }
-        )
+        ])
     }
 }
 
 impl TypeContext {
 
-    pub fn insert(&self, name: String, ty: Ty) -> Self {
-        TypeContext(self.0.insert(name, ty))
+    pub fn insert(&mut self, name: String, ty: Ty) {
+        self.0.last_mut().unwrap().insert(name, ty);
     }
 
-    pub fn insert_mut(&mut self, name: String, ty: Ty) {
-        self.0.insert_mut(name, ty)
+    pub fn push(&mut self) {
+        self.0.push(FnvHashMap::default());
+    }
+
+    pub fn pop(&mut self) {
+        self.0.pop();
     }
 
     fn trace_partial(&self, ty: &Ty) -> Ty {
@@ -101,26 +119,32 @@ impl TypeContext {
     }
 
     pub fn get_partial(&self, span: &ByteSpan, name: &str) -> Result<Ty, Error> {
-        match self.0.get(name) {
-        | None     => Err(Error::semantic(span.clone(), TypeError::UnboundType)),
-        | Some(ty) => Ok(self.trace_partial(&*ty)),
+        for env in self.0.iter().rev() {
+            if let Some(ty) = env.get(name) { return Ok(self.trace_partial(&*ty)) }
         }
+        Err(Error::semantic(span.clone(), TypeError::UnboundType))
     }
 
     fn dummy_span() -> ByteSpan { ByteSpan::new(ByteIndex(0), ByteIndex(0)) }
 
-    pub fn trace_full(&self, ty: &Ty) -> Ty {
+    pub fn trace_full(&self, span: &ByteSpan, ty: &Ty) -> Result<Ty, Error> {
         match ty {
-        | Ty::Name(name, opt) => if let Some(ty) = opt { self.trace_full(&*ty) } else { self.get_full(&Self::dummy_span(), name).unwrap() },
-        | Ty::Arr(elem, id)  => Ty::Arr(Box::new(self.trace_full(&*elem)), id.clone()),
-        | _                  => ty.clone(),
+        | Ty::Name(name, opt) => {
+            match opt {
+            | Some(box Ty::Name(_, _)) => Err(Error::semantic(span.clone(), TypeError::NotIndirect)),
+            | Some(box ty)             => self.trace_full(span, &ty),
+            | _                        => Ok(self.get_full(&Self::dummy_span(), name).unwrap()),
+            }
+        },
+        | Ty::Arr(elem, id) => Ok(Ty::Arr(Box::new(self.trace_full(span, &*elem)?), id.clone())),
+        | _                 => Ok(ty.clone()),
         }
     }
 
     pub fn get_full(&self, span: &ByteSpan, name: &str) -> Result<Ty, Error> {
-        match self.0.get(name) {
-        | None => Err(Error::semantic(span.clone(), TypeError::UnboundType)),
-        | Some(ty) => Ok(self.trace_full(&*ty)),
+        for env in self.0.iter().rev() {
+            if let Some(ty) = env.get(name) { return Ok(self.trace_full(span, &*ty)?) }
         }
+        Err(Error::semantic(span.clone(), TypeError::UnboundType))
     }
 }

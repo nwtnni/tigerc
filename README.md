@@ -24,7 +24,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [x] Integrate lexing phase into CLI
   - [ ] Implement string unescaping
   - [ ] Handle MIN\_INT - might have to store literal ints as strings?
-  - [ ] Write test cases for lexing
+  - [x] Write test cases for lexing
 
 - Parsing
   - [ ] Implement or find global symbol table library
@@ -37,7 +37,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [ ] Check for uniqueness of type and function names within a mutually recursive group
   - [ ] Upgrade `TypeError` variants with more information
   - [ ] Use `codespan::Label` to display better errors
-  - [ ] Possibly use macros to clean up repeated code, or reduce the number of `clone` calls
+  - [x] Possibly use macros to clean up repeated code, or reduce the number of `clone` calls
 
 [1]: https://www.cs.princeton.edu/~appel/modern/ml/
 [2]: https://github.com/lalrpop/lalrpop
