@@ -1,9 +1,12 @@
+mod context;
+
 use codespan::ByteSpan;
-use im::HashMap;
 use uuid::Uuid;
 
 use ast::*;
 use error::{Error, TypeError};
+
+pub use ty::context::*;
 
 #[derive(Debug, Eq, Clone)]
 pub enum Ty {
@@ -52,16 +55,6 @@ pub struct Typed {
     _exp: (),
 }
 
-#[derive(Debug, Clone)]
-pub enum Binding {
-    Var(Ty, bool),
-    Fun(Vec<Ty>, Ty),
-}
-
-type Context<T> = HashMap<String, T>;
-type TypeContext = Context<Ty>;
-type VarContext = Context<Binding>;
-
 fn ok(ty: Ty) -> Result<Typed, Error> {
     Ok(Typed { ty, _exp: () })
 }
@@ -77,39 +70,9 @@ pub struct Checker {
 impl Checker {
 
     pub fn check(ast: &Exp) -> Result<(), Error> {
-
-        let vc = hashmap! {
-            "print".to_string()     => Binding::Fun(vec![Ty::Str], Ty::Unit),
-            "flush".to_string()     => Binding::Fun(vec![], Ty::Unit),
-            "getchar".to_string()   => Binding::Fun(vec![], Ty::Str),
-            "ord".to_string()       => Binding::Fun(vec![Ty::Str], Ty::Int),
-            "chr".to_string()       => Binding::Fun(vec![Ty::Int], Ty::Str),
-            "size".to_string()      => Binding::Fun(vec![Ty::Str], Ty::Int),
-            "substring".to_string() => Binding::Fun(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str),
-            "concat".to_string()    => Binding::Fun(vec![Ty::Str, Ty::Str], Ty::Str),
-            "not".to_string()       => Binding::Fun(vec![Ty::Int], Ty::Int),
-            "exit".to_string()      => Binding::Fun(vec![Ty::Int], Ty::Unit)
-        };
-
-        let tc = hashmap! {
-            "int".to_string()    => Ty::Int,
-            "string".to_string() => Ty::Str
-        };
-
         let mut checker = Checker { loops: Vec::new() };
-        let _ = checker.check_exp(vc, tc, ast)?;
+        let _ = checker.check_exp(VarContext::default(), TypeContext::default(), ast)?;
         Ok(())
-    }
-
-    fn lookup_ty(tc: &TypeContext, alias: &str) -> Ty {
-        let mut actual = (*tc.get(alias).unwrap()).clone();
-        while let Ty::Name(_, ty) = actual {
-            match ty {
-            | None => panic!("Internal error: unfilled recursive type"),
-            | Some(ty) => actual = *ty,
-            }
-        }
-        actual
     }
 
     fn check_var(&mut self, vc: VarContext, tc: TypeContext, var: &Var) -> Result<Typed, Error> {
@@ -119,29 +82,17 @@ impl Checker {
         }
 
         match var {
-        | Var::Simple(name, span) => {
-
-            // Unbound in var context
-            if !vc.contains_key(name) {
-                return error(span, TypeError::UnboundVar)
-            }
-
-            // Search for var binding
-            match &vc[name] {
-            | Binding::Var(ty, _) => ok(ty.clone()),
-            | _                   => error(span, TypeError::NotVar),
-            }
-        },
+        | Var::Simple(name, span) => ok(vc.get_var(span, name)?),
         | Var::Field(rec, field, span) => {
 
             // Must be bound to record type
-            match self.check_var(vc, tc, &*rec)?.ty {
+            match self.check_var(vc, tc.clone(), &*rec)?.ty {
             | Ty::Rec(fields, _) => {
 
                 // Find corresponding field
                 let ty = fields.iter()
                     .find(|(name, _)| field == name)
-                    .map(|(_, ty)| ty);
+                    .map(|(_, ty)| tc.trace_full(ty));
 
                 match ty {
                 | Some(ty) => ok(ty.clone()),
@@ -193,25 +144,19 @@ impl Checker {
         },
         | Exp::Call{name, args, span} => {
 
-            if !vc.contains_key(name) { return error(span, TypeError::UnboundFunction) }
+            let (args_ty, ret_ty) = vc.get_fun(span, name)?;
 
-            match &vc[name] {
-            | Binding::Var(_, _) => error(span, TypeError::NotFunction),
-            | Binding::Fun(args_ty, ret_ty) => {
+            if args.len() != args_ty.len() {
+                return error(span, TypeError::CallMismatch)
+            }
 
-                if args.len() != args_ty.len() {
+            for (arg, ty) in args.iter().zip(args_ty) {
+                if self.check_exp(vc.clone(), tc.clone(), arg)?.ty != ty {
                     return error(span, TypeError::CallMismatch)
                 }
-
-                for (arg, ty) in args.iter().zip(args_ty) {
-                    if &self.check_exp(vc.clone(), tc.clone(), arg)?.ty != ty {
-                        return error(span, TypeError::CallMismatch)
-                    }
-                }
-
-                ok(ret_ty.clone())
-            },
             }
+
+            ok(ret_ty.clone())
         },
         | Exp::Neg(exp, span) => {
 
@@ -259,11 +204,7 @@ impl Checker {
         },
         | Exp::Rec{name,fields,span} => {
 
-            if !tc.contains_key(name) {
-                return error(span, TypeError::UnboundRecord)
-            }
-
-            match Self::lookup_ty(&tc, name) {
+            match tc.get_full(span, name)? {
             | Ty::Rec(fields_ty, _) => {
 
                 if fields.len() != fields_ty.len() {
@@ -274,7 +215,7 @@ impl Checker {
                 for (field, (field_name, field_ty)) in fields.iter().zip(fields_ty) {
 
                     let exp_ty = self.check_exp(vc.clone(), tc.clone(), &*field.exp)?.ty;
-                    
+
                     if field.name != field_name
                     && !(exp_ty == field_ty || (exp_ty == Ty::Nil && field_ty.is_rec()))
                     {
@@ -282,7 +223,7 @@ impl Checker {
                     }
                 }
 
-                ok(Self::lookup_ty(&tc, name))
+                ok(tc.get_full(span, name)?)
             },
             | _ => error(span, TypeError::NotRecord),
             }
@@ -391,18 +332,14 @@ impl Checker {
                 let (new_vc, new_tc) = self.check_dec(let_vc, let_tc, &*dec)?;
                 let_vc = new_vc;
                 let_tc = new_tc;
-                println!("{:?}", let_tc);
+                println!("{:#?}", let_tc);
             }
 
             self.check_exp(let_vc, let_tc, &*body)
         },
         | Exp::Arr{name, size, init, span} => {
 
-            if !tc.contains_key(name) {
-                return error(span, TypeError::UnboundArr)
-            }
-
-            let elem = match Self::lookup_ty(&tc, name) {
+            let elem = match tc.get_full(span, name)? {
             | Ty::Arr(elem, _) => *elem,
             | _                => return error(span, TypeError::NotArr),
             };
@@ -415,7 +352,7 @@ impl Checker {
                 return error(span, TypeError::ArrMismatch)
             }
 
-            ok(Self::lookup_ty(&tc, name))
+            ok(tc.get_full(span, name)?)
         },
         }
     }
@@ -431,22 +368,12 @@ impl Checker {
 
                 // Get formal parameter types
                 for arg in &fun.args {
-
-                    if !tc.contains_key(&arg.ty) {
-                        return error(span, TypeError::UnboundType)
-                    }
-
-                    args.push(tc[&arg.ty].clone());
+                    args.push(tc.get_full(span, &arg.ty)?);
                 }
 
                 let ret = match &fun.rets {
                 | None => Ty::Unit,
-                | Some(name) => {
-                    if !tc.contains_key(name) {
-                        return error(span, TypeError::UnboundType)
-                    }
-                    tc[name].clone()
-                },
+                | Some(name) => tc.get_full(span, name)?,
                 };
 
                 vc.insert_mut(fun.name.clone(), Binding::Fun(args, ret));
@@ -459,12 +386,13 @@ impl Checker {
 
                 // Add parameter bindings to body context
                 for arg in &fun.args {
-                    body_vc.insert_mut(arg.name.clone(), Binding::Var(tc[&arg.ty].clone(), true));
+                    let arg_ty = tc.get_full(span, &arg.ty)?;
+                    body_vc.insert_mut(arg.name.clone(), Binding::Var(arg_ty, true));
                 }
 
                 // Evaluate body with updated context
                 let body_ty = self.check_exp(body_vc, tc.clone(), &fun.body)?.ty;
-                let ret_ty = if let Some(name) = &fun.rets { tc[name].clone() } else { Ty::Nil };
+                let ret_ty = if let Some(ret) = &fun.rets { tc.get_full(span, ret)? } else { Ty::Unit };
 
                 if body_ty != ret_ty {
                     return error(&fun.span, TypeError::ReturnMismatch)
@@ -483,15 +411,10 @@ impl Checker {
             }
 
             match ty {
-            | None       => Ok((vc.insert(name.clone(), Binding::Var(init_ty.clone(), true)), tc)),
-            | Some(ty) => {
+            | None     => Ok((vc.insert(name.clone(), Binding::Var(init_ty.clone(), true)), tc)),
+            | Some(id) => {
 
-                if !tc.contains_key(ty) {
-                    return error(span, TypeError::UnboundType)
-                }
-
-                let name_ty = Self::lookup_ty(&tc, ty);
-
+                let name_ty = tc.get_full(span, id)?;
                 if name_ty != init_ty && !(name_ty.is_rec() && init_ty == Ty::Nil) {
                     return error(span, TypeError::VarMismatch)
                 }
@@ -521,13 +444,13 @@ impl Checker {
     fn check_type(&self, tc: TypeContext, ty: &Type) -> Result<Ty, Error> {
 
         match ty {
-        | Type::Name(name, span) => {
+        | Type::Name(name, span) => tc.get_partial(span, name),
+        | Type::Arr(name, span) => {
 
-            if !tc.contains_key(name) {
-                return error(span, TypeError::UnboundType)
-            }
+            // Look up array element type
+            let elem_ty = Box::new(tc.get_partial(span, name)?);
+            Ok(Ty::Arr(elem_ty, Uuid::new_v4()))
 
-            Ok(tc[name].clone())
         },
         | Type::Rec(decs, span) => {
 
@@ -535,24 +458,11 @@ impl Checker {
 
             // Look up each field type
             for dec in decs {
-                if !tc.contains_key(&dec.ty) {
-                    return error(span, TypeError::UnboundType)
-                }
-
-                fields.push((dec.name.clone(), tc[&dec.ty].clone()));
+                fields.push((dec.name.clone(), tc.get_partial(span, &dec.ty)?));
             }
 
             Ok(Ty::Rec(fields, Uuid::new_v4()))
 
-        },
-        | Type::Arr(name, span) => {
-
-            if !tc.contains_key(name) {
-                return error(span, TypeError::UnboundType)
-            }
-
-            // Look up array type
-            Ok(Ty::Arr(Box::new(tc[name].clone()), Uuid::new_v4()))
         },
         }
     }

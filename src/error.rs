@@ -90,8 +90,8 @@ pub enum TypeError {
     Break,
 
     CallMismatch,
-    UnboundFunction,
-    NotFunction,
+    UnboundFun,
+    NotFun,
     ReturnMismatch,
 
     Neg,
@@ -160,8 +160,8 @@ impl <'a> Into<String> for &'a TypeError {
         match self {
         | TypeError::Break            => "Cannot break outside of a loop.".to_string(),
         | TypeError::CallMismatch     => "Wrong arguments to function.".to_string(),
-        | TypeError::UnboundFunction  => "Could not find function.".to_string(),
-        | TypeError::NotFunction      => "Not a function.".to_string(),
+        | TypeError::UnboundFun       => "Could not find function.".to_string(),
+        | TypeError::NotFun           => "Not a function.".to_string(),
         | TypeError::ReturnMismatch   => "Function return type doesn't match body.".to_string(),
         | TypeError::Neg              => "Can only negate integers.".to_string(),
         | TypeError::BinaryMismatch   => "Wrong arguments for binary operator.".to_string(),
