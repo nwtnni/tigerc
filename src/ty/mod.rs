@@ -172,13 +172,13 @@ impl Checker {
             let lt = self.check_exp(lhs)?.ty;
             let rt = self.check_exp(rhs)?.ty;
 
-            // No binary operators work on unit
-            if lt == Ty::Unit || rt == Ty::Unit {
+            // No binary operators work on unit or both nil and nil
+            if lt == Ty::Unit || rt == Ty::Unit || (lt == Ty::Nil && rt == Ty::Nil) {
                 return error(span, TypeError::BinaryMismatch)
             }
 
             // Equality checking is valid for any L<>R, L=R where R: L
-            if op.is_equality() && lt.subtypes(&rt) {
+            if op.is_equality() && (lt.subtypes(&rt) || rt.subtypes(&lt)) {
                 return ok(Ty::Int)
             }
 
