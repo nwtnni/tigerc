@@ -134,9 +134,9 @@ pub enum TypeError {
 impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {
     fn into(self) -> Error {
         match self {
+        | LalrpopError::User { .. }
         | LalrpopError::InvalidToken { .. }                   => panic!("Internal error: should be covered by custom lexer"),
         | LalrpopError::ExtraToken { token: (start, _, end) } => Error::syntactic(start, end, ParseError::Extra),
-        | LalrpopError::User { error }                        => error,
         | LalrpopError::UnrecognizedToken { token, .. }       => {
             match token {
             | None => Error::syntactic(0.into(), 0.into(), ParseError::EOF),

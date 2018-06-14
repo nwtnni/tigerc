@@ -55,32 +55,24 @@ impl Compiler {
 
     fn lex(diagnostic: bool, source: &FileMap, path: &PathBuf, code: &CodeMap) -> Result<TokenStream, Error> {
 
-        let stream = TokenStream::new(&*source);
+        let lexed = TokenStream::from(&*source);
 
         if diagnostic {
             let output = path.with_extension("lexed");
             let mut outfile = File::create(output).unwrap();
 
-            for token in &stream {
-                match token {
-                | Ok((start, token, _)) => {
+            match &lexed {
+            | Ok(stream) => {
+                for (start, token, _) in stream.tokens() {
                     let (row, col) = source.location(*start).unwrap();
                     write!(outfile, "{}:{} {}\n", row.number(), col.number(), token).unwrap();
-                },
-                | Err(err) => write!(outfile, "{}", err.to_debug(code)).unwrap(),
                 }
+            },
+            | Err(err) => write!(outfile, "{}", err.to_debug(code)).unwrap(),
             }
         }
 
-        let err = (&stream).into_iter()
-            .find(|token| token.is_err())
-            .map(|err| err.err().unwrap())
-            .cloned();
-
-        match err {
-        | None => Ok(stream),
-        | Some(err) => Err(err.clone()),
-        }
+        lexed
     }
 
     fn parse(diagnostic: bool, lexer: TokenStream, path: &PathBuf, code: &CodeMap) -> Result<Exp, Error> {
