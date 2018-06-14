@@ -17,7 +17,6 @@ pub enum Ty {
 }
 
 impl Ty {
-
     pub fn is_arr(&self) -> bool {
         match self {
         | Ty::Arr(_, _) => true,
@@ -34,15 +33,14 @@ impl Ty {
 }
 
 impl PartialEq for Ty {
-
     fn eq(&self, rhs: &Self) -> bool {
         match (self, rhs) {
-        | (Ty::Nil, Ty::Rec(_, _)) | (Ty::Rec(_, _), Ty::Nil) => true,
-        | (Ty::Int, Ty::Int) | (Ty::Str, Ty::Str) | (Ty::Unit, Ty::Unit) | (Ty::Nil, Ty::Nil) => true,
+        | (Ty::Int, Ty::Int)
+        | (Ty::Str, Ty::Str)
+        | (Ty::Unit, Ty::Unit)
+        | (Ty::Nil, Ty::Nil) => true,
         | (Ty::Arr(_, lid), Ty::Arr(_, rid)) => lid == rid,
         | (Ty::Rec(_, lid), Ty::Rec(_, rid)) => lid == rid,
-        | (Ty::Name(_, ty), _) => (&*ty.clone().unwrap()).eq(rhs),
-        | (_, Ty::Name(_, ty)) => self.eq(&*ty.clone().unwrap()),
         _ => false,
         }
     }
@@ -274,7 +272,12 @@ impl Checker {
 
                 // Check all field name - value pairs
                 for (field, (field_name, field_ty)) in fields.iter().zip(fields_ty) {
-                    if field.name != field_name || self.check_exp(vc.clone(), tc.clone(), &*field.exp)?.ty != field_ty {
+
+                    let exp_ty = self.check_exp(vc.clone(), tc.clone(), &*field.exp)?.ty;
+                    
+                    if field.name != field_name
+                    && !(exp_ty == field_ty || (exp_ty == Ty::Nil && field_ty.is_rec()))
+                    {
                         return error(span, TypeError::FieldMismatch)
                     }
                 }
@@ -284,7 +287,7 @@ impl Checker {
             | _ => error(span, TypeError::NotRecord),
             }
         },
-        | Exp::Seq(exps, span) => {
+        | Exp::Seq(exps, _) => {
 
             // Empty sequence is just unit
             if exps.len() == 0 {
@@ -294,7 +297,7 @@ impl Checker {
             // Make sure all intermediate steps return unit
             if exps.len() > 1 {
                 for i in 0..exps.len() - 1 {
-                    if !is_unit!(&exps[i]) { return error(span, TypeError::UnusedExp) }
+                    self.check_exp(vc.clone(), tc.clone(), &exps[i])?;
                 }
             }
 
@@ -388,7 +391,6 @@ impl Checker {
                 let (new_vc, new_tc) = self.check_dec(let_vc, let_tc, &*dec)?;
                 let_vc = new_vc;
                 let_tc = new_tc;
-                println!("{:?}", let_vc);
                 println!("{:?}", let_tc);
             }
 
