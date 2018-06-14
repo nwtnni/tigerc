@@ -94,6 +94,7 @@ pub enum TypeError {
     UnboundFun,
     NotFun,
     ReturnMismatch,
+    FunConflict,
 
     Neg,
 
@@ -124,6 +125,7 @@ pub enum TypeError {
     ArrMismatch,
 
     UnboundType,
+    TypeConflict,
 
     UnboundField,
 
@@ -168,6 +170,7 @@ impl <'a> Into<String> for &'a TypeError {
         | TypeError::UnboundFun       => "Could not find function.".to_string(),
         | TypeError::NotFun           => "Not a function.".to_string(),
         | TypeError::ReturnMismatch   => "Function return type doesn't match body.".to_string(),
+        | TypeError::FunConflict      => "Conflicting function names in mutually recursive group.".to_string(),
         | TypeError::Neg              => "Can only negate integers.".to_string(),
         | TypeError::AssignImmutable  => "Cannot assign to immutable variable".to_string(),
         | TypeError::BinaryMismatch   => "Wrong arguments for binary operator.".to_string(),
@@ -188,6 +191,7 @@ impl <'a> Into<String> for &'a TypeError {
         | TypeError::NotArr           => "Not an array.".to_string(),
         | TypeError::ArrMismatch      => "Array initializer doesn't match array type.".to_string(),
         | TypeError::UnboundType      => "Could not find type.".to_string(),
+        | TypeError::TypeConflict     => "Conflicting type declarations in mutually recursive group.".to_string(),
         | TypeError::UnboundField     => "Unbound record field.".to_string(),
         | TypeError::IndexMismatch    => "Array indices must be integers.".to_string(),
         | TypeError::UnknownNil       => "Cannot infer type for nil.".to_string(),

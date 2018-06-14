@@ -34,7 +34,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 - Type checking
   - [ ] Write test cases
   - [x] Check for variable mutability
-  - [ ] Check for uniqueness of type and function names within a mutually recursive group
+  - [x] Check for uniqueness of type and function names within a mutually recursive group
   - [ ] Check for invalid type cycles
   - [ ] Upgrade `TypeError` variants with more information
   - [ ] Use `codespan::Label` to display better errors

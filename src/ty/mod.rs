@@ -1,6 +1,7 @@
 mod context;
 
 use codespan::ByteSpan;
+use fnv::FnvHashSet;
 use uuid::Uuid;
 
 use ast::*;
@@ -356,9 +357,23 @@ impl Checker {
         }
     }
 
+    fn check_unique<'a>(names: impl Iterator<Item = &'a str>) -> bool {
+        let mut unique = FnvHashSet::default();
+        for name in names {
+            if unique.contains(name) { return false }
+            unique.insert(name);
+        }
+        true
+    }
+
     fn check_dec(&mut self, dec: &Dec) -> Result<(), Error> {
         match dec {
         | Dec::Fun(funs, span) => {
+
+            // Make sure all top-level names are unique
+            if !Self::check_unique(funs.iter().map(|fun| fun.name.as_ref())) {
+                return error(span, TypeError::FunConflict)
+            }
 
             // Initialize top-level bindings
             for fun in funs {
@@ -437,7 +452,12 @@ impl Checker {
 
             Ok(())
         },
-        | Dec::Type(decs, _) => {
+        | Dec::Type(decs, span) => {
+
+            // Make sure all top-level names are unique
+            if !Self::check_unique(decs.iter().map(|dec| dec.name.as_ref())) {
+                return error(span, TypeError::TypeConflict)
+            }
 
             // Initialize top-level declarations
             for dec in decs {
