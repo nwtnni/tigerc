@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use codespan::{ByteIndex, ByteOffset, ByteSpan, FileMap};
 
+use lex::Spanned;
 use token::Token;
 use error::{Error, LexError};
 
@@ -17,8 +18,6 @@ enum Mode {
     Source,
     Comment,
 }
-
-type Spanned = Result<(ByteIndex, Token, ByteIndex), Error>;
 
 fn is_symbol(c: char) -> bool {
     match c {
@@ -56,10 +55,6 @@ impl <'input> Lexer<'input> {
         let mut stream = source.src().char_indices();
         let next = stream.next();
         Lexer { mode: Mode::Source, source, stream, next }
-    }
-
-    pub fn len(&self) -> usize {
-        self.source.src().len()
     }
 
     fn skip(&mut self) {
@@ -125,7 +120,7 @@ impl <'input> Lexer<'input> {
 
 }
 
-fn error(start: ByteIndex, end: ByteIndex, err: LexError) -> Option<Spanned> {
+fn error(start: ByteIndex, end: ByteIndex, err: LexError) -> Option<Result<Spanned, Error>> {
     Some(
         Err(
             Error::lexical(start, end, err)
@@ -133,7 +128,7 @@ fn error(start: ByteIndex, end: ByteIndex, err: LexError) -> Option<Spanned> {
     )
 }
 
-fn success(start: ByteIndex, end: ByteIndex, token: Token) -> Option<Spanned> {
+fn success(start: ByteIndex, end: ByteIndex, token: Token) -> Option<Result<Spanned, Error>> {
     Some(
         Ok(
             (start, token, end)
@@ -141,10 +136,9 @@ fn success(start: ByteIndex, end: ByteIndex, token: Token) -> Option<Spanned> {
     )
 }
 
-
 impl <'input> Iterator for Lexer<'input> {
 
-    type Item = Spanned;
+    type Item = Result<Spanned, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
 

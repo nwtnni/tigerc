@@ -4,7 +4,7 @@ use lalrpop_util::ParseError as LalrpopError;
 
 use token::Token;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
     pub span: ByteSpan,
     pub kind: Kind,
@@ -45,7 +45,7 @@ impl Into<Diagnostic> for Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Kind {
     Lexical(LexError),
     Syntactic(ParseError),
@@ -62,7 +62,7 @@ impl <'a> Into<String> for &'a Kind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LexError {
     Comment,
     Integer,
@@ -79,13 +79,14 @@ impl <'a> Into<String> for &'a LexError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ParseError {
     Extra,
     Unexpected,
+    EOF,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TypeError {
     Break,
 
@@ -138,7 +139,7 @@ impl Into<Error> for LalrpopError<ByteIndex, Token, Error> {
         | LalrpopError::User { error }                        => error,
         | LalrpopError::UnrecognizedToken { token, .. }       => {
             match token {
-            | None => panic!("Internal error: should be covered by parser"),
+            | None => Error::syntactic(0.into(), 0.into(), ParseError::EOF),
             | Some((start, _, end)) => Error::syntactic(start, end, ParseError::Unexpected),
             }
         },
@@ -151,6 +152,7 @@ impl <'a> Into<String> for &'a ParseError {
         match self {
         | ParseError::Extra      => "Extra tokens encountered.".to_string(),
         | ParseError::Unexpected => "Unexpected token encountered.".to_string(),
+        | ParseError::EOF        => "Unexpected EOF encountered.".to_string(),
         }
     }
 }

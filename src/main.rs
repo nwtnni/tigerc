@@ -13,9 +13,9 @@ use codespan_reporting::termcolor::{StandardStream, ColorChoice};
 use structopt::StructOpt;
 
 use tigerc::ast::Exp;
-use tigerc::parse::*;
-use tigerc::lex::*;
-use tigerc::error::*;
+use tigerc::parse::Parser;
+use tigerc::lex::TokenStream;
+use tigerc::error::Error;
 use tigerc::ty::Checker;
 
 #[derive(Debug, StructOpt)]
@@ -53,33 +53,37 @@ impl Compiler {
         }
     }
 
-    fn lex<'input>(_diagnostic: bool, source: &'input FileMap, _path: &PathBuf, _code: &CodeMap) -> Result<Lexer<'input>, Error> {
+    fn lex(diagnostic: bool, source: &FileMap, path: &PathBuf, code: &CodeMap) -> Result<TokenStream, Error> {
 
-        // TODO: make lexer more independent from parser
-        // if self.opts.lex {
+        let stream = TokenStream::new(&*source);
 
-        //     let lexer = Lexer::new(&*source);
-        //     let parser = Parser::new();
+        if diagnostic {
+            let output = path.with_extension("lexed");
+            let mut outfile = File::create(output).unwrap();
 
-        //     let output = input.with_extension("lexed");
-        //     let mut outfile = File::create(output).unwrap();
+            for token in &stream {
+                match token {
+                | Ok((start, token, _)) => {
+                    let (row, col) = source.location(*start).unwrap();
+                    write!(outfile, "{}:{} {}\n", row.number(), col.number(), token).unwrap();
+                },
+                | Err(err) => write!(outfile, "{}", err.to_debug(code)).unwrap(),
+                }
+            }
+        }
 
-        //     match parser.parse(lexer) {
-        //     | Err(err) => {
-        //         if let Kind::Lexical(_) = err.kind {
-        //             write!(outfile, "{}", err.to_debug(&self.code)).unwrap();
-        //             return Err(err)
-        //         }
-        //     },
-        //     | Ok(_) => {
-        //     }
-        //     }
-        // }
+        let err = (&stream).into_iter()
+            .find(|token| token.is_err())
+            .map(|err| err.err().unwrap())
+            .cloned();
 
-        Ok(Lexer::new(source))
+        match err {
+        | None => Ok(stream),
+        | Some(err) => Err(err.clone()),
+        }
     }
 
-    fn parse(diagnostic: bool, lexer: Lexer, path: &PathBuf, code: &CodeMap) -> Result<Exp, Error> {
+    fn parse(diagnostic: bool, lexer: TokenStream, path: &PathBuf, code: &CodeMap) -> Result<Exp, Error> {
 
         let parser = Parser::new();
         let parsed = parser.parse(lexer);
@@ -89,7 +93,7 @@ impl Compiler {
             let mut outfile = File::create(output).unwrap();
 
             match &parsed {
-            | Ok(ast) => write!(outfile, "{}", ast).unwrap(),
+            | Ok(ast)  => write!(outfile, "{}", ast).unwrap(),
             | Err(err) => write!(outfile, "{}", err.to_debug(code)).unwrap(),
             };
         }
@@ -106,7 +110,7 @@ impl Compiler {
             let mut outfile = File::create(output).unwrap();
 
             match &checked {
-            | Ok(_) => write!(outfile, "Valid Tiger Program").unwrap(),
+            | Ok(_)    => write!(outfile, "Valid Tiger Program").unwrap(),
             | Err(err) => write!(outfile, "{}", err.to_debug(code)).unwrap(),
             };
         }

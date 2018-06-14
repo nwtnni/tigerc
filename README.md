@@ -20,10 +20,10 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 
 - Lexing
   - [x] Add pretty-printing for tokens
-  - [ ] Decouple lexer from parser
+  - [x] Decouple lexer from parser
+  - [x] Integrate lexing phase into CLI
   - [ ] Implement string unescaping
   - [ ] Write test cases for lexing
-  - [ ] Integrate lexing phase into CLI
 
 - Parsing
   - [ ] Implement or find global symbol table library
