@@ -1,4 +1,3 @@
-mod display;
 mod grammar;
 
 use lalrpop_util::ParseError as LalrpopError;

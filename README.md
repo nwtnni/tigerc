@@ -14,13 +14,13 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 
 - [x] Type checking
 
-- [ ] IR Generation
+- [ ] IR generation
 
 ### TODO
 
 - Lexing
+  - [x] Add pretty-printing for tokens
   - [ ] Decouple lexer from parser
-  - [ ] Add pretty-printing for tokens
   - [ ] Implement string unescaping
   - [ ] Write test cases for lexing
   - [ ] Integrate lexing phase into CLI
