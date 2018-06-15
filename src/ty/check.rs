@@ -160,7 +160,7 @@ impl Checker {
         },
         | Exp::Rec{name, name_span, fields, span} => {
 
-            match self.tc.get_full(span, name)? {
+            match self.tc.get_full(name_span, name)? {
             | Ty::Rec(fields_ty, _) => {
 
                 if fields.len() != fields_ty.len() {
@@ -182,7 +182,7 @@ impl Checker {
                     }
                 }
 
-                ok(self.tc.get_full(span, name)?)
+                ok(self.tc.get_full(name_span, name)?)
             },
             | _ => error(span, TypeError::NotRecord),
             }
@@ -298,7 +298,7 @@ impl Checker {
         | Exp::Arr{name, name_span, size, init, span} => {
 
             // Look up element type
-            let elem = match self.tc.get_full(span, name)? {
+            let elem = match self.tc.get_full(name_span, name)? {
             | Ty::Arr(elem, _) => *elem,
             | _                => return error(span, TypeError::NotArr),
             };
@@ -313,7 +313,7 @@ impl Checker {
                 return error(span, TypeError::ArrMismatch)
             }
 
-            ok(self.tc.get_full(span, name)?)
+            ok(self.tc.get_full(name_span, name)?)
         },
         }
     }
@@ -343,13 +343,13 @@ impl Checker {
 
                 // Get formal parameter types
                 for arg in &fun.args {
-                    args.push(self.tc.get_full(span, &arg.ty)?);
+                    args.push(self.tc.get_full(&arg.name_span, &arg.ty)?);
                 }
 
                 // Get return type
                 let ret = match &fun.rets {
                 | None => Ty::Unit,
-                | Some(name) => self.tc.get_full(span, name)?,
+                | Some(name) => self.tc.get_full(&fun.rets_span.unwrap(), name)?,
                 };
 
                 // Update environment with function header
@@ -363,7 +363,7 @@ impl Checker {
 
                 // Add parameter bindings to body context
                 for arg in &fun.args {
-                    let arg_ty = self.tc.get_full(span, &arg.ty)?;
+                    let arg_ty = self.tc.get_full(&arg.name_span, &arg.ty)?;
                     self.vc.insert(arg.name, Binding::Var(arg_ty, true));
                 }
 
@@ -375,7 +375,7 @@ impl Checker {
                 // Get return type
                 let ret_ty = match &fun.rets {
                 | None      => Ty::Unit,
-                | Some(ret) => self.tc.get_full(span, ret)?,
+                | Some(ret) => self.tc.get_full(&fun.rets_span.unwrap(), ret)?,
                 };
 
                 // Make sure body expression subtypes return
@@ -402,7 +402,7 @@ impl Checker {
             | Some(id) => {
 
                 // Make sure initialization matches annotation
-                let name_ty = self.tc.get_full(span, id)?;
+                let name_ty = self.tc.get_full(&ty_span.unwrap(), id)?;
                 if !init_ty.subtypes(&name_ty) {
                     return error(span, TypeError::VarMismatch)
                 }
@@ -443,7 +443,7 @@ impl Checker {
         | Type::Arr(name, name_span, span) => {
 
             // Look up array element type
-            let elem_ty = Box::new(self.tc.get_partial(span, name)?);
+            let elem_ty = Box::new(self.tc.get_partial(name_span, name)?);
             Ok(Ty::Arr(elem_ty, Uuid::new_v4()))
 
         },
@@ -453,7 +453,7 @@ impl Checker {
 
             // Look up each field type
             for dec in decs {
-                fields.push((dec.name, self.tc.get_partial(span, &dec.ty)?));
+                fields.push((dec.name, self.tc.get_partial(&dec.name_span, &dec.ty)?));
             }
 
             Ok(Ty::Rec(fields, Uuid::new_v4()))

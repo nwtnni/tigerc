@@ -41,7 +41,18 @@ impl Error {
 impl Into<Diagnostic> for Error {
     fn into(self) -> Diagnostic {
         let Error { span, kind } = self;
-        Diagnostic::new_error(&kind).with_label(Label::new_primary(span))
+
+        let labels = vec![Label::new_primary(span)];
+
+        if let Kind::Semantic(err) = &kind {
+            match err {
+            | TypeError::Break => (),
+            |
+            _ => (),
+            };
+        };
+
+        Diagnostic::new_error(&kind).with_labels(labels)
     }
 }
 
