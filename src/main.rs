@@ -109,23 +109,31 @@ impl Compiler {
         checked
     }
 
-    fn run(&mut self) -> Result<(), Error> {
-        let files = self.opts.files.clone();
-        for path in &files {
-            let source = self.code.add_filemap_from_disk(&path).unwrap();
-            let lexer = Self::lex(self.opts.lex, &*source, path, &self.code)?;
-            let ast = Self::parse(self.opts.parse, lexer, path, &self.code)?;
-            let _ = Self::type_check(self.opts.type_check, ast, path, &self.code)?;
-        }
+    fn run_once(&mut self, path: &PathBuf) -> Result<(), Error> {
+        let source = self.code.add_filemap_from_disk(&path).unwrap();
+        let lexer = Self::lex(self.opts.lex, &*source, path, &self.code)?;
+        let ast = Self::parse(self.opts.parse, lexer, path, &self.code)?;
+        let _ = Self::type_check(self.opts.type_check, ast, path, &self.code)?;
         Ok(())
+    }
+
+    fn run(&mut self) -> Result<(), Vec<Error>> {
+        let files = self.opts.files.clone();
+        let mut errors = Vec::new();
+        for path in &files {
+            if let Err(err) = self.run_once(path) {
+                errors.push(err);
+            }
+        }
+        return if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
 
 fn main() {
     let mut compiler = Compiler::new();
-    let stdout = StandardStream::stdout(ColorChoice::Always);
+    let mut stdout = StandardStream::stdout(ColorChoice::Always);
     match compiler.run() {
-    | Err(err) => emit(stdout, &compiler.code, &err.into()).unwrap(),
+    | Err(errors) => for err in errors { emit(&mut stdout, &compiler.code, &err.into()).unwrap() },
     | _        => (),
     };
 }

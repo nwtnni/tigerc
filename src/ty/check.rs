@@ -106,7 +106,7 @@ impl Checker {
         | Exp::Call{name, name_span, args, span} => {
 
             // Get function header
-            let (args_ty, ret_ty) = self.vc.get_fun(span, name)?;
+            let (args_ty, ret_ty) = self.vc.get_fun(name_span, name)?;
 
             // Check number of arguments
             if args.len() != args_ty.len() {
