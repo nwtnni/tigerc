@@ -116,7 +116,7 @@ impl <'input> Lexer<'input> {
         self.skip();
         let (end, _) = self.take_until(start, |c| c == '"');
         self.skip();
-        (end, self.slice(start, end))
+        (end + ByteOffset(1), self.slice(start, end))
     }
 
 }
@@ -233,8 +233,7 @@ impl <'input> Iterator for Lexer<'input> {
                 | (_, "")  => (),
                 | (end, _) => {
                     // Cut off literal quotation marks
-                    let (start, end) = (start + ByteOffset(1), end);
-                    let string = String::from(self.slice(start, end));
+                    let string = String::from(self.slice(start + ByteOffset(1), end - ByteOffset(1)));
                     return success(start, end, Token::Str(string));
                 },
                 };
