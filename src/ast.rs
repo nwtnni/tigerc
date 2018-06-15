@@ -1,134 +1,138 @@
 use std::fmt;
 
-use codespan::{ByteIndex, ByteSpan};
+use codespan::ByteSpan;
 use sym::Symbol;
-
-pub type Span = ByteSpan;
-
-pub fn to_span(start: ByteIndex, end: ByteIndex) -> ByteSpan {
-    ByteSpan::new(start, end)
-}
 
 #[derive(Debug)]
 pub enum Dec {
-    Fun(Vec<FunDec>, Span),
+    Fun(Vec<FunDec>, ByteSpan),
 
     Var {
         name: Symbol,
+        name_span: ByteSpan,
         escape: bool,
         ty: Option<Symbol>,
+        ty_span: Option<ByteSpan>,
         init: Exp,
-        span: Span,
+        span: ByteSpan,
     },
 
-    Type(Vec<TypeDec>, Span),
+    Type(Vec<TypeDec>, ByteSpan),
 }
 
 #[derive(Debug)]
 pub struct FunDec {
     pub name: Symbol,
+    pub name_span: ByteSpan,
     pub args: Vec<FieldDec>,
     pub rets: Option<Symbol>,
+    pub rets_span: Option<ByteSpan>,
     pub body: Exp,
-    pub span: Span,
+    pub span: ByteSpan,
 }
 
 #[derive(Debug)]
 pub struct FieldDec {
     pub name: Symbol,
+    pub name_span: ByteSpan,
     pub escape: bool,
     pub ty: Symbol,
-    pub span: Span,
+    pub ty_span: ByteSpan,
+    pub span: ByteSpan,
 }
 
 #[derive(Debug)]
 pub struct TypeDec {
     pub name: Symbol,
+    pub name_span: ByteSpan,
     pub ty: Type,
-    pub span: Span,
+    pub span: ByteSpan,
 }
 
 #[derive(Debug)]
 pub struct Field {
     pub name: Symbol,
+    pub name_span: ByteSpan,
     pub exp: Box<Exp>,
-    pub span: Span,
+    pub span: ByteSpan,
 }
 
 #[derive(Debug)]
 pub enum Type {
 
-    Name(Symbol, Span),
+    Name(Symbol, ByteSpan),
 
-    Rec(Vec<FieldDec>, Span),
+    Rec(Vec<FieldDec>, ByteSpan),
 
-    Arr(Symbol, Span),
+    Arr(Symbol, ByteSpan, ByteSpan),
 }
 
 #[derive(Debug)]
 pub enum Var {
 
-    Simple(Symbol, Span),
+    Simple(Symbol, ByteSpan),
 
-    Field(Box<Var>, Symbol, Span),
+    Field(Box<Var>, Symbol, ByteSpan, ByteSpan),
 
-    Index(Box<Var>, Box<Exp>, Span),
+    Index(Box<Var>, Box<Exp>, ByteSpan),
 
 }
 
 #[derive(Debug)]
 pub enum Exp {
 
-    Break(Span),
+    Break(ByteSpan),
 
-    Nil(Span),
+    Nil(ByteSpan),
 
-    Var(Var, Span),
+    Var(Var, ByteSpan),
 
-    Int(i32, Span),
+    Int(i32, ByteSpan),
 
-    Str(String, Span),
+    Str(String, ByteSpan),
 
     Call {
         name: Symbol,
+        name_span: ByteSpan,
         args: Vec<Exp>,
-        span: Span,
+        span: ByteSpan,
     },
 
-    Neg(Box<Exp>, Span),
+    Neg(Box<Exp>, ByteSpan),
 
     Bin {
         lhs: Box<Exp>,
         op: Binop,
         rhs: Box<Exp>,
-        span: Span,
+        span: ByteSpan,
     },
 
     Rec {
         name: Symbol,
+        name_span: ByteSpan,
         fields: Vec<Field>,
-        span: Span,
+        span: ByteSpan,
     },
 
-    Seq(Vec<Exp>, Span),
+    Seq(Vec<Exp>, ByteSpan),
 
     Ass {
         name: Var,
         exp: Box<Exp>,
-        span: Span,
+        span: ByteSpan,
     },
 
     If {
         guard: Box<Exp>,
         then: Box<Exp>,
         or: Option<Box<Exp>>,
-        span: Span,
+        span: ByteSpan,
     },
 
     While {
         guard: Box<Exp>,
         body: Box<Exp>,
-        span: Span,
+        span: ByteSpan,
     },
 
     For {
@@ -137,20 +141,21 @@ pub enum Exp {
         lo: Box<Exp>,
         hi: Box<Exp>,
         body: Box<Exp>,
-        span: Span,
+        span: ByteSpan,
     },
 
     Let {
         decs: Vec<Dec>,
         body: Box<Exp>,
-        span: Span,
+        span: ByteSpan,
     },
 
     Arr {
         name: Symbol,
+        name_span: ByteSpan,
         size: Box<Exp>,
         init: Box<Exp>,
-        span: Span,
+        span: ByteSpan,
     },
 }
 
@@ -378,9 +383,9 @@ impl DisplayIndent for Type {
     fn display_indent(&self, level: usize, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
         match self {
-        | Type::Arr(name, _)  => indent!(fmt, level, format!("array of {}", name)),
-        | Type::Name(name, _) => indent!(fmt, level, name),
-        | Type::Rec(decs, _)  => {
+        | Type::Arr(name, _, _) => indent!(fmt, level, format!("array of {}", name)),
+        | Type::Name(name, _)   => indent!(fmt, level, name),
+        | Type::Rec(decs, _)    => {
             enclose!(fmt, level, {
                 let level = level + 1;
                 for d in decs { d.display_indent(level, fmt)?; }
@@ -425,7 +430,7 @@ impl DisplayIndent for Var {
 
         match self {
         | Var::Simple(name, _) => indent!(fmt, level, name),
-        | Var::Field(var, field, _) => {
+        | Var::Field(var, field, _, _) => {
             enclose!(fmt, level, {
                 let level = level + 1;
                 var.display_indent(level, fmt)?;

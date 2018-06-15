@@ -51,7 +51,7 @@ impl Checker {
             let (ty, mutable) = self.vc.get_var(span, name)?;
             Ok(Typed { ty, mutable, _exp: () })
         },
-        | Var::Field(rec, field, span) => {
+        | Var::Field(rec, field, field_span, span) => {
 
             // Must be bound to record type
             match self.check_var(&*rec)?.ty {
@@ -103,7 +103,7 @@ impl Checker {
         | Exp::Str(_, _)   => ok(Ty::Str),
         | Exp::Var(var, _) => self.check_var(var),
         | Exp::Break(span) => if self.loops.is_empty() { return error(span, TypeError::Break) } else { ok(Ty::Unit) },
-        | Exp::Call{name, args, span} => {
+        | Exp::Call{name, name_span, args, span} => {
 
             // Get function header
             let (args_ty, ret_ty) = self.vc.get_fun(span, name)?;
@@ -158,7 +158,7 @@ impl Checker {
 
             error(span, TypeError::BinaryMismatch)
         },
-        | Exp::Rec{name,fields,span} => {
+        | Exp::Rec{name, name_span, fields, span} => {
 
             match self.tc.get_full(span, name)? {
             | Ty::Rec(fields_ty, _) => {
@@ -295,7 +295,7 @@ impl Checker {
 
             body
         },
-        | Exp::Arr{name, size, init, span} => {
+        | Exp::Arr{name, name_span, size, init, span} => {
 
             // Look up element type
             let elem = match self.tc.get_full(span, name)? {
@@ -386,7 +386,7 @@ impl Checker {
 
             Ok(())
         },
-        | Dec::Var{name, ty, init, span, ..} => {
+        | Dec::Var{name, name_span, ty, ty_span, init, span, ..} => {
 
             // Initialization expression type
             let init_ty = self.check_exp(&init)?.ty;
@@ -440,7 +440,7 @@ impl Checker {
 
         match ty {
         | Type::Name(name, span) => self.tc.get_partial(span, name),
-        | Type::Arr(name, span) => {
+        | Type::Arr(name, name_span, span) => {
 
             // Look up array element type
             let elem_ty = Box::new(self.tc.get_partial(span, name)?);

@@ -40,7 +40,7 @@ impl IntoSpan for Type {
         match self {
         | Type::Name(_, span)
         | Type::Rec(_, span)
-        | Type::Arr(_, span) => *span,
+        | Type::Arr(_, _, span) => *span,
         }
     }
 }
@@ -49,7 +49,7 @@ impl IntoSpan for Var {
     fn into_span(&self) -> ByteSpan {
         match self {
         | Var::Simple(_, span)
-        | Var::Field(_, _, span)
+        | Var::Field(_, _, _, span)
         | Var::Index(_, _, span) => *span,
         }
     }
