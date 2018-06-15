@@ -2,6 +2,7 @@ mod context;
 
 use codespan::ByteSpan;
 use fnv::FnvHashSet;
+use sym::Symbol;
 use uuid::Uuid;
 
 use ast::*;
@@ -16,8 +17,8 @@ pub enum Ty {
     Str,
     Unit,
     Arr(Box<Ty>, Uuid),
-    Rec(Vec<(String, Ty)>, Uuid),
-    Name(String, Option<Box<Ty>>),
+    Rec(Vec<(Symbol, Ty)>, Uuid),
+    Name(Symbol, Option<Box<Ty>>),
 }
 
 impl Ty {
@@ -90,7 +91,7 @@ impl Checker {
             let (ty, mutable) = self.vc.get_var(span, name)?;
             Ok(Typed { ty, mutable, _exp: () })
         },
-        | Var::Field(box rec, field, span) => {
+        | Var::Field(rec, field, span) => {
 
             // Must be bound to record type
             match self.check_var(&*rec)?.ty {
@@ -357,10 +358,10 @@ impl Checker {
         }
     }
 
-    fn check_unique<'a>(names: impl Iterator<Item = &'a str>) -> bool {
+    fn check_unique(names: impl Iterator<Item = Symbol>) -> bool {
         let mut unique = FnvHashSet::default();
         for name in names {
-            if unique.contains(name) { return false }
+            if unique.contains(&name) { return false }
             unique.insert(name);
         }
         true
@@ -371,7 +372,7 @@ impl Checker {
         | Dec::Fun(funs, span) => {
 
             // Make sure all top-level names are unique
-            if !Self::check_unique(funs.iter().map(|fun| fun.name.as_ref())) {
+            if !Self::check_unique(funs.iter().map(|fun| fun.name)) {
                 return error(span, TypeError::FunConflict)
             }
 
@@ -455,7 +456,7 @@ impl Checker {
         | Dec::Type(decs, span) => {
 
             // Make sure all top-level names are unique
-            if !Self::check_unique(decs.iter().map(|dec| dec.name.as_ref())) {
+            if !Self::check_unique(decs.iter().map(|dec| dec.name)) {
                 return error(span, TypeError::TypeConflict)
             }
 

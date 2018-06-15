@@ -1,5 +1,7 @@
 use std::fmt;
 
+use sym::Symbol;
+
 /// Represents all valid lexical tokens in the Tiger language.
 #[derive(Debug)]
 pub enum Token {
@@ -136,7 +138,7 @@ pub enum Token {
 
     Str(String),
 
-    Ident(String),
+    Ident(Symbol),
 }
 
 /// Token pretty printer

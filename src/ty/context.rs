@@ -1,5 +1,6 @@
 use codespan::{ByteIndex, ByteSpan};
 use fnv::FnvHashMap;
+use sym::{store, Symbol};
 
 use error::{Error, TypeError};
 use ty::Ty;
@@ -16,7 +17,7 @@ macro_rules! hashmap {
     }
 }
 
-pub type Context<T> = Vec<FnvHashMap<String, T>>;
+pub type Context<T> = Vec<FnvHashMap<Symbol, T>>;
 
 #[derive(Debug)]
 pub struct VarContext(Context<Binding>);
@@ -31,16 +32,16 @@ impl Default for VarContext {
     fn default() -> Self {
         VarContext(vec![
             hashmap! {
-                "print".to_string()     => Binding::Fun(vec![Ty::Str], Ty::Unit),
-                "flush".to_string()     => Binding::Fun(vec![], Ty::Unit),
-                "getchar".to_string()   => Binding::Fun(vec![], Ty::Str),
-                "ord".to_string()       => Binding::Fun(vec![Ty::Str], Ty::Int),
-                "chr".to_string()       => Binding::Fun(vec![Ty::Int], Ty::Str),
-                "size".to_string()      => Binding::Fun(vec![Ty::Str], Ty::Int),
-                "substring".to_string() => Binding::Fun(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str),
-                "concat".to_string()    => Binding::Fun(vec![Ty::Str, Ty::Str], Ty::Str),
-                "not".to_string()       => Binding::Fun(vec![Ty::Int], Ty::Int),
-                "exit".to_string()      => Binding::Fun(vec![Ty::Int], Ty::Unit)
+                store("print")     => Binding::Fun(vec![Ty::Str], Ty::Unit),
+                store("flush")     => Binding::Fun(vec![], Ty::Unit),
+                store("getchar")   => Binding::Fun(vec![], Ty::Str),
+                store("ord")       => Binding::Fun(vec![Ty::Str], Ty::Int),
+                store("chr")       => Binding::Fun(vec![Ty::Int], Ty::Str),
+                store("size")      => Binding::Fun(vec![Ty::Str], Ty::Int),
+                store("substring") => Binding::Fun(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str),
+                store("concat")    => Binding::Fun(vec![Ty::Str, Ty::Str], Ty::Str),
+                store("not")       => Binding::Fun(vec![Ty::Int], Ty::Int),
+                store("exit")      => Binding::Fun(vec![Ty::Int], Ty::Unit)
             }
         ])
     }
@@ -48,7 +49,7 @@ impl Default for VarContext {
 
 impl VarContext {
 
-    pub fn insert(&mut self, name: String, binding: Binding) {
+    pub fn insert(&mut self, name: Symbol, binding: Binding) {
         self.0.last_mut().unwrap().insert(name, binding);
     }
 
@@ -60,7 +61,7 @@ impl VarContext {
         self.0.pop();
     }
 
-    pub fn get_var(&self, span: &ByteSpan, name: &str) -> Result<(Ty, bool), Error> {
+    pub fn get_var(&self, span: &ByteSpan, name: &Symbol) -> Result<(Ty, bool), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
             | Some(Binding::Fun(_, _))  => return Err(Error::semantic(span.clone(), TypeError::NotVar)),
@@ -71,7 +72,7 @@ impl VarContext {
         Err(Error::semantic(span.clone(), TypeError::UnboundVar))
     }
 
-    pub fn get_fun(&self, span: &ByteSpan, name: &str) -> Result<(Vec<Ty>, Ty), Error> {
+    pub fn get_fun(&self, span: &ByteSpan, name: &Symbol) -> Result<(Vec<Ty>, Ty), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
             | Some(Binding::Var(_, _))      => return Err(Error::semantic(span.clone(), TypeError::NotFun)),
@@ -90,8 +91,8 @@ impl Default for TypeContext {
     fn default() -> Self {
         TypeContext(vec![
             hashmap! {
-                "int".to_string()    => Ty::Int,
-                "string".to_string() => Ty::Str
+                store("int")    => Ty::Int,
+                store("string") => Ty::Str
             }
         ])
     }
@@ -99,7 +100,7 @@ impl Default for TypeContext {
 
 impl TypeContext {
 
-    pub fn insert(&mut self, name: String, ty: Ty) {
+    pub fn insert(&mut self, name: Symbol, ty: Ty) {
         self.0.last_mut().unwrap().insert(name, ty);
     }
 
@@ -118,7 +119,7 @@ impl TypeContext {
         }
     }
 
-    pub fn get_partial(&self, span: &ByteSpan, name: &str) -> Result<Ty, Error> {
+    pub fn get_partial(&self, span: &ByteSpan, name: &Symbol) -> Result<Ty, Error> {
         for env in self.0.iter().rev() {
             if let Some(ty) = env.get(name) { return Ok(self.trace_partial(&*ty)) }
         }
@@ -131,9 +132,9 @@ impl TypeContext {
         match ty {
         | Ty::Name(name, opt) => {
             match opt {
-            | Some(box Ty::Name(_, _)) => Err(Error::semantic(span.clone(), TypeError::NotIndirect)),
-            | Some(box ty)             => self.trace_full(span, &ty),
-            | _                        => Ok(self.get_full(&Self::dummy_span(), name).unwrap()),
+            // | Some(box Ty::Name(_, _)) => Err(Error::semantic(span.clone(), TypeError::NotIndirect)),
+            | Some(ty) => self.trace_full(span, &*ty),
+            | _        => Ok(self.get_full(&Self::dummy_span(), name).unwrap()),
             }
         },
         | Ty::Arr(elem, id) => Ok(Ty::Arr(Box::new(self.trace_full(span, &*elem)?), id.clone())),
@@ -141,7 +142,7 @@ impl TypeContext {
         }
     }
 
-    pub fn get_full(&self, span: &ByteSpan, name: &str) -> Result<Ty, Error> {
+    pub fn get_full(&self, span: &ByteSpan, name: &Symbol) -> Result<Ty, Error> {
         for env in self.0.iter().rev() {
             if let Some(ty) = env.get(name) { return Ok(self.trace_full(span, &*ty)?) }
         }

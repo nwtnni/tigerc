@@ -27,8 +27,8 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [x] Write test cases for lexing
 
 - Parsing
-  - [ ] Implement or find global symbol table library
-  - [ ] Convert all allocated `String` fields into `usize`
+  - [x] Implement or find global symbol table library (EDIT: see [sym][3])
+  - [x] Convert all allocated `String` fields into cached symbols
   - [ ] Implement `to_span` functions for AST nodes for better errors
 
 - Type checking
@@ -42,3 +42,4 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 
 [1]: https://www.cs.princeton.edu/~appel/modern/ml/
 [2]: https://github.com/lalrpop/lalrpop
+[3]: https://github.com/nwtnni/sym

@@ -1,8 +1,8 @@
 use std::fmt;
 
 use codespan::{ByteIndex, ByteSpan};
+use sym::Symbol;
 
-pub type ID = String;
 pub type Span = ByteSpan;
 
 pub fn to_span(start: ByteIndex, end: ByteIndex) -> ByteSpan {
@@ -14,9 +14,9 @@ pub enum Dec {
     Fun(Vec<FunDec>, Span),
 
     Var {
-        name: ID,
+        name: Symbol,
         escape: bool,
-        ty: Option<ID>,
+        ty: Option<Symbol>,
         init: Exp,
         span: Span,
     },
@@ -26,31 +26,31 @@ pub enum Dec {
 
 #[derive(Debug)]
 pub struct FunDec {
-    pub name: ID,
+    pub name: Symbol,
     pub args: Vec<FieldDec>,
-    pub rets: Option<ID>,
+    pub rets: Option<Symbol>,
     pub body: Exp,
     pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct FieldDec {
-    pub name: ID,
+    pub name: Symbol,
     pub escape: bool,
-    pub ty: ID,
+    pub ty: Symbol,
     pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct TypeDec {
-    pub name: ID,
+    pub name: Symbol,
     pub ty: Type,
     pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct Field {
-    pub name: ID,
+    pub name: Symbol,
     pub exp: Box<Exp>,
     pub span: Span,
 }
@@ -58,19 +58,19 @@ pub struct Field {
 #[derive(Debug)]
 pub enum Type {
 
-    Name(ID, Span),
+    Name(Symbol, Span),
 
     Rec(Vec<FieldDec>, Span),
 
-    Arr(ID, Span),
+    Arr(Symbol, Span),
 }
 
 #[derive(Debug)]
 pub enum Var {
 
-    Simple(ID, Span),
+    Simple(Symbol, Span),
 
-    Field(Box<Var>, ID, Span),
+    Field(Box<Var>, Symbol, Span),
 
     Index(Box<Var>, Box<Exp>, Span),
 
@@ -90,7 +90,7 @@ pub enum Exp {
     Str(String, Span),
 
     Call {
-        name: ID,
+        name: Symbol,
         args: Vec<Exp>,
         span: Span,
     },
@@ -105,7 +105,7 @@ pub enum Exp {
     },
 
     Rec {
-        name: ID,
+        name: Symbol,
         fields: Vec<Field>,
         span: Span,
     },
@@ -132,7 +132,7 @@ pub enum Exp {
     },
 
     For {
-        name: ID,
+        name: Symbol,
         escape: bool,
         lo: Box<Exp>,
         hi: Box<Exp>,
@@ -147,7 +147,7 @@ pub enum Exp {
     },
 
     Arr {
-        name: ID,
+        name: Symbol,
         size: Box<Exp>,
         init: Box<Exp>,
         span: Span,

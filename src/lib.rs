@@ -1,9 +1,8 @@
-#![feature(box_patterns)]
-
 extern crate codespan;
 extern crate codespan_reporting;
 extern crate fnv;
 extern crate lalrpop_util;
+extern crate sym;
 extern crate uuid;
 
 pub mod ast;
