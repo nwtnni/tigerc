@@ -126,15 +126,13 @@ impl TypeContext {
         Err(Error::semantic(*span, TypeError::UnboundType))
     }
 
-    fn dummy_span() -> ByteSpan { ByteSpan::new(ByteIndex(0), ByteIndex(0)) }
-
     pub fn trace_full(&self, span: &ByteSpan, ty: &Ty) -> Result<Ty, Error> {
         match ty {
         | Ty::Name(name, opt) => {
             match opt {
             // | Some(box Ty::Name(_, _)) => Err(Error::semantic(span.clone(), TypeError::NotIndirect)),
             | Some(ty) => self.trace_full(span, &*ty),
-            | _        => Ok(self.get_full(&Self::dummy_span(), name).unwrap()),
+            | _        => Ok(self.get_full(span, name).unwrap()),
             }
         },
         | Ty::Arr(elem, id) => Ok(Ty::Arr(Box::new(self.trace_full(span, &*elem)?), *id)),
