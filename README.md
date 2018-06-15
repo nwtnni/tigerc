@@ -29,7 +29,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 - Parsing
   - [x] Implement or find global symbol table library (EDIT: see [sym][3])
   - [x] Convert all allocated `String` fields into cached symbols
-  - [ ] Implement `to_span` functions for AST nodes for better errors
+  - [x] Implement `to_span` functions for AST nodes for better errors
 
 - Type checking
   - [ ] Write test cases

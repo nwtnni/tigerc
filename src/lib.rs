@@ -12,3 +12,4 @@ pub mod ir;
 pub mod error;
 pub mod token;
 pub mod parse;
+mod span;
