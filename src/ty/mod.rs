@@ -311,7 +311,7 @@ impl Checker {
 
             // Enter loop body with new environment and binding
             self.vc.push();
-            self.vc.insert(name.clone(), Binding::Var(Ty::Int, false));
+            self.vc.insert(*name, Binding::Var(Ty::Int, false));
             self.loops.push(());
 
             // Check body with updated VarContext
@@ -393,7 +393,7 @@ impl Checker {
                 };
 
                 // Update environment with function header
-                self.vc.insert(fun.name.clone(), Binding::Fun(args, ret));
+                self.vc.insert(fun.name, Binding::Fun(args, ret));
             }
 
             // Evaluate bodies with all function headers
@@ -404,7 +404,7 @@ impl Checker {
                 // Add parameter bindings to body context
                 for arg in &fun.args {
                     let arg_ty = self.tc.get_full(span, &arg.ty)?;
-                    self.vc.insert(arg.name.clone(), Binding::Var(arg_ty, true));
+                    self.vc.insert(arg.name, Binding::Var(arg_ty, true));
                 }
 
                 // Evaluate body with updated context
@@ -438,7 +438,7 @@ impl Checker {
 
             // Type annotation on variable
             match ty {
-            | None     => self.vc.insert(name.clone(), Binding::Var(init_ty.clone(), true)),
+            | None     => self.vc.insert(*name, Binding::Var(init_ty.clone(), true)),
             | Some(id) => {
 
                 // Make sure initialization matches annotation
@@ -447,7 +447,7 @@ impl Checker {
                     return error(span, TypeError::VarMismatch)
                 }
 
-                self.vc.insert(name.clone(), Binding::Var(name_ty, true));
+                self.vc.insert(*name, Binding::Var(name_ty, true));
             },
             };
 
@@ -462,13 +462,13 @@ impl Checker {
 
             // Initialize top-level declarations
             for dec in decs {
-                self.tc.insert(dec.name.clone(), Ty::Name(dec.name.clone(), None));
+                self.tc.insert(dec.name, Ty::Name(dec.name, None));
             }
 
             // Fill in type bodies
             for dec in decs {
                 let ty = self.check_type(&dec.ty)?;
-                self.tc.insert(dec.name.clone(), Ty::Name(dec.name.clone(), Some(Box::new(ty))));
+                self.tc.insert(dec.name, Ty::Name(dec.name, Some(Box::new(ty))));
             }
 
             Ok(())
@@ -493,7 +493,7 @@ impl Checker {
 
             // Look up each field type
             for dec in decs {
-                fields.push((dec.name.clone(), self.tc.get_partial(span, &dec.ty)?));
+                fields.push((dec.name, self.tc.get_partial(span, &dec.ty)?));
             }
 
             Ok(Ty::Rec(fields, Uuid::new_v4()))

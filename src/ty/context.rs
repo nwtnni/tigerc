@@ -64,23 +64,23 @@ impl VarContext {
     pub fn get_var(&self, span: &ByteSpan, name: &Symbol) -> Result<(Ty, bool), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
-            | Some(Binding::Fun(_, _))  => return Err(Error::semantic(span.clone(), TypeError::NotVar)),
+            | Some(Binding::Fun(_, _))  => return Err(Error::semantic(*span, TypeError::NotVar)),
             | Some(Binding::Var(ty, mutable)) => return Ok((ty.clone(), *mutable)),
             | None                      => (),
             };
         }
-        Err(Error::semantic(span.clone(), TypeError::UnboundVar))
+        Err(Error::semantic(*span, TypeError::UnboundVar))
     }
 
     pub fn get_fun(&self, span: &ByteSpan, name: &Symbol) -> Result<(Vec<Ty>, Ty), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
-            | Some(Binding::Var(_, _))      => return Err(Error::semantic(span.clone(), TypeError::NotFun)),
+            | Some(Binding::Var(_, _))      => return Err(Error::semantic(*span, TypeError::NotFun)),
             | Some(Binding::Fun(args, ret)) => return Ok((args.clone(), ret.clone())),
             | None                          => (),
             }
         }
-        Err(Error::semantic(span.clone(), TypeError::UnboundFun))
+        Err(Error::semantic(*span, TypeError::UnboundFun))
     }
 }
 
@@ -114,7 +114,7 @@ impl TypeContext {
 
     fn trace_partial(&self, ty: &Ty) -> Ty {
         match ty {
-        | Ty::Arr(elem, id) => Ty::Arr(Box::new(self.trace_partial(&*elem)), id.clone()),
+        | Ty::Arr(elem, id) => Ty::Arr(Box::new(self.trace_partial(&*elem)), *id),
         | _                 => ty.clone(),
         }
     }
@@ -123,7 +123,7 @@ impl TypeContext {
         for env in self.0.iter().rev() {
             if let Some(ty) = env.get(name) { return Ok(self.trace_partial(&*ty)) }
         }
-        Err(Error::semantic(span.clone(), TypeError::UnboundType))
+        Err(Error::semantic(*span, TypeError::UnboundType))
     }
 
     fn dummy_span() -> ByteSpan { ByteSpan::new(ByteIndex(0), ByteIndex(0)) }
@@ -137,7 +137,7 @@ impl TypeContext {
             | _        => Ok(self.get_full(&Self::dummy_span(), name).unwrap()),
             }
         },
-        | Ty::Arr(elem, id) => Ok(Ty::Arr(Box::new(self.trace_full(span, &*elem)?), id.clone())),
+        | Ty::Arr(elem, id) => Ok(Ty::Arr(Box::new(self.trace_full(span, &*elem)?), *id)),
         | _                 => Ok(ty.clone()),
         }
     }
@@ -146,6 +146,6 @@ impl TypeContext {
         for env in self.0.iter().rev() {
             if let Some(ty) = env.get(name) { return Ok(self.trace_full(span, &*ty)?) }
         }
-        Err(Error::semantic(span.clone(), TypeError::UnboundType))
+        Err(Error::semantic(*span, TypeError::UnboundType))
     }
 }
