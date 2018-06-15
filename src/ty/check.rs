@@ -453,13 +453,13 @@ impl Checker {
             Ok(Ty::Arr(elem_ty, Uuid::new_v4()))
 
         },
-        | Type::Rec(decs, span) => {
+        | Type::Rec(decs, _) => {
 
             let mut fields = Vec::new();
 
             // Look up each field type
             for dec in decs {
-                fields.push((dec.name, self.tc.get_partial(&dec.name_span, &dec.ty)?));
+                fields.push((dec.name, self.tc.get_partial(&dec.ty_span, &dec.ty)?));
             }
 
             Ok(Ty::Rec(fields, Uuid::new_v4()))
