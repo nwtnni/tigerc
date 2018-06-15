@@ -365,38 +365,35 @@ Exp: ast::Exp = {
 
 }
 
-Or: ast::Exp = {
+Binary<Op, Next>: ast::Exp = {
 
-    // Logical OR
-    <l: @L> <lhs: Or> LOR <rhs: And> <r: @R> => {
-        ast::Exp::Bin { lhs: Box::new(lhs), op: ast::Binop::LOr, rhs: Box::new(rhs), span: (l, r).into_span() }
+    <l: @L> <lhs: Binary<Op, Next>> <lo: @L> <op: Op> <ro: @R> <rhs: Next> <r: @R> => {
+        ast::Exp::Bin {
+            lhs: Box::new(lhs),
+            op,
+            op_span: (lo, ro).into_span(),
+            rhs: Box::new(rhs),
+            span: (l, r).into_span(),
+        }
     },
 
-    And,
+    Next,
 
 }
 
-And: ast::Exp = {
+Or = Binary<OrOp, And>;
 
-    // Logical AND
-    <l: @L> <lhs: And> LAND <rhs: Compare> <r: @R> => {
-        ast::Exp::Bin { lhs: Box::new(lhs), op: ast::Binop::LAnd, rhs: Box::new(rhs), span: (l, r).into_span() }
-    },
-
-    Compare,
-
+OrOp: ast::Binop = {
+    LOR => ast::Binop::LOr,
 }
 
-Compare: ast::Exp = {
+And = Binary<AndOp, Compare>;
 
-    // Comparison operators
-    <l: @L> <lhs: Term> <op: CompareOp> <rhs: Term> <r: @R> => {
-        ast::Exp::Bin { lhs: Box::new(lhs), op, rhs: Box::new(rhs), span: (l, r).into_span() }
-    },
-
-    Term,
-
+AndOp: ast::Binop = {
+    LAND => ast::Binop::LAnd,
 }
+
+Compare = Binary<CompareOp, Term>;
 
 CompareOp: ast::Binop = {
     GE  => ast::Binop::Ge,
@@ -407,32 +404,14 @@ CompareOp: ast::Binop = {
     EQ  => ast::Binop::Eq,
 }
 
-Term: ast::Exp = {
-
-    // Addition and subtraction
-    <l: @L> <lhs: Term> <op: TermOp> <rhs: Factor> <r: @R> => {
-        ast::Exp::Bin { lhs: Box::new(lhs), op, rhs: Box::new(rhs), span: (l, r).into_span() }
-    },
-
-    Factor,
-
-}
+Term = Binary<TermOp, Factor>;
 
 TermOp: ast::Binop = {
     ADD => ast::Binop::Add,
     SUB => ast::Binop::Sub,
 }
 
-Factor: ast::Exp = {
-
-    // Multiplication and division
-    <l: @L> <lhs: Factor> <op: FactorOp> <rhs: Unary> <r: @R> => {
-        ast::Exp::Bin { lhs: Box::new(lhs), op, rhs: Box::new(rhs), span: (l, r).into_span() }
-    },
-
-    Unary,
-
-}
+Factor = Binary<FactorOp, Unary>;
 
 FactorOp: ast::Binop = {
     DIV => ast::Binop::Div,

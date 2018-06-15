@@ -103,6 +103,7 @@ pub enum Exp {
     Bin {
         lhs: Box<Exp>,
         op: Binop,
+        op_span: ByteSpan,
         rhs: Box<Exp>,
         span: ByteSpan,
     },

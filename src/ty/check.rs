@@ -3,7 +3,7 @@ use fnv::FnvHashSet;
 
 use ast::*;
 use error::{Error, TypeError};
-
+use span::IntoSpan;
 use ty::*;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -51,7 +51,7 @@ impl Checker {
             let (ty, mutable) = self.vc.get_var(span, name)?;
             Ok(Typed { ty, mutable, _exp: () })
         },
-        | Var::Field(rec, field, field_span, span) => {
+        | Var::Field(rec, field, field_span, _) => {
 
             // Must be bound to record type
             match self.check_var(&*rec)?.ty {
@@ -60,28 +60,28 @@ impl Checker {
                 // Find corresponding field
                 let ty = fields.iter()
                     .find(|(name, _)| field == name)
-                    .map(|(_, ty)| self.tc.trace_full(span, ty));
+                    .map(|(_, ty)| self.tc.trace_full(field_span, ty));
 
                 // Check field type
                 match ty {
                 | Some(ty) => ok(ty?.clone()),
-                | None     => error(span, TypeError::UnboundField),
+                | None     => error(field_span, TypeError::UnboundField),
                 }
             },
-            | _ => error(span, TypeError::NotRecord),
+            | _ => error(&rec.into_span(), TypeError::NotRecord),
             }
         },
-        | Var::Index(arr, index, span) => {
+        | Var::Index(arr, index, _) => {
 
             // Index must be integer
             if !is_int!(&*index) {
-                return error(span, TypeError::IndexMismatch)
+                return error(&index.into_span(), TypeError::IndexMismatch)
             }
 
             // Get element type
             match self.check_var(&*arr)?.ty {
             | Ty::Arr(elem, _) => ok(*elem.clone()),
-            | _                => error(span, TypeError::NotArr),
+            | _                => error(&arr.into_span(), TypeError::NotArr),
             }
         },
         }
@@ -110,12 +110,12 @@ impl Checker {
 
             // Check number of arguments
             if args.len() != args_ty.len() {
-                return error(span, TypeError::CallMismatch)
+                return error(name_span, TypeError::CallCountMismatch)
             }
 
             // Check that each argument subtypes formal parameter type
             for (arg, ty) in args.iter().zip(args_ty) {
-                if !self.check_exp(arg)?.ty.subtypes(&ty) { return error(span, TypeError::CallMismatch) }
+                if !self.check_exp(arg)?.ty.subtypes(&ty) { return error(&arg.into_span(), TypeError::CallTypeMismatch) }
             }
 
             ok(ret_ty.clone())
@@ -123,24 +123,30 @@ impl Checker {
         | Exp::Neg(exp, span) => {
 
             // Unary negation only works on integers
-            if !is_int!(&*exp) { return error(span, TypeError::Neg) }
+            if !is_int!(&*exp) { return error(&exp.into_span(), TypeError::Neg) }
 
             ok(Ty::Int)
 
         },
-        | Exp::Bin{lhs, op, rhs, span} => {
+        | Exp::Bin{lhs, op, op_span, rhs, span} => {
 
             let lt = self.check_exp(lhs)?.ty;
             let rt = self.check_exp(rhs)?.ty;
 
-            // No binary operators work on unit or both nil and nil
-            if lt == Ty::Unit || rt == Ty::Unit || (lt == Ty::Nil && rt == Ty::Nil) {
-                return error(span, TypeError::BinaryMismatch)
+            // No binary operators work on unit
+            if lt == Ty::Unit {
+                return error(&lhs.into_span(), TypeError::BinaryUnit)
+            } else if rt == Ty::Unit {
+                return error(&rhs.into_span(), TypeError::BinaryUnit)
             }
 
             // Equality checking is valid for any L<>R, L=R where R: L
             if op.is_equality() && (lt.subtypes(&rt) || rt.subtypes(&lt)) {
-                return ok(Ty::Int)
+                return if lt == Ty::Nil && rt == Ty::Nil {
+                    error(span, TypeError::BinaryNil)
+                } else {
+                    ok(Ty::Int)
+                }
             }
 
             // Comparisons are valid for
@@ -156,7 +162,7 @@ impl Checker {
                 return ok(Ty::Int)
             }
 
-            error(span, TypeError::BinaryMismatch)
+            error(op_span, TypeError::BinaryMismatch)
         },
         | Exp::Rec{name, name_span, fields, span} => {
 
@@ -164,7 +170,7 @@ impl Checker {
             | Ty::Rec(fields_ty, _) => {
 
                 if fields.len() != fields_ty.len() {
-                    return error(span, TypeError::FieldMismatch)
+                    return error(span, TypeError::FieldCountMismatch)
                 }
 
                 // Make sure all record fields are fully resolved
@@ -177,14 +183,18 @@ impl Checker {
 
                     let exp_ty = self.check_exp(&*field.exp)?.ty;
 
-                    if &field.name != field_name && !exp_ty.subtypes(&field_ty?) {
-                        return error(span, TypeError::FieldMismatch)
+                    if &field.name != field_name {
+                        return error(&field.name_span, TypeError::FieldNameMismatch)
+                    }
+
+                    if !exp_ty.subtypes(&field_ty?) {
+                        return error(&field.exp.into_span(), TypeError::FieldTypeMismatch)
                     }
                 }
 
                 ok(self.tc.get_full(name_span, name)?)
             },
-            | _ => error(span, TypeError::NotRecord),
+            | _ => error(name_span, TypeError::NotRecord),
             }
         },
         | Exp::Seq(exps, _) => {
@@ -198,16 +208,16 @@ impl Checker {
             // Result is type of last exp
             self.check_exp(&exps.last().unwrap())
         },
-        | Exp::Ass{name, exp, span} => {
+        | Exp::Ass{name, exp, ..} => {
 
             let var = self.check_var(name)?;
 
             if !var.mutable {
-                return error(span, TypeError::AssignImmutable)
+                return error(&name.into_span(), TypeError::AssignImmutable)
             }
 
             if !self.check_exp(exp)?.ty.subtypes(&var.ty) {
-                return error(span, TypeError::VarMismatch)
+                return error(&exp.into_span(), TypeError::VarMismatch)
             }
 
             ok(Ty::Unit)
@@ -216,7 +226,7 @@ impl Checker {
 
             // Guard must be boolean
             if !is_int!(&*guard) {
-                return error(span, TypeError::GuardMismatch)
+                return error(&guard.into_span(), TypeError::GuardMismatch)
             }
 
             // Check type of if branch
@@ -227,7 +237,7 @@ impl Checker {
                 // For if-else, both branches must return the same type
                 let or_ty = self.check_exp(&*exp)?.ty;
                 if !then_ty.subtypes(&or_ty) && !or_ty.subtypes(&then_ty) {
-                    return error(span, TypeError::BranchMismatch)
+                    return error(&exp.into_span(), TypeError::BranchMismatch)
                 }
 
                 ok(then_ty.clone())
@@ -236,17 +246,17 @@ impl Checker {
 
                 // For if, branch must have no expression
                 if then_ty != Ty::Unit {
-                    return error(span, TypeError::UnusedBranch)
+                    return error(&then.into_span(), TypeError::UnusedBranch)
                 }
 
                 ok(Ty::Unit)
             }
         },
-        | Exp::While{guard, body, span} => {
+        | Exp::While{guard, body, ..} => {
 
             // Guard must be boolean
             if !is_int!(&*guard) {
-                return error(span, TypeError::GuardMismatch)
+                return error(&guard.into_span(), TypeError::GuardMismatch)
             }
 
             // Enter loop body
@@ -254,19 +264,19 @@ impl Checker {
 
             // Body must be unit
             if !is_unit!(&*body) {
-                return error(span, TypeError::UnusedWhileBody)
+                return error(&body.into_span(), TypeError::UnusedWhileBody)
             }
 
             ok(Ty::Unit)
         },
-        | Exp::For{name, lo, hi, body, span, ..} => {
+        | Exp::For{name, lo, hi, body, ..} => {
 
             if !is_int!(&*lo) {
-                return error(span, TypeError::ForBound)
+                return error(&lo.into_span(), TypeError::ForBound)
             }
 
             if !is_int!(&*hi) {
-                return error(span, TypeError::ForBound)
+                return error(&hi.into_span(), TypeError::ForBound)
             }
 
             // Enter loop body with new environment and binding
@@ -276,7 +286,7 @@ impl Checker {
 
             // Check body with updated VarContext
             if self.check_exp(&*body)?.ty != Ty::Unit {
-                return error(span, TypeError::UnusedForBody)
+                return error(&body.into_span(), TypeError::UnusedForBody)
             }
 
             // Pop environment
@@ -295,22 +305,22 @@ impl Checker {
 
             body
         },
-        | Exp::Arr{name, name_span, size, init, span} => {
+        | Exp::Arr{name, name_span, size, init, ..} => {
 
             // Look up element type
             let elem = match self.tc.get_full(name_span, name)? {
             | Ty::Arr(elem, _) => *elem,
-            | _                => return error(span, TypeError::NotArr),
+            | _                => return error(name_span, TypeError::NotArr),
             };
 
             // Size must be integer
             if !is_int!(&*size) {
-                return error(span, TypeError::ForBound)
+                return error(&size.into_span(), TypeError::ForBound)
             }
 
             // Initialization expression must subtype element type
             if !self.check_exp(&*init)?.ty.subtypes(&elem) {
-                return error(span, TypeError::ArrMismatch)
+                return error(&init.into_span(), TypeError::ArrMismatch)
             }
 
             ok(self.tc.get_full(name_span, name)?)
@@ -318,13 +328,13 @@ impl Checker {
         }
     }
 
-    fn check_unique(names: impl Iterator<Item = Symbol>) -> bool {
+    fn check_unique(names: impl Iterator<Item = (Symbol, ByteSpan)>) -> Result<(), Error> {
         let mut unique = FnvHashSet::default();
-        for name in names {
-            if unique.contains(&name) { return false }
+        for (name, name_span) in names {
+            if unique.contains(&name) { return error(&name_span, TypeError::DecConflict) }
             unique.insert(name);
         }
-        true
+        Ok(())
     }
 
     fn check_dec(&mut self, dec: &Dec) -> Result<(), Error> {
@@ -332,9 +342,7 @@ impl Checker {
         | Dec::Fun(funs, span) => {
 
             // Make sure all top-level names are unique
-            if !Self::check_unique(funs.iter().map(|fun| fun.name)) {
-                return error(span, TypeError::FunConflict)
-            }
+            Self::check_unique(funs.iter().map(|fun| (fun.name, fun.name_span)))?;
 
             // Initialize top-level bindings
             for fun in funs {
@@ -393,7 +401,7 @@ impl Checker {
 
             // Can't assign nil without type annotation
             if init_ty == Ty::Nil && ty.is_none() {
-                return error(span, TypeError::UnknownNil)
+                return error(name_span, TypeError::UnknownNil)
             }
 
             // Type annotation on variable
@@ -404,7 +412,7 @@ impl Checker {
                 // Make sure initialization matches annotation
                 let name_ty = self.tc.get_full(&ty_span.unwrap(), id)?;
                 if !init_ty.subtypes(&name_ty) {
-                    return error(span, TypeError::VarMismatch)
+                    return error(&init.into_span(), TypeError::VarMismatch)
                 }
 
                 self.vc.insert(*name, Binding::Var(name_ty, true));
@@ -416,9 +424,7 @@ impl Checker {
         | Dec::Type(decs, span) => {
 
             // Make sure all top-level names are unique
-            if !Self::check_unique(decs.iter().map(|dec| dec.name)) {
-                return error(span, TypeError::TypeConflict)
-            }
+            Self::check_unique(decs.iter().map(|dec| (dec.name, dec.name_span)))?;
 
             // Initialize top-level declarations
             for dec in decs {
