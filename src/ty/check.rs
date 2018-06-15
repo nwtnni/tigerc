@@ -339,7 +339,7 @@ impl Checker {
 
     fn check_dec(&mut self, dec: &Dec) -> Result<(), Error> {
         match dec {
-        | Dec::Fun(funs, span) => {
+        | Dec::Fun(funs, _) => {
 
             // Make sure all top-level names are unique
             Self::check_unique(funs.iter().map(|fun| (fun.name, fun.name_span)))?;
@@ -388,7 +388,7 @@ impl Checker {
 
                 // Make sure body expression subtypes return
                 if !body_ty.subtypes(&ret_ty) {
-                    return error(&fun.span, TypeError::ReturnMismatch)
+                    return error(&fun.body.into_span(), TypeError::ReturnMismatch)
                 }
             }
 
