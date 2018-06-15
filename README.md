@@ -33,13 +33,17 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [x] Add more `span` fields to AST where necessary (e.g. saving function name in `Call` node)
 
 - Type checking
-  - [ ] Write test cases
+  - [x] Write test cases
   - [x] Check for variable mutability
   - [x] Check for uniqueness of type and function names within a mutually recursive group
   - [ ] Check for invalid type cycles
   - [ ] Upgrade `TypeError` variants with more information
   - [ ] Use `codespan::Label` to display better errors
   - [x] Possibly use macros to clean up repeated code, or reduce the number of `clone` calls
+
+### Deviations
+
+- Allow comparison operators to associate (e.g. (a = b = c) evaluates as ((a = b) = c))
 
 [1]: https://www.cs.princeton.edu/~appel/modern/ml/
 [2]: https://github.com/lalrpop/lalrpop
