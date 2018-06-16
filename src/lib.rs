@@ -5,11 +5,14 @@ extern crate lalrpop_util;
 extern crate sym;
 extern crate uuid;
 
-pub mod ast;
 pub mod lex;
-pub mod ty;
-pub mod ir;
-pub mod error;
-pub mod token;
 pub mod parse;
+pub mod ty;
+pub mod translate;
+
+pub mod ast;
+pub mod token;
+pub mod ir;
+
+pub mod error;
 mod span;
