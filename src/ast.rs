@@ -1,139 +1,139 @@
 use std::fmt;
 
-use codespan::ByteSpan;
 use sym::Symbol;
+use span::Span;
 
 #[derive(Debug)]
 pub enum Dec {
-    Fun(Vec<FunDec>, ByteSpan),
+    Fun(Vec<FunDec>, Span),
 
     Var {
         name: Symbol,
-        name_span: ByteSpan,
+        name_span: Span,
         escape: bool,
         ty: Option<Symbol>,
-        ty_span: Option<ByteSpan>,
+        ty_span: Option<Span>,
         init: Exp,
-        span: ByteSpan,
+        span: Span,
     },
 
-    Type(Vec<TypeDec>, ByteSpan),
+    Type(Vec<TypeDec>, Span),
 }
 
 #[derive(Debug)]
 pub struct FunDec {
     pub name: Symbol,
-    pub name_span: ByteSpan,
+    pub name_span: Span,
     pub args: Vec<FieldDec>,
     pub rets: Option<Symbol>,
-    pub rets_span: Option<ByteSpan>,
+    pub rets_span: Option<Span>,
     pub body: Exp,
-    pub span: ByteSpan,
+    pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct FieldDec {
     pub name: Symbol,
-    pub name_span: ByteSpan,
+    pub name_span: Span,
     pub escape: bool,
     pub ty: Symbol,
-    pub ty_span: ByteSpan,
-    pub span: ByteSpan,
+    pub ty_span: Span,
+    pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct TypeDec {
     pub name: Symbol,
-    pub name_span: ByteSpan,
+    pub name_span: Span,
     pub ty: Type,
-    pub span: ByteSpan,
+    pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct Field {
     pub name: Symbol,
-    pub name_span: ByteSpan,
+    pub name_span: Span,
     pub exp: Box<Exp>,
-    pub span: ByteSpan,
+    pub span: Span,
 }
 
 #[derive(Debug)]
 pub enum Type {
 
-    Name(Symbol, ByteSpan),
+    Name(Symbol, Span),
 
-    Rec(Vec<FieldDec>, ByteSpan),
+    Rec(Vec<FieldDec>, Span),
 
-    Arr(Symbol, ByteSpan, ByteSpan),
+    Arr(Symbol, Span, Span),
 }
 
 #[derive(Debug)]
 pub enum Var {
 
-    Simple(Symbol, ByteSpan),
+    Simple(Symbol, Span),
 
-    Field(Box<Var>, Symbol, ByteSpan, ByteSpan),
+    Field(Box<Var>, Symbol, Span, Span),
 
-    Index(Box<Var>, Box<Exp>, ByteSpan),
+    Index(Box<Var>, Box<Exp>, Span),
 
 }
 
 #[derive(Debug)]
 pub enum Exp {
 
-    Break(ByteSpan),
+    Break(Span),
 
-    Nil(ByteSpan),
+    Nil(Span),
 
-    Var(Var, ByteSpan),
+    Var(Var, Span),
 
-    Int(i32, ByteSpan),
+    Int(i32, Span),
 
-    Str(String, ByteSpan),
+    Str(String, Span),
 
     Call {
         name: Symbol,
-        name_span: ByteSpan,
+        name_span: Span,
         args: Vec<Exp>,
-        span: ByteSpan,
+        span: Span,
     },
 
-    Neg(Box<Exp>, ByteSpan),
+    Neg(Box<Exp>, Span),
 
     Bin {
         lhs: Box<Exp>,
         op: Binop,
-        op_span: ByteSpan,
+        op_span: Span,
         rhs: Box<Exp>,
-        span: ByteSpan,
+        span: Span,
     },
 
     Rec {
         name: Symbol,
-        name_span: ByteSpan,
+        name_span: Span,
         fields: Vec<Field>,
-        span: ByteSpan,
+        span: Span,
     },
 
-    Seq(Vec<Exp>, ByteSpan),
+    Seq(Vec<Exp>, Span),
 
     Ass {
         name: Var,
         exp: Box<Exp>,
-        span: ByteSpan,
+        span: Span,
     },
 
     If {
         guard: Box<Exp>,
         then: Box<Exp>,
         or: Option<Box<Exp>>,
-        span: ByteSpan,
+        span: Span,
     },
 
     While {
         guard: Box<Exp>,
         body: Box<Exp>,
-        span: ByteSpan,
+        span: Span,
     },
 
     For {
@@ -142,21 +142,21 @@ pub enum Exp {
         lo: Box<Exp>,
         hi: Box<Exp>,
         body: Box<Exp>,
-        span: ByteSpan,
+        span: Span,
     },
 
     Let {
         decs: Vec<Dec>,
         body: Box<Exp>,
-        span: ByteSpan,
+        span: Span,
     },
 
     Arr {
         name: Symbol,
-        name_span: ByteSpan,
+        name_span: Span,
         size: Box<Exp>,
         init: Box<Exp>,
-        span: ByteSpan,
+        span: Span,
     },
 }
 

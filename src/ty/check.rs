@@ -1,9 +1,8 @@
-use codespan::ByteSpan;
 use fnv::FnvHashSet;
 
 use ast::*;
 use error::{Error, TypeError};
-use span::IntoSpan;
+use span::{Span, IntoSpan};
 use ty::*;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -17,7 +16,7 @@ fn ok(ty: Ty) -> Result<Typed, Error> {
     Ok(Typed { ty, mutable: true, _exp: () })
 }
 
-fn error<T>(span: &ByteSpan, err: TypeError) -> Result<T, Error> {
+fn error<T>(span: &Span, err: TypeError) -> Result<T, Error> {
     Err(Error::semantic(*span, err))
 }
 
@@ -328,7 +327,7 @@ impl Checker {
         }
     }
 
-    fn check_unique(names: impl Iterator<Item = (Symbol, ByteSpan)>) -> Result<(), Error> {
+    fn check_unique(names: impl Iterator<Item = (Symbol, Span)>) -> Result<(), Error> {
         let mut unique = FnvHashSet::default();
         for (name, name_span) in names {
             if unique.contains(&name) { return error(&name_span, TypeError::DecConflict) }

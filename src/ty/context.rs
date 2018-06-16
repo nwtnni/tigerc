@@ -1,8 +1,8 @@
-use codespan::{ByteIndex, ByteSpan};
 use fnv::FnvHashMap;
 use sym::{store, Symbol};
 
 use error::{Error, TypeError};
+use span::Span;
 use ty::Ty;
 
 macro_rules! hashmap {
@@ -61,7 +61,7 @@ impl VarContext {
         self.0.pop();
     }
 
-    pub fn get_var(&self, span: &ByteSpan, name: &Symbol) -> Result<(Ty, bool), Error> {
+    pub fn get_var(&self, span: &Span, name: &Symbol) -> Result<(Ty, bool), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
             | Some(Binding::Fun(_, _))  => return Err(Error::semantic(*span, TypeError::NotVar)),
@@ -72,7 +72,7 @@ impl VarContext {
         Err(Error::semantic(*span, TypeError::UnboundVar))
     }
 
-    pub fn get_fun(&self, span: &ByteSpan, name: &Symbol) -> Result<(Vec<Ty>, Ty), Error> {
+    pub fn get_fun(&self, span: &Span, name: &Symbol) -> Result<(Vec<Ty>, Ty), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
             | Some(Binding::Var(_, _))      => return Err(Error::semantic(*span, TypeError::NotFun)),
@@ -119,14 +119,14 @@ impl TypeContext {
         }
     }
 
-    pub fn get_partial(&self, span: &ByteSpan, name: &Symbol) -> Result<Ty, Error> {
+    pub fn get_partial(&self, span: &Span, name: &Symbol) -> Result<Ty, Error> {
         for env in self.0.iter().rev() {
             if let Some(ty) = env.get(name) { return Ok(self.trace_partial(&*ty)) }
         }
         Err(Error::semantic(*span, TypeError::UnboundType))
     }
 
-    pub fn trace_full(&self, span: &ByteSpan, ty: &Ty) -> Result<Ty, Error> {
+    pub fn trace_full(&self, span: &Span, ty: &Ty) -> Result<Ty, Error> {
         match ty {
         | Ty::Name(name, opt) => {
             match opt {
@@ -140,7 +140,7 @@ impl TypeContext {
         }
     }
 
-    pub fn get_full(&self, span: &ByteSpan, name: &Symbol) -> Result<Ty, Error> {
+    pub fn get_full(&self, span: &Span, name: &Symbol) -> Result<Ty, Error> {
         for env in self.0.iter().rev() {
             if let Some(ty) = env.get(name) { return Ok(self.trace_full(span, &*ty)?) }
         }

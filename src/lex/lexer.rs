@@ -1,12 +1,13 @@
 use std::str::CharIndices;
 use std::str::FromStr;
 
-use codespan::{ByteIndex, ByteOffset, ByteSpan, FileMap};
+use codespan::{ByteIndex, ByteOffset, FileMap};
 use sym;
 
 use lex::Spanned;
 use token::Token;
 use error::{Error, LexError};
+use span::Span;
 
 pub struct Lexer<'input> {
     mode: Mode,
@@ -77,7 +78,7 @@ impl <'input> Lexer<'input> {
     }
 
     fn slice(&self, start: ByteIndex, end: ByteIndex) -> &'input str {
-        &self.source.src_slice(ByteSpan::new(start, end)).unwrap()
+        &self.source.src_slice(Span::new(start, end)).unwrap()
     }
 
     fn take_while<F>(&mut self, start: ByteIndex, mut condition: F) -> (ByteIndex, &'input str)

@@ -1,5 +1,6 @@
-use codespan::ByteSpan;
 use uuid::Uuid;
+
+use span::Span;
 
 #[derive(Clone)]
 pub struct Temp {
@@ -30,7 +31,7 @@ pub enum Stm {
     CJump(Relop, Exp, Exp, Label, Label),
     Seq(Box<Stm>, Box<Stm>),
     Label(Label),
-    Source(ByteSpan),
+    Source(Span),
 }
 
 pub enum Binop {

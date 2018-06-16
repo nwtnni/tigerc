@@ -1,12 +1,13 @@
-use codespan::{ByteIndex, ByteSpan, CodeMap};
+use codespan::{ByteIndex, CodeMap};
 use codespan_reporting::{Diagnostic, Label};
 use lalrpop_util::ParseError as LalrpopError;
 
 use token::Token;
+use span::Span;
 
 #[derive(Debug, Clone)]
 pub struct Error {
-    pub span: ByteSpan,
+    pub span: Span,
     pub kind: Kind,
 }
 
@@ -26,14 +27,14 @@ impl Error {
     }
 
     pub fn lexical(start: ByteIndex, end: ByteIndex, err: LexError) -> Self {
-        Error { span: ByteSpan::new(start, end), kind: Kind::Lexical(err), }
+        Error { span: Span::new(start, end), kind: Kind::Lexical(err), }
     }
 
     pub fn syntactic(start: ByteIndex, end: ByteIndex, err: ParseError) -> Self {
-        Error { span: ByteSpan::new(start, end), kind: Kind::Syntactic(err), }
+        Error { span: Span::new(start, end), kind: Kind::Syntactic(err), }
     }
 
-    pub fn semantic(span: ByteSpan, err: TypeError) -> Self {
+    pub fn semantic(span: Span, err: TypeError) -> Self {
         Error { span, kind: Kind::Semantic(err), }
     }
 }

@@ -2,26 +2,28 @@ use codespan::{ByteIndex, ByteSpan};
 
 use ast::*;
 
+pub type Span = ByteSpan;
+
 macro_rules! impl_into_span {
     ($type:ident) => {
         impl IntoSpan for $type {
-            fn into_span(&self) -> ByteSpan { self.span }
+            fn into_span(&self) -> Span { self.span }
         }
     }
 }
 
 pub trait IntoSpan {
-    fn into_span(&self) -> ByteSpan;
+    fn into_span(&self) -> Span;
 }
 
 impl IntoSpan for (ByteIndex, ByteIndex) {
-    fn into_span(&self) -> ByteSpan {
-        ByteSpan::new(self.0, self.1)
+    fn into_span(&self) -> Span {
+        Span::new(self.0, self.1)
     }
 }
 
 impl IntoSpan for Dec {
-    fn into_span(&self) -> ByteSpan {
+    fn into_span(&self) -> Span {
         match self {
         | Dec::Var{span, ..}
         | Dec::Fun(_, span)
@@ -36,7 +38,7 @@ impl_into_span!(TypeDec);
 impl_into_span!(Field);
 
 impl IntoSpan for Type {
-    fn into_span(&self) -> ByteSpan {
+    fn into_span(&self) -> Span {
         match self {
         | Type::Name(_, span)
         | Type::Rec(_, span)
@@ -46,7 +48,7 @@ impl IntoSpan for Type {
 }
 
 impl IntoSpan for Var {
-    fn into_span(&self) -> ByteSpan {
+    fn into_span(&self) -> Span {
         match self {
         | Var::Simple(_, span)
         | Var::Field(_, _, _, span)
@@ -56,7 +58,7 @@ impl IntoSpan for Var {
 }
 
 impl IntoSpan for Exp {
-    fn into_span(&self) -> ByteSpan {
+    fn into_span(&self) -> Span {
         match self {
         | Exp::Break(span)
         | Exp::Nil(span)
