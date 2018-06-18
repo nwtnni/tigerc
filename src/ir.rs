@@ -1,3 +1,4 @@
+use sym::{store, Symbol};
 use uuid::Uuid;
 
 use span::Span;
@@ -5,13 +6,33 @@ use span::Span;
 #[derive(Clone)]
 pub struct Temp {
     id: Uuid,    
-    name: String,
+    name: Symbol,
+}
+
+impl Temp {
+    pub fn new() -> Self {
+        Temp { id: Uuid::new_v4(), name: store("TEMP") }
+    }
+
+    pub fn with_name(name: Symbol) -> Self {
+        Temp { id: Uuid::new_v4(), name }
+    }
 }
 
 #[derive(Clone)]
 pub struct Label {
     id: Uuid,    
-    name: String,
+    name: Symbol,
+}
+
+impl Label {
+    pub fn new() -> Self {
+        Label { id: Uuid::new_v4(), name: store("LABEL") }
+    }
+
+    pub fn with_name(name: Symbol) -> Self {
+        Label { id: Uuid::new_v4(), name }
+    }
 }
 
 pub enum Exp {
