@@ -24,7 +24,7 @@ pub struct VarContext(Context<Binding>);
 
 #[derive(Debug, Clone)]
 pub enum Binding {
-    Var(Ty, bool),
+    Var(Ty),
     Fun(Vec<Ty>, Ty),
 }
 
@@ -61,11 +61,11 @@ impl VarContext {
         self.0.pop();
     }
 
-    pub fn get_var(&self, span: &Span, name: &Symbol) -> Result<(Ty, bool), Error> {
+    pub fn get_var(&self, span: &Span, name: &Symbol) -> Result<Ty, Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
             | Some(Binding::Fun(_, _))  => return Err(Error::semantic(*span, TypeError::NotVar)),
-            | Some(Binding::Var(ty, mutable)) => return Ok((ty.clone(), *mutable)),
+            | Some(Binding::Var(ty)) => return Ok(ty.clone()),
             | None                      => (),
             };
         }
@@ -75,7 +75,7 @@ impl VarContext {
     pub fn get_fun(&self, span: &Span, name: &Symbol) -> Result<(Vec<Ty>, Ty), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
-            | Some(Binding::Var(_, _))      => return Err(Error::semantic(*span, TypeError::NotFun)),
+            | Some(Binding::Var(_))      => return Err(Error::semantic(*span, TypeError::NotFun)),
             | Some(Binding::Fun(args, ret)) => return Ok((args.clone(), ret.clone())),
             | None                          => (),
             }

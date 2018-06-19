@@ -112,7 +112,6 @@ pub enum TypeError {
 
     DecConflict,
 
-    AssignImmutable,
     BinaryMismatch,
     BinaryUnit,
     BinaryNil,
@@ -190,7 +189,6 @@ impl <'a> Into<String> for &'a TypeError {
         | TypeError::ReturnMismatch     => "Function return type doesn't match body.".to_string(),
         | TypeError::DecConflict        => "Conflicting declarations in mutually recursive group.".to_string(),
         | TypeError::Neg                => "Can only negate integers.".to_string(),
-        | TypeError::AssignImmutable    => "Cannot assign to immutable variable".to_string(),
         | TypeError::BinaryMismatch     => "Wrong arguments for binary operator.".to_string(),
         | TypeError::BinaryUnit         => "Cannot operate on unit value".to_string(),
         | TypeError::BinaryNil          => "Cannot compare two nil values".to_string(),

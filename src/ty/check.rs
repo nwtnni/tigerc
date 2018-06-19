@@ -8,12 +8,11 @@ use ty::*;
 #[derive(Debug, PartialEq, Eq)]
 pub struct Typed {
     ty: Ty,
-    mutable: bool,
     _exp: (),
 }
 
 fn ok(ty: Ty) -> Result<Typed, Error> {
-    Ok(Typed { ty, mutable: true, _exp: () })
+    Ok(Typed { ty, _exp: () })
 }
 
 fn error<T>(span: &Span, err: TypeError) -> Result<T, Error> {
@@ -47,8 +46,8 @@ impl Checker {
 
         match var {
         | Var::Simple(name, span) => {
-            let (ty, mutable) = self.vc.get_var(span, name)?;
-            Ok(Typed { ty, mutable, _exp: () })
+            let ty = self.vc.get_var(span, name)?;
+            Ok(Typed { ty, _exp: () })
         },
         | Var::Field(rec, field, field_span, _) => {
 
@@ -211,10 +210,6 @@ impl Checker {
 
             let var = self.check_var(name)?;
 
-            if !var.mutable {
-                return error(&name.into_span(), TypeError::AssignImmutable)
-            }
-
             if !self.check_exp(exp)?.ty.subtypes(&var.ty) {
                 return error(&exp.into_span(), TypeError::VarMismatch)
             }
@@ -280,7 +275,7 @@ impl Checker {
 
             // Enter loop body with new environment and binding
             self.vc.push();
-            self.vc.insert(*name, Binding::Var(Ty::Int, false));
+            self.vc.insert(*name, Binding::Var(Ty::Int));
             self.loops.push(());
 
             // Check body with updated VarContext
@@ -371,7 +366,7 @@ impl Checker {
                 // Add parameter bindings to body context
                 for arg in &fun.args {
                     let arg_ty = self.tc.get_full(&arg.name_span, &arg.ty)?;
-                    self.vc.insert(arg.name, Binding::Var(arg_ty, true));
+                    self.vc.insert(arg.name, Binding::Var(arg_ty));
                 }
 
                 // Evaluate body with updated context
@@ -405,7 +400,7 @@ impl Checker {
 
             // Type annotation on variable
             match ty {
-            | None     => self.vc.insert(*name, Binding::Var(init_ty.clone(), true)),
+            | None     => self.vc.insert(*name, Binding::Var(init_ty.clone())),
             | Some(id) => {
 
                 // Make sure initialization matches annotation
@@ -414,7 +409,7 @@ impl Checker {
                     return error(&init.into_span(), TypeError::VarMismatch)
                 }
 
-                self.vc.insert(*name, Binding::Var(name_ty, true));
+                self.vc.insert(*name, Binding::Var(name_ty));
             },
             };
 
