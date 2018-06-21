@@ -1,22 +1,35 @@
+use fnv::FnvHashMap;
+use sym::Symbol;
+
 use ir;
 
-#[derive(Clone)]
-pub enum Escape { Y, N }
-
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum Access {
-    Stack(usize),
+    Frame(i32),
     Reg(ir::Temp),
 }
 
-trait Frame {
+pub struct Frame {
+    name: ir::Label,
+    stack: i32,
+    map: FnvHashMap<Symbol, Access>,
+}
 
-    fn new(name: ir::Label, escapes: Vec<Escape>) -> Self;
+impl Frame {
 
-    fn name(&self) -> ir::Label;
+    pub fn new(name: ir::Label, args: Vec<(Symbol, bool)>) -> Frame {
+        unimplemented!()
+    }
 
-    fn arguments(&self) -> Vec<Access>;
+    pub fn name(&self) -> ir::Label {
+        self.name
+    }
 
-    fn allocate(&self, escape: Escape) -> Access;
+    pub fn push(&mut self, escape: bool) -> Access {
+        unimplemented!()
+    }
 
+    pub fn get(&self, name: Symbol) -> Option<Access> {
+        self.map.get(&name).cloned()
+    }
 }
