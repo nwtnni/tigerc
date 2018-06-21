@@ -3,8 +3,6 @@ use std::fmt;
 use sym::{store, Symbol};
 use uuid::Uuid;
 
-use span::Span;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Temp {
     id: Uuid,    
@@ -37,6 +35,7 @@ impl Label {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Exp {
     Const(i32),
     Name(Label),
@@ -47,16 +46,18 @@ pub enum Exp {
     ESeq(Box<Stm>, Box<Exp>),
 }
 
+#[derive(Clone, Debug)]
 pub enum Stm {
     Move(Exp, Exp),
     Exp(Exp),
     Jump(Exp, Vec<Label>),
     CJump(Exp, Relop, Exp, Label, Label),
-    Seq(Box<Stm>, Box<Stm>),
+    Seq(Vec<Stm>),
     Label(Label),
     Comment(String),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Binop {
     Plus,
     Minus,
@@ -70,6 +71,7 @@ pub enum Binop {
     XOr,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Relop {
     Eq,
     Ne,
@@ -122,9 +124,15 @@ impl fmt::Display for Stm {
         | Stm::Exp(e)                => write!(fmt, "(EXP {})", e),
         | Stm::Jump(e, _)            => write!(fmt, "(LABEL {})", e),
         | Stm::CJump(l, op, r, t, f) => write!(fmt, "(CJUMP {} {} {} {} {})", l, op, r, t, f),
-        | Stm::Seq(s1, s2)           => write!(fmt, "(SEQ {} {})", s1, s2),
         | Stm::Label(l)              => write!(fmt, "(LABEL {})", l),
         | Stm::Comment(c)            => write!(fmt, "(COMMENT {})", c),
+        | Stm::Seq(stms)                => {
+            write!(fmt, "(SEQ").unwrap();
+            for stm in stms {
+                write!(fmt, " {}", stm).unwrap();
+            }
+            write!(fmt, ")")
+        },
         }
     }
 }

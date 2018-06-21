@@ -11,8 +11,8 @@ pub enum Access {
 
 pub struct Frame {
     name: ir::Label,
-    stack: i32,
     map: FnvHashMap<Symbol, Access>,
+    offset: i32,
 }
 
 impl Frame {

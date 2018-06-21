@@ -3,7 +3,6 @@ use fnv::FnvHashSet;
 use ast::*;
 use error::{Error, TypeError};
 use span::{Span, IntoSpan};
-use translate::Frame;
 use ty::*;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -22,7 +21,6 @@ fn error<T>(span: &Span, err: TypeError) -> Result<T, Error> {
 
 pub struct Checker {
     loops: Vec<()>,
-    frames: Vec<Frame>,
     vc: VarContext,
     tc: TypeContext,
 }
@@ -32,7 +30,6 @@ impl Checker {
     pub fn check(ast: &Exp) -> Result<(), Error> {
         let mut checker = Checker {
             loops: Vec::new(),
-            frames: Vec::new(),
             vc: VarContext::default(),
             tc: TypeContext::default(),
         };
