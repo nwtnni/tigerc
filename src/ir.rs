@@ -81,6 +81,12 @@ impl From<Tree> for Exp {
     }
 }
 
+impl From<Exp> for Tree {
+    fn from(exp: Exp) -> Self {
+        Tree::Ex(exp)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Stm {
     Move(Exp, Exp),
@@ -106,6 +112,12 @@ impl From<Tree> for Stm {
     }
 }
 
+impl From<Stm> for Tree {
+    fn from(stm: Stm) -> Self {
+        Tree::Nx(stm)
+    }
+}
+
 pub type Cond = Box<Fn(Label, Label) -> Stm>;
 
 impl From<Tree> for Cond {
@@ -123,6 +135,12 @@ impl From<Tree> for Cond {
             ))
         },
         }
+    }
+}
+
+impl From<Cond> for Tree {
+    fn from(cond: Cond) -> Self {
+        Tree::Cx(cond)
     }
 }
 
