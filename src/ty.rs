@@ -1,13 +1,7 @@
-mod check;
-mod context;
-
 use std::fmt;
 
 use sym::Symbol;
 use uuid::Uuid;
-
-pub use ty::context::*;
-pub use ty::check::Checker;
 
 #[derive(Debug, Eq, Clone)]
 pub enum Ty {

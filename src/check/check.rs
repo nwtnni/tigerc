@@ -1,9 +1,13 @@
 use fnv::FnvHashSet;
 
+use sym::Symbol;
+use uuid::Uuid;
+
 use ast::*;
+use ty::*;
+use check::context::{Binding, VarContext, TypeContext};
 use error::{Error, TypeError};
 use span::{Span, IntoSpan};
-use ty::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Typed {

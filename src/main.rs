@@ -16,7 +16,7 @@ use tigerc::ast::Exp;
 use tigerc::parse::Parser;
 use tigerc::lex::TokenStream;
 use tigerc::error::Error;
-use tigerc::ty::Checker;
+use tigerc::check::Checker;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tigerc")]

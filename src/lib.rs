@@ -7,12 +7,13 @@ extern crate uuid;
 
 pub mod lex;
 pub mod parse;
-pub mod ty;
+pub mod check;
 pub mod translate;
 
-pub mod ast;
 pub mod token;
+pub mod ast;
+pub mod ty;
 pub mod ir;
 
 pub mod error;
-mod span;
+pub mod span;

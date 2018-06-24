@@ -9,15 +9,15 @@ pub enum Access {
     Reg(ir::Temp),
 }
 
-pub struct Frame {
+pub struct FrameContext {
     name: ir::Label,
     map: FnvHashMap<Symbol, Access>,
     offset: i32,
 }
 
-impl Frame {
+impl FrameContext {
 
-    pub fn new(name: ir::Label, args: Vec<(Symbol, bool)>) -> Frame {
+    pub fn new(name: ir::Label, args: Vec<(Symbol, bool)>) -> Self {
         unimplemented!()
     }
 
@@ -25,11 +25,11 @@ impl Frame {
         self.name
     }
 
-    pub fn push(&mut self, escape: bool) -> Access {
+    pub fn push(&mut self, name: Symbol, escape: bool) -> Access {
         unimplemented!()
     }
 
-    pub fn get(&self, name: Symbol) -> Option<Access> {
-        self.map.get(&name).cloned()
+    pub fn get(&self, name: Symbol) -> Access {
+        self.map[&name]
     }
 }
