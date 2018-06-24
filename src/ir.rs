@@ -35,6 +35,12 @@ impl Label {
     }
 }
 
+pub enum Tree {
+    Ex(Exp),
+    Nx(Stm),
+    Cx(Cond),
+}
+
 #[derive(Clone, Debug)]
 pub enum Exp {
     Const(i32),
@@ -46,6 +52,35 @@ pub enum Exp {
     ESeq(Box<Stm>, Box<Exp>),
 }
 
+impl From<Tree> for Exp {
+    fn from(tree: Tree) -> Self {
+        match tree {
+        | Tree::Ex(exp) => exp,
+        | Tree::Nx(stm) => {
+            Exp::ESeq(
+                Box::new(stm),
+                Box::new(Exp::Const(0)),
+            )
+        },
+        | Tree::Cx(gen_stm) => {
+            let r = Temp::with_name(store("COND_EXP"));
+            let t = Label::with_name(store("TRUE_BRANCH"));
+            let f = Label::with_name(store("FALSE_BRANCH"));
+            Exp::ESeq(
+                Box::new(Stm::Seq(vec![
+                    Stm::Move(Exp::Const(1), Exp::Temp(r)),
+                    gen_stm(t, f),
+                    Stm::Label(f),
+                    Stm::Move(Exp::Const(0), Exp::Temp(r)),
+                    Stm::Label(t),
+                ])),
+                Box::new(Exp::Temp(r)),
+            )
+        },
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Stm {
     Move(Exp, Exp),
@@ -55,6 +90,40 @@ pub enum Stm {
     Seq(Vec<Stm>),
     Label(Label),
     Comment(String),
+}
+
+impl From<Tree> for Stm {
+    fn from(tree: Tree) -> Self {
+        match tree {
+        | Tree::Nx(stm) => stm,
+        | Tree::Ex(exp) => Stm::Exp(exp),
+        | Tree::Cx(gen_stm) => {
+            let t = Label::with_name(store("TRUE_BRANCH"));
+            let f = Label::with_name(store("FALSE_BRANCH"));
+            gen_stm(t, f)
+        },
+        }
+    }
+}
+
+pub type Cond = Box<Fn(Label, Label) -> Stm>;
+
+impl From<Tree> for Cond {
+    fn from(tree: Tree) -> Self {
+        match tree {
+        | Tree::Nx(_) => panic!("Internal compiler error: converting statement to conditional"),
+        | Tree::Cx(gen_stm) => gen_stm,
+        | Tree::Ex(exp) => {
+            Box::new(move |t, f| Stm::CJump(
+                Exp::Const(0),     
+                Relop::Eq,
+                exp.clone(),
+                t,
+                f,
+            ))
+        },
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
