@@ -35,6 +35,15 @@ impl Translator {
             ).into()
 
         },
+        | Exp::Nil(_) => ir::Exp::Const(0).into(),
+        | Exp::Var(var, _) => self.translate_var(var),
+        | Exp::Int(n, _) => ir::Exp::Const(*n).into(),
+        | Exp::Str(s, _) => {
+
+            // TODO: figure out how to represent string literals
+            unimplemented!()
+
+        },
         _ => unimplemented!(),
         }
     }
