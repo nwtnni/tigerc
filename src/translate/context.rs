@@ -39,8 +39,12 @@ pub struct FnContext {
 }
 
 impl FnContext {
-    pub fn get(&self, name: &Symbol) -> ir::Label {
-        self.map[name]
+    pub fn contains(&self, name: &Symbol) -> bool {
+        self.map.contains_key(name)
+    }
+
+    pub fn get(&self, name: &Symbol) -> Option<ir::Label> {
+        self.map.get(name)
     }
 
     pub fn insert(&mut self, name: Symbol) -> ir::Label {

@@ -27,9 +27,11 @@ impl Translator {
         match ast {
         | Exp::Break(_) => {
 
+            // Find latest loop exit label on stack
             let label = *self.loops.last()
                 .expect("Internal error: break without enclosing loop");
 
+            // Jump to exit label
             ir::Stm::Jump(
                 ir::Exp::Name(label),
                 vec![label],
@@ -44,6 +46,27 @@ impl Translator {
             // TODO: figure out how to represent string literals
             unimplemented!()
 
+        },
+        | Exp::Call{name, args, ..} => {
+
+            // Find label from context
+            let label = self.fc.iter().rev()
+                .find(|context| context.contains(name))
+                .expect("Internal error: function not found")
+                .get(name)
+                .unwrap();
+
+            // Translate args sequentially
+            let exps: Vec<ir::Exp> = args.iter() 
+                .map(|arg| self.translate_exp(arg))
+                .map(|arg| arg.into())
+                .collect();
+
+            // Call function
+            ir::Exp::Call(
+                Box::new(ir::Exp::Name(label)),
+                exps,
+            ).into()
         },
         _ => unimplemented!(),
         }
