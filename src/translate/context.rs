@@ -9,14 +9,13 @@ pub enum Access {
     Reg(ir::Temp),
 }
 
-pub struct FrameContext {
+pub struct Frame {
     name: ir::Label,
     map: FnvHashMap<Symbol, Access>,
     offset: i32,
 }
 
-impl FrameContext {
-
+impl Frame {
     pub fn new(name: ir::Label, args: Vec<(Symbol, bool)>) -> Self {
         unimplemented!()
     }
@@ -25,11 +24,28 @@ impl FrameContext {
         self.name
     }
 
-    pub fn push(&mut self, name: Symbol, escape: bool) -> Access {
+    pub fn allocate(&mut self, name: Symbol, escape: bool) -> Access {
         unimplemented!()
     }
 
     pub fn get(&self, name: Symbol) -> Access {
         self.map[&name]
+    }
+}
+
+#[derive(Default)]
+pub struct FnContext {
+    map: FnvHashMap<Symbol, ir::Label>,
+}
+
+impl FnContext {
+    pub fn get(&self, name: &Symbol) -> ir::Label {
+        self.map[name]
+    }
+
+    pub fn insert(&mut self, name: Symbol) -> ir::Label {
+        let label = ir::Label::with_name(name);
+        self.map.insert(name, label);
+        label
     }
 }

@@ -3,11 +3,12 @@ use ir;
 
 use ty::Ty;
 use check::TypeContext;
-use translate::{Access, FrameContext};
+use translate::{Access, Frame, FnContext};
 
 pub struct Translator {
     loops: Vec<ir::Label>,
-    fc: Vec<FrameContext>,
+    frames: Vec<Frame>,
+    fc: Vec<FnContext>,
     tc: Vec<TypeContext>,
 }
 
