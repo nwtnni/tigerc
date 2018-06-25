@@ -68,6 +68,16 @@ impl Translator {
                 exps,
             ).into()
         },
+        | Exp::Neg(exp, _) => {
+            
+            // Subtract sub-expression from 0
+            ir::Exp::Binop(
+                Box::new(ir::Exp::Const(0)),
+                ir::Binop::Sub,
+                Box::new(self.translate_exp(exp).into()),
+            ).into()
+
+        },
         _ => unimplemented!(),
         }
     }

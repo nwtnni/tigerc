@@ -44,7 +44,7 @@ impl FnContext {
     }
 
     pub fn get(&self, name: &Symbol) -> Option<ir::Label> {
-        self.map.get(name)
+        self.map.get(name).cloned()
     }
 
     pub fn insert(&mut self, name: Symbol) -> ir::Label {

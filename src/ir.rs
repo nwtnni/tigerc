@@ -146,8 +146,8 @@ impl From<Cond> for Tree {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Binop {
-    Plus,
-    Minus,
+    Add,
+    Sub,
     Mul,
     Div,
     And,
@@ -227,8 +227,8 @@ impl fmt::Display for Stm {
 impl fmt::Display for Binop {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-        | Binop::Plus    => write!(fmt, "ADD"),
-        | Binop::Minus   => write!(fmt, "SUB"),
+        | Binop::Add     => write!(fmt, "ADD"),
+        | Binop::Sub     => write!(fmt, "SUB"),
         | Binop::Mul     => write!(fmt, "MUL"),
         | Binop::Div     => write!(fmt, "DIV"),
         | Binop::And     => write!(fmt, "LAND"),
