@@ -104,6 +104,34 @@ impl Translator {
                 panic!("Internal error: non-exhaustive binop check");
             }
         },
+        | Exp::Rec{name, fields, ..} => {
+
+            unimplemented!()
+
+        },
+        | Exp::Seq(exps, _) => {
+
+            // Unit is a no-op
+            if exps.is_empty() {
+                return ir::Exp::Const(0).into()
+            }
+            
+            let (last, rest) = exps.split_last().unwrap();
+
+            // Translate last exp into an ir::Exp
+            let last_exp = self.translate_exp(last).into();
+
+            // Translate rest of exps into ir::Stm
+            let rest_stm = rest.iter()
+                .map(|stm| self.translate_exp(stm))
+                .map(|stm| stm.into())
+                .collect();
+
+            ir::Exp::ESeq(
+                Box::new(ir::Stm::Seq(rest_stm)),
+                Box::new(last_exp), 
+            ).into()
+        },
         _ => unimplemented!(),
         }
     }
