@@ -1,3 +1,5 @@
+use sym::store;
+
 use ast::*;
 use ir;
 
@@ -89,7 +91,7 @@ impl Translator {
                     Box::new(lexp), binop, Box::new(rexp)
                 ).into()
             }
-            
+
             // Conditional operation
             else if let Some(relop) = Self::translate_relop(op) {
                 ir::Tree::Cx(
@@ -98,7 +100,7 @@ impl Translator {
                     })
                 )
             }
-            
+
             // All operations must be covered
             else {
                 panic!("Internal error: non-exhaustive binop check");
@@ -106,6 +108,7 @@ impl Translator {
         },
         | Exp::Rec{name, fields, ..} => {
 
+            // TODO: do field lookup
             unimplemented!()
 
         },
@@ -115,7 +118,7 @@ impl Translator {
             if exps.is_empty() {
                 return ir::Exp::Const(0).into()
             }
-            
+
             let (last, rest) = exps.split_last().unwrap();
 
             // Translate last exp into an ir::Exp
@@ -129,8 +132,91 @@ impl Translator {
 
             ir::Exp::ESeq(
                 Box::new(ir::Stm::Seq(rest_stm)),
-                Box::new(last_exp), 
+                Box::new(last_exp),
             ).into()
+        },
+        | Exp::Ass{name, exp, ..} => {
+
+            // TODO: handle static links and frames
+            unimplemented!()
+
+        },
+        | Exp::If{guard, then, or, ..} => {
+
+            let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
+            let e_label = ir::Label::with_name(store("EXIT_BRANCH"));
+
+            if let Some(or_exp) = or {
+
+                let f_label = ir::Label::with_name(store("FALSE_BRANCH"));
+                let result = ir::Temp::with_name(store("IF_ELSE_RESULT"));
+
+                ir::Exp::ESeq(
+                    Box::new(ir::Stm::Seq(vec![
+
+                        // Evaluate guard expression and jump to correct branch
+                        ir::Stm::CJump(
+                            self.translate_exp(guard).into(),
+                            ir::Relop::Eq,
+                            ir::Exp::Const(0),
+                            f_label,
+                            t_label,
+                        ),
+
+                        // Move result of true branch
+                        ir::Stm::Label(t_label),
+                        ir::Stm::Move(
+                            self.translate_exp(then).into(),
+                            ir::Exp::Temp(result),
+                        ),
+                        ir::Stm::Jump(
+                            ir::Exp::Name(e_label),
+                            vec![e_label],
+                        ),
+
+                        // Move result of false branch
+                        ir::Stm::Label(f_label),
+                        ir::Stm::Move(
+                            self.translate_exp(or_exp).into(),
+                            ir::Exp::Temp(result),
+                        ),
+                        ir::Stm::Jump(
+                            ir::Exp::Name(e_label),
+                            vec![e_label],
+                        ),
+
+                        // Exit branch
+                        ir::Stm::Label(e_label),
+                    ])),
+                    Box::new(ir::Exp::Temp(result)),
+                ).into()
+
+            } else {
+
+                ir::Stm::Seq(vec![
+
+                    // Evaluate guard expression and skip branch if false
+                    ir::Stm::CJump(
+                        self.translate_exp(guard).into(),
+                        ir::Relop::Eq,
+                        ir::Exp::Const(0),
+                        e_label,
+                        t_label,
+                    ),
+
+                    // Execute branch
+                    ir::Stm::Label(t_label),
+                    self.translate_exp(then).into(),
+                    ir::Stm::Jump(
+                        ir::Exp::Name(e_label),
+                        vec![e_label]
+                    ),
+
+                    // Skip branch
+                    ir::Stm::Label(e_label),
+                ]).into()
+
+            }
         },
         _ => unimplemented!(),
         }
