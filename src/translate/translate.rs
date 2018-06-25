@@ -143,12 +143,12 @@ impl Translator {
         },
         | Exp::If{guard, then, or, ..} => {
 
-            let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
-            let e_label = ir::Label::with_name(store("EXIT_BRANCH"));
 
             if let Some(or_exp) = or {
 
+                let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
                 let f_label = ir::Label::with_name(store("FALSE_BRANCH"));
+                let e_label = ir::Label::with_name(store("EXIT_IF_ELSE"));
                 let result = ir::Temp::with_name(store("IF_ELSE_RESULT"));
 
                 ir::Exp::ESeq(
@@ -193,9 +193,12 @@ impl Translator {
 
             } else {
 
+                let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
+                let e_label = ir::Label::with_name(store("EXIT_IF"));
+
                 ir::Stm::Seq(vec![
 
-                    // Evaluate guard expression and skip branch if false
+                    // Evaluate guard expression and jumpt to exit if false
                     ir::Stm::CJump(
                         self.translate_exp(guard).into(),
                         ir::Relop::Eq,
@@ -209,7 +212,7 @@ impl Translator {
                     self.translate_exp(then).into(),
                     ir::Stm::Jump(
                         ir::Exp::Name(e_label),
-                        vec![e_label]
+                        vec![e_label],
                     ),
 
                     // Skip branch
@@ -217,6 +220,46 @@ impl Translator {
                 ]).into()
 
             }
+        },
+        | Exp::While{guard, body, ..} => {
+
+            let s_label = ir::Label::with_name(store("START_WHILE"));
+            let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
+            let e_label = ir::Label::with_name(store("EXIT_WHILE"));
+
+            let guard_exp = self.translate_exp(guard).into();
+
+            // Push exit label of enclosing loop onto context
+            self.loops.push(e_label);
+            let body_stm = self.translate_exp(body).into();
+            self.loops.pop().expect("Internal error: loop mismatch");
+
+            ir::Stm::Seq(vec![
+
+                // While loop header
+                ir::Stm::Label(s_label),
+
+                // Evaluate guard expression and jump to exit if false
+                ir::Stm::CJump(
+                    guard_exp,
+                    ir::Relop::Eq,
+                    ir::Exp::Const(0),
+                    e_label,
+                    t_label,
+                ),
+
+                // Execute loop body and repeat
+                ir::Stm::Label(t_label),
+                body_stm,
+                ir::Stm::Jump(
+                    ir::Exp::Name(s_label),
+                    vec![s_label],
+                ),
+
+                // Exit loop
+                ir::Stm::Label(e_label),
+
+            ]).into()
         },
         _ => unimplemented!(),
         }
