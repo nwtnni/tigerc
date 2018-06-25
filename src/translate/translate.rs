@@ -18,12 +18,12 @@ impl Translator {
         unimplemented!()
     }
 
-    pub fn translate_var(&mut self, var: &Var) -> ir::Tree {
+    fn translate_var(&mut self, var: &Var) -> ir::Tree {
 
         unimplemented!()
     }
 
-    pub fn translate_exp(&mut self, ast: &Exp) -> ir::Tree {
+    fn translate_exp(&mut self, ast: &Exp) -> ir::Tree {
         match ast {
         | Exp::Break(_) => {
 
@@ -57,7 +57,7 @@ impl Translator {
                 .unwrap();
 
             // Translate args sequentially
-            let exps: Vec<ir::Exp> = args.iter() 
+            let exps: Vec<ir::Exp> = args.iter()
                 .map(|arg| self.translate_exp(arg))
                 .map(|arg| arg.into())
                 .collect();
@@ -69,7 +69,7 @@ impl Translator {
             ).into()
         },
         | Exp::Neg(exp, _) => {
-            
+
             // Subtract sub-expression from 0
             ir::Exp::Binop(
                 Box::new(ir::Exp::Const(0)),
@@ -78,15 +78,65 @@ impl Translator {
             ).into()
 
         },
+        | Exp::Bin{lhs, op, rhs, ..} => {
+
+            let lexp = self.translate_exp(lhs).into();
+            let rexp = self.translate_exp(rhs).into();
+
+            // Straightforward arithmetic operation
+            if let Some(binop) = Self::translate_binop(op) {
+                ir::Exp::Binop(
+                    Box::new(lexp), binop, Box::new(rexp)
+                ).into()
+            }
+            
+            // Conditional operation
+            else if let Some(relop) = Self::translate_relop(op) {
+                ir::Tree::Cx(
+                    Box::new(move |t, f| {
+                        ir::Stm::CJump(lexp.clone(), relop, rexp.clone(), t, f)
+                    })
+                )
+            }
+            
+            // All operations must be covered
+            else {
+                panic!("Internal error: non-exhaustive binop check");
+            }
+        },
         _ => unimplemented!(),
         }
     }
 
-    pub fn translate_dec(&mut self, dec: &Dec) {
+    fn translate_binop(op: &Binop) -> Option<ir::Binop> {
+        match op {
+        | Binop::Add  => Some(ir::Binop::Add),
+        | Binop::Sub  => Some(ir::Binop::Sub),
+        | Binop::Mul  => Some(ir::Binop::Mul),
+        | Binop::Div  => Some(ir::Binop::Div),
+        | Binop::LAnd => Some(ir::Binop::And),
+        | Binop::LOr  => Some(ir::Binop::Or),
+        _ => None,
+        }
+    }
+
+    fn translate_relop(op: &Binop) -> Option<ir::Relop> {
+        match op {
+        | Binop::Eq  => Some(ir::Relop::Eq),
+        | Binop::Neq => Some(ir::Relop::Ne),
+        | Binop::Lt  => Some(ir::Relop::Lt),
+        | Binop::Le  => Some(ir::Relop::Le),
+        | Binop::Gt  => Some(ir::Relop::Gt),
+        | Binop::Ge  => Some(ir::Relop::Ge),
+        _ => None,
+        }
+    }
+
+    fn translate_dec(&mut self, dec: &Dec) {
 
     }
 
-    pub fn translate_type(&mut self, ty: &Ty) {
+    fn translate_type(&mut self, ty: &Ty) {
 
     }
 }
