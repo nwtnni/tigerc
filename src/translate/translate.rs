@@ -6,6 +6,7 @@ use ir;
 use ty::Ty;
 use check::TypeContext;
 use translate::{Frame, FnContext};
+use config::WORD_SIZE;
 
 pub struct Translator {
     data: Vec<ir::Static>,
@@ -22,8 +23,35 @@ impl Translator {
     }
 
     fn translate_var(&mut self, var: &Var) -> ir::Tree {
+        match var {
+        | Var::Simple(name, _) => {
 
-        unimplemented!()
+            unimplemented!()
+        },
+        | Var::Field(name, field, _, _) => {
+
+            unimplemented!()
+        },
+        | Var::Index(array, index, _) => {
+            let array_exp = self.translate_var(&**array);
+            let index_exp = self.translate_exp(&**index);
+            let offset = ir::Exp::Binop(
+                Box::new(index_exp.into()),
+                ir::Binop::Mul,
+                Box::new(ir::Exp::Const(WORD_SIZE)),
+            );
+
+            ir::Exp::Mem(
+                Box::new(
+                    ir::Exp::Binop( 
+                        Box::new(array_exp.into()),
+                        ir::Binop::Add,
+                        Box::new(offset),
+                    )
+                )
+            ).into()
+        },
+        }
     }
 
     fn translate_exp(&mut self, ast: &Exp) -> ir::Tree {
