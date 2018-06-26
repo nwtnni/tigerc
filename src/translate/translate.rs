@@ -22,34 +22,76 @@ impl Translator {
         unimplemented!()
     }
 
-    fn translate_var(&mut self, var: &Var) -> ir::Tree {
+    fn translate_var(&mut self, var: &Var) -> (ir::Tree, Ty) {
         match var {
         | Var::Simple(name, _) => {
 
             unimplemented!()
         },
-        | Var::Field(name, field, _, _) => {
+        | Var::Field(record, field, _, _) => {
 
-            unimplemented!()
+            // Translate record l-value
+            let (record_exp, record_type) = self.translate_var(&**record);
+
+            // Find field-type associations
+            let fields = match record_type {
+            | Ty::Rec(fields, _) => fields,
+            | _                  => panic!("Internal error: not a record")
+            };
+
+            // Calculate index and type of resulting expression
+            let (index, field_ty) = fields.iter()
+                .enumerate()
+                .find(|(_, (name, _))| field == name)
+                .map(|(index, (_, ty))| (index as i32, ty))
+                .expect("Internal error: missing field");
+
+            // Calculate memory address offset from record pointer
+            let address_exp = ir::Exp::Mem(
+                Box::new(
+                    ir::Exp::Binop(
+                        Box::new(record_exp.into()),
+                        ir::Binop::Add,
+                        Box::new(ir::Exp::Const(index * WORD_SIZE)),
+                    )
+                )
+            );
+
+            (address_exp.into(), *field_ty)
         },
         | Var::Index(array, index, _) => {
-            let array_exp = self.translate_var(&**array);
+
+            // Translate array l-value
+            let (array_exp, array_ty) = self.translate_var(&**array);
+
+            // Find array element type
+            let element_ty = match array_ty {
+            | Ty::Arr(ty, _) => ty,
+            | _              => panic!("Internal error: not an array"),
+            };
+
+            // Translate index
             let index_exp = self.translate_exp(&**index);
-            let offset = ir::Exp::Binop(
+
+            // Multiply offset by word size
+            let offset_exp = ir::Exp::Binop(
                 Box::new(index_exp.into()),
                 ir::Binop::Mul,
                 Box::new(ir::Exp::Const(WORD_SIZE)),
             );
 
-            ir::Exp::Mem(
+            // Calculate memory address offset from array pointer
+            let address_exp = ir::Exp::Mem(
                 Box::new(
-                    ir::Exp::Binop( 
+                    ir::Exp::Binop(
                         Box::new(array_exp.into()),
                         ir::Binop::Add,
-                        Box::new(offset),
+                        Box::new(offset_exp),
                     )
                 )
-            ).into()
+            );
+
+            (address_exp.into(), *element_ty)
         },
         }
     }
