@@ -22,9 +22,10 @@ impl Translator {
         unimplemented!()
     }
 
-    fn translate_var(&mut self, var: &Var) -> (ir::Tree, Ty) {
+    fn translate_var<'a>(&mut self, var: &'a Var) -> (ir::Tree, &'a Ty) {
         match var {
         | Var::Simple(name, _) => {
+
 
             unimplemented!()
         },
@@ -57,7 +58,7 @@ impl Translator {
                 )
             );
 
-            (address_exp.into(), *field_ty)
+            (address_exp.into(), field_ty)
         },
         | Var::Index(array, index, _) => {
 
@@ -91,7 +92,7 @@ impl Translator {
                 )
             );
 
-            (address_exp.into(), *element_ty)
+            (address_exp.into(), element_ty)
         },
         }
     }
@@ -112,7 +113,7 @@ impl Translator {
 
         },
         | Exp::Nil(_) => ir::Exp::Const(0).into(),
-        | Exp::Var(var, _) => self.translate_var(var),
+        | Exp::Var(var, _) => self.translate_var(var).0,
         | Exp::Int(n, _) => ir::Exp::Const(*n).into(),
         | Exp::Str(s, _) => {
 

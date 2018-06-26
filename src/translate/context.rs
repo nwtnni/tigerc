@@ -11,22 +11,18 @@ enum Access {
     Reg(ir::Temp),
 }
 
-impl From<Access> for ir::Exp {
-    fn from(access: Access) -> ir::Exp {
-        match access {
+impl Access {
+    fn from_base(self, base: ir::Exp) -> ir::Exp {
+        match self {
         | Access::Reg(temp) => ir::Exp::Temp(temp),
         | Access::Frame(n) => {
-
-            let fp = ir::Exp::Temp(
-                ir::Temp::with_reg(Reg::RBP)
-            );
 
             let offset = ir::Exp::Const(
                 n * WORD_SIZE
             );
 
             ir::Exp::Binop(
-                Box::new(fp),
+                Box::new(base),
                 ir::Binop::Sub,
                 Box::new(offset)
             )
@@ -46,6 +42,7 @@ pub struct Frame {
 
 impl Frame {
     pub fn new(label: ir::Label, args: Vec<(Symbol, bool)>) -> Self {
+        let rbp = ir::Exp::Temp(ir::Temp::Reg(Reg::RBP));
         let mut map = FnvHashMap::default();
         let mut prologue = Vec::new();
         let mut offset = 0;
@@ -61,7 +58,7 @@ impl Frame {
                 Access::Reg(ir::Temp::with_name("ARG")) 
             };
 
-            prologue.push(ir::Stm::Move(from, to.into()));
+            prologue.push(ir::Stm::Move(from, to.from_base(rbp.clone())));
             map.insert(*name, to);
         }
 
@@ -80,6 +77,7 @@ impl Frame {
     }
 
     pub fn allocate(&mut self, name: Symbol, escape: bool) -> ir::Exp {
+        let rbp = ir::Exp::Temp(ir::Temp::Reg(Reg::RBP));
         let access = if escape {
             self.offset -= 1;
             self.size += 1;
@@ -91,11 +89,11 @@ impl Frame {
         };
         
         self.map.insert(name, access);;
-        access.into()
+        access.from_base(rbp)
     }
 
-    pub fn get(&self, name: Symbol) -> Option<ir::Exp> {
-        self.map.get(&name).map(|&access| access.into())
+    pub fn get(&self, name: Symbol, base: ir::Exp) -> Option<ir::Exp> {
+        self.map.get(&name).map(|&access| access.from_base(base))
     }
 
     fn get_argument(i: usize) -> ir::Exp {
