@@ -13,6 +13,7 @@ use ty::Ty;
 
 pub struct Translator {
     data: Vec<ir::Static>,
+    functions: Vec<Vec<ir::Stm>>,
     loops: Vec<ir::Label>,
     frames: Vec<Frame>,
     fc: FnContext,
@@ -135,10 +136,10 @@ impl Translator {
         | Exp::Var(var, _) => self.translate_var(var).0,
         | Exp::Int(n, _) => ir::Exp::Const(*n).into(),
         | Exp::Str(s, _) => {
-
-            // TODO: figure out how to represent string literals
-            unimplemented!()
-
+            let data = ir::Static::new(s.to_string());
+            let label = data.label();
+            self.data.push(data);
+            ir::Exp::Name(label).into()
         },
         | Exp::Call{name, args, ..} => {
 
