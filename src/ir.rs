@@ -3,6 +3,8 @@ use std::fmt;
 use sym::{store, Symbol};
 use uuid::Uuid;
 
+use operand::Reg;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Static {
     id: Uuid,
@@ -25,18 +27,31 @@ impl Static {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Temp {
-    id: Uuid,    
-    name: Symbol,
+pub enum Temp {
+    Reg(Reg),
+    Temp {
+        id: Uuid,
+        name: Symbol,
+    },
 }
 
 impl Temp {
     pub fn new() -> Self {
-        Temp { id: Uuid::new_v4(), name: store("") }
+        Temp::Temp {
+            id: Uuid::new_v4(),
+            name: store(""),
+        }
     }
 
     pub fn with_name(name: &'static str) -> Self {
-        Temp { id: Uuid::new_v4(), name: store(name) }
+        Temp::Temp {
+            id: Uuid::new_v4(),
+            name: store(name),
+        }
+    }
+
+    pub fn with_reg(reg: Reg) -> Self {
+        Temp::Reg(reg)
     }
 }
 
@@ -199,7 +214,10 @@ pub enum Relop {
 
 impl fmt::Display for Temp {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, "{}_{}", self.name, self.id.simple())
+        match self {
+        | Temp::Temp{id, name} => write!(fmt, "TEMP_{}_{}", name, id.simple()),
+        | Temp::Reg(reg)       => write!(fmt, "TEMP_{:?}", reg),
+        }
     }
 }
 
