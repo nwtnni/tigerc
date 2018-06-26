@@ -2,6 +2,7 @@ use fnv::FnvHashMap;
 use sym::Symbol;
 
 use config::WORD_SIZE;
+use check::Context;
 use ir;
 use operand::Reg;
 
@@ -55,7 +56,7 @@ impl Frame {
                 size += 1;
                 Access::Frame(offset)
             } else {
-                Access::Reg(ir::Temp::with_name("ARG")) 
+                Access::Reg(ir::Temp::with_name("ARG"))
             };
 
             prologue.push(ir::Stm::Move(from, to.from_base(rbp.clone())));
@@ -87,13 +88,17 @@ impl Frame {
                 ir::Temp::with_name("LOCAL")
             )
         };
-        
+
         self.map.insert(name, access);;
         access.from_base(rbp)
     }
 
-    pub fn get(&self, name: Symbol, base: ir::Exp) -> Option<ir::Exp> {
-        self.map.get(&name).map(|&access| access.from_base(base))
+    pub fn contains(&self, name: Symbol) -> bool {
+        self.map.contains_key(&name)
+    }
+
+    pub fn get(&self, name: Symbol, base: ir::Exp) -> ir::Exp {
+        self.map[&name].from_base(base)
     }
 
     fn get_argument(i: usize) -> ir::Exp {
@@ -125,23 +130,35 @@ impl Frame {
     }
 }
 
-#[derive(Default)]
-pub struct FnContext {
-    map: FnvHashMap<Symbol, ir::Label>,
-}
+#[derive(Debug)]
+pub struct FnContext(Context<ir::Label>);
 
 impl FnContext {
-    pub fn contains(&self, name: &Symbol) -> bool {
-        self.map.contains_key(name)
-    }
-
-    pub fn get(&self, name: &Symbol) -> Option<ir::Label> {
-        self.map.get(name).cloned()
-    }
 
     pub fn insert(&mut self, name: Symbol) -> ir::Label {
         let label = ir::Label::with_symbol(name);
-        self.map.insert(name, label);
+        self.0.last_mut().unwrap().insert(name, label);
         label
+    }
+
+    pub fn push(&mut self) {
+        self.0.push(FnvHashMap::default());
+    }
+
+    pub fn pop(&mut self) {
+        self.0.pop().expect("Internal error: no function context");
+    }
+
+    pub fn get(&self, name: &Symbol) -> ir::Label {
+        for env in self.0.iter().rev() {
+            if let Some(label) = env.get(name) { return *label }
+        }
+        panic!("Internal error: missing function label")
+    }
+}
+
+impl Default for FnContext {
+    fn default() -> Self {
+        FnContext(vec![FnvHashMap::default()])
     }
 }

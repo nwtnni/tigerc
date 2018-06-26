@@ -1,6 +1,7 @@
 extern crate codespan;
 extern crate codespan_reporting;
 extern crate fnv;
+extern crate itertools;
 extern crate lalrpop_util;
 extern crate sym;
 extern crate uuid;

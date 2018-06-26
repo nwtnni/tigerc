@@ -1,19 +1,22 @@
+use itertools::Itertools;
+use itertools::FoldWhile::{Continue, Done};
 use sym::{store, Symbol};
 
 use ast::*;
 use ir;
 
-use ty::Ty;
 use check::TypeContext;
-use translate::{Frame, FnContext};
 use config::WORD_SIZE;
+use operand::Reg;
+use translate::{Frame, FnContext};
+use ty::Ty;
 
 pub struct Translator {
     data: Vec<ir::Static>,
     loops: Vec<ir::Label>,
     frames: Vec<Frame>,
-    fc: Vec<FnContext>,
-    tc: Vec<TypeContext>,
+    fc: FnContext,
+    tc: TypeContext,
 }
 
 impl Translator {
@@ -22,12 +25,28 @@ impl Translator {
         unimplemented!()
     }
 
-    fn translate_var<'a>(&mut self, var: &'a Var) -> (ir::Tree, &'a Ty) {
+    fn translate_var(&mut self, var: &Var) -> (ir::Tree, Ty) {
         match var {
-        | Var::Simple(name, _) => {
+        | Var::Simple(name, span) => {
 
+            // Start off at current frame's base pointer
+            let rbp = ir::Exp::Temp(ir::Temp::Reg(Reg::RBP));
+            let link = store("STATIC_LINK");
 
-            unimplemented!()
+            // Retrieve variable type
+            let var_ty = self.tc.get_full(span, name)
+                .expect("Internal error: unbounb variable");
+
+            // Follow static links
+            let var_exp = self.frames.iter().fold_while(rbp, |acc, frame| {
+                if frame.contains(*name) {
+                    Done(frame.get(*name, acc))
+                } else {
+                    Continue(frame.get(link, acc))
+                }
+            }).into_inner();
+
+            (var_exp.into(), var_ty)
         },
         | Var::Field(record, field, _, _) => {
 
@@ -58,7 +77,7 @@ impl Translator {
                 )
             );
 
-            (address_exp.into(), field_ty)
+            (address_exp.into(), field_ty.clone())
         },
         | Var::Index(array, index, _) => {
 
@@ -92,7 +111,7 @@ impl Translator {
                 )
             );
 
-            (address_exp.into(), element_ty)
+            (address_exp.into(), *element_ty.clone())
         },
         }
     }
@@ -124,11 +143,7 @@ impl Translator {
         | Exp::Call{name, args, ..} => {
 
             // Find label from context
-            let label = self.fc.iter().rev()
-                .find(|context| context.contains(name))
-                .expect("Internal error: function not found")
-                .get(name)
-                .unwrap();
+            let label = self.fc.get(name);
 
             // Translate args sequentially
             let exps: Vec<ir::Exp> = args.iter()
