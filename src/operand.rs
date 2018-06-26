@@ -35,4 +35,20 @@ impl Reg {
     pub fn is_caller_saved(&self) -> bool {
         !self.is_callee_saved()
     }
+
+    pub fn get_argument(i: usize) -> Self {
+        match i {
+        | 0 => Reg::RDI,
+        | 1 => Reg::RSI,
+        | 2 => Reg::RDX,
+        | 3 => Reg::RCX,
+        | 4 => Reg::R8,
+        | 5 => Reg::R9,
+        | _ => panic!("Internal error: can only pass 6 arguments in registers"),
+        }
+    }
+
+    pub fn get_return() -> Self {
+        Reg::RAX
+    }
 }
