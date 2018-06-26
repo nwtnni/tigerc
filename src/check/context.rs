@@ -58,15 +58,15 @@ impl VarContext {
     }
 
     pub fn pop(&mut self) {
-        self.0.pop();
+        self.0.pop().expect("Internal error: no variable context");
     }
 
     pub fn get_var(&self, span: &Span, name: &Symbol) -> Result<Ty, Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
-            | Some(Binding::Fun(_, _))  => return Err(Error::semantic(*span, TypeError::NotVar)),
-            | Some(Binding::Var(ty)) => return Ok(ty.clone()),
-            | None                      => (),
+            | Some(Binding::Fun(_, _)) => return Err(Error::semantic(*span, TypeError::NotVar)),
+            | Some(Binding::Var(ty))   => return Ok(ty.clone()),
+            | None                     => (),
             };
         }
         Err(Error::semantic(*span, TypeError::UnboundVar))
@@ -75,7 +75,7 @@ impl VarContext {
     pub fn get_fun(&self, span: &Span, name: &Symbol) -> Result<(Vec<Ty>, Ty), Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
-            | Some(Binding::Var(_))      => return Err(Error::semantic(*span, TypeError::NotFun)),
+            | Some(Binding::Var(_))         => return Err(Error::semantic(*span, TypeError::NotFun)),
             | Some(Binding::Fun(args, ret)) => return Ok((args.clone(), ret.clone())),
             | None                          => (),
             }
@@ -109,7 +109,7 @@ impl TypeContext {
     }
 
     pub fn pop(&mut self) {
-        self.0.pop();
+        self.0.pop().expect("Internal error: no type context");
     }
 
     fn trace_partial(&self, ty: &Ty) -> Ty {
@@ -130,7 +130,6 @@ impl TypeContext {
         match ty {
         | Ty::Name(name, opt) => {
             match opt {
-            // | Some(box Ty::Name(_, _)) => Err(Error::semantic(span.clone(), TypeError::NotIndirect)),
             | Some(ty) => self.trace_full(span, &*ty),
             | _        => Ok(self.get_full(span, name).unwrap()),
             }
