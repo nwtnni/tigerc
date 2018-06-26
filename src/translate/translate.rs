@@ -5,7 +5,7 @@ use ir;
 
 use ty::Ty;
 use check::TypeContext;
-use translate::{Access, Frame, FnContext};
+use translate::{Frame, FnContext};
 
 pub struct Translator {
     data: Vec<ir::Static>,

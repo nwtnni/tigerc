@@ -1,12 +1,38 @@
 use fnv::FnvHashMap;
 use sym::Symbol;
 
+use config::WORD_SIZE;
 use ir;
+use operand::Reg;
 
-#[derive(Clone, Copy)]
-pub enum Access {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Access {
     Frame(i32),
     Reg(ir::Temp),
+}
+
+impl From<Access> for ir::Exp {
+    fn from(access: Access) -> ir::Exp {
+        match access {
+        | Access::Reg(temp) => ir::Exp::Temp(temp),
+        | Access::Frame(n) => {
+
+            let fp = ir::Exp::Temp(
+                ir::Temp::with_reg(Reg::RBP)
+            );
+
+            let offset = ir::Exp::Const(
+                n * WORD_SIZE
+            );
+
+            ir::Exp::Binop(
+                Box::new(fp),
+                ir::Binop::Sub,
+                Box::new(offset)
+            )
+        },
+        }
+    }
 }
 
 pub struct Frame {
@@ -24,12 +50,22 @@ impl Frame {
         self.name
     }
 
-    pub fn allocate(&mut self, name: Symbol, escape: bool) -> Access {
-        unimplemented!()
+    pub fn allocate(&mut self, name: Symbol, escape: bool) -> ir::Exp {
+        let access = if escape {
+            self.offset -= 1;
+            Access::Frame(self.offset)
+        } else {
+            Access::Reg(
+                ir::Temp::with_name("LOCAL")
+            )
+        };
+        
+        self.map.insert(name, access);;
+        access.into()
     }
 
-    pub fn get(&self, name: Symbol) -> Access {
-        self.map[&name]
+    pub fn get(&self, name: Symbol) -> Option<ir::Exp> {
+        self.map.get(&name).map(|&access| access.into())
     }
 }
 
