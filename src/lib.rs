@@ -16,5 +16,6 @@ pub mod ty;
 pub mod ir;
 pub mod operand;
 
+pub mod config;
 pub mod error;
 pub mod span;
