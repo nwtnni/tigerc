@@ -225,12 +225,12 @@ impl Translator {
         },
         | Exp::Ass{name, exp, ..} => {
 
-            // TODO: handle static links and frames
-            unimplemented!()
+            let lhs_exp = self.translate_var(name).0;
+            let rhs_exp = self.translate_exp(exp);
+            ir::Stm::Move(rhs_exp.into(), lhs_exp.into()).into()
 
         },
         | Exp::If{guard, then, or, ..} => {
-
 
             if let Some(or_exp) = or {
 
