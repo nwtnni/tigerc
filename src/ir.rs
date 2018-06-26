@@ -3,6 +3,27 @@ use std::fmt;
 use sym::{store, Symbol};
 use uuid::Uuid;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Static {
+    id: Uuid,
+    label: Label,
+    data: String,
+}
+
+impl Static {
+    pub fn new(data: String) -> Self {
+        Static {
+            id: Uuid::new_v4(),
+            label: Label::with_name("STRING"),
+            data,
+        }
+    }
+
+    pub fn label(&self) -> Label {
+        self.label
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Temp {
     id: Uuid,    
@@ -11,11 +32,11 @@ pub struct Temp {
 
 impl Temp {
     pub fn new() -> Self {
-        Temp { id: Uuid::new_v4(), name: store("TEMP") }
+        Temp { id: Uuid::new_v4(), name: store("") }
     }
 
-    pub fn with_name(name: Symbol) -> Self {
-        Temp { id: Uuid::new_v4(), name }
+    pub fn with_name(name: &'static str) -> Self {
+        Temp { id: Uuid::new_v4(), name: store(name) }
     }
 }
 
@@ -27,10 +48,14 @@ pub struct Label {
 
 impl Label {
     pub fn new() -> Self {
-        Label { id: Uuid::new_v4(), name: store("LABEL") }
+        Label { id: Uuid::new_v4(), name: store("") }
     }
 
-    pub fn with_name(name: Symbol) -> Self {
+    pub fn with_name(name: &'static str) -> Self {
+        Label { id: Uuid::new_v4(), name: store(name) }
+    }
+
+    pub fn with_symbol(name: Symbol) -> Self {
         Label { id: Uuid::new_v4(), name }
     }
 }
@@ -63,9 +88,9 @@ impl From<Tree> for Exp {
             )
         },
         | Tree::Cx(gen_stm) => {
-            let r = Temp::with_name(store("COND_EXP"));
-            let t = Label::with_name(store("TRUE_BRANCH"));
-            let f = Label::with_name(store("FALSE_BRANCH"));
+            let r = Temp::with_name("COND_EXP");
+            let t = Label::with_name("TRUE_BRANCH");
+            let f = Label::with_name("FALSE_BRANCH");
             Exp::ESeq(
                 Box::new(Stm::Seq(vec![
                     Stm::Move(Exp::Const(1), Exp::Temp(r)),
@@ -104,8 +129,8 @@ impl From<Tree> for Stm {
         | Tree::Nx(stm) => stm,
         | Tree::Ex(exp) => Stm::Exp(exp),
         | Tree::Cx(gen_stm) => {
-            let t = Label::with_name(store("TRUE_BRANCH"));
-            let f = Label::with_name(store("FALSE_BRANCH"));
+            let t = Label::with_name("TRUE_BRANCH");
+            let f = Label::with_name("FALSE_BRANCH");
             gen_stm(t, f)
         },
         }

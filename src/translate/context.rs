@@ -48,7 +48,7 @@ impl FnContext {
     }
 
     pub fn insert(&mut self, name: Symbol) -> ir::Label {
-        let label = ir::Label::with_name(name);
+        let label = ir::Label::with_symbol(name);
         self.map.insert(name, label);
         label
     }

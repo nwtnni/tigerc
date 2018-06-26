@@ -1,4 +1,4 @@
-use sym::store;
+use sym::{store, Symbol};
 
 use ast::*;
 use ir;
@@ -8,6 +8,7 @@ use check::TypeContext;
 use translate::{Access, Frame, FnContext};
 
 pub struct Translator {
+    data: Vec<ir::Static>,
     loops: Vec<ir::Label>,
     frames: Vec<Frame>,
     fc: Vec<FnContext>,
@@ -146,10 +147,10 @@ impl Translator {
 
             if let Some(or_exp) = or {
 
-                let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
-                let f_label = ir::Label::with_name(store("FALSE_BRANCH"));
-                let e_label = ir::Label::with_name(store("EXIT_IF_ELSE"));
-                let result = ir::Temp::with_name(store("IF_ELSE_RESULT"));
+                let t_label = ir::Label::with_name("TRUE_BRANCH");
+                let f_label = ir::Label::with_name("FALSE_BRANCH");
+                let e_label = ir::Label::with_name("EXIT_IF_ELSE");
+                let result = ir::Temp::with_name("IF_ELSE_RESULT");
 
                 ir::Exp::ESeq(
                     Box::new(ir::Stm::Seq(vec![
@@ -193,8 +194,8 @@ impl Translator {
 
             } else {
 
-                let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
-                let e_label = ir::Label::with_name(store("EXIT_IF"));
+                let t_label = ir::Label::with_name("TRUE_BRANCH");
+                let e_label = ir::Label::with_name("EXIT_IF");
 
                 ir::Stm::Seq(vec![
 
@@ -223,9 +224,9 @@ impl Translator {
         },
         | Exp::While{guard, body, ..} => {
 
-            let s_label = ir::Label::with_name(store("START_WHILE"));
-            let t_label = ir::Label::with_name(store("TRUE_BRANCH"));
-            let e_label = ir::Label::with_name(store("EXIT_WHILE"));
+            let s_label = ir::Label::with_name("START_WHILE");
+            let t_label = ir::Label::with_name("TRUE_BRANCH");
+            let e_label = ir::Label::with_name("EXIT_WHILE");
 
             let guard_exp = self.translate_exp(guard).into();
 
