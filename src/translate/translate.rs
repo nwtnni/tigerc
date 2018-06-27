@@ -136,10 +136,12 @@ impl Translator {
         | Exp::Var(var, _) => self.translate_var(var).0,
         | Exp::Int(n, _) => ir::Exp::Const(*n).into(),
         | Exp::Str(s, _) => {
+
             let data = ir::Static::new(s.to_string());
             let label = data.label();
             self.data.push(data);
             ir::Exp::Name(label).into()
+
         },
         | Exp::Call{name, args, ..} => {
 
@@ -170,13 +172,13 @@ impl Translator {
         },
         | Exp::Bin{lhs, op, rhs, ..} => {
 
-            let lexp = self.translate_exp(lhs).into();
-            let rexp = self.translate_exp(rhs).into();
+            let lhs_exp = self.translate_exp(lhs).into();
+            let rhs_exp = self.translate_exp(rhs).into();
 
             // Straightforward arithmetic operation
             if let Some(binop) = Self::translate_binop(op) {
                 ir::Exp::Binop(
-                    Box::new(lexp), binop, Box::new(rexp)
+                    Box::new(lhs_exp), binop, Box::new(rhs_exp)
                 ).into()
             }
 
@@ -184,7 +186,7 @@ impl Translator {
             else if let Some(relop) = Self::translate_relop(op) {
                 ir::Tree::Cx(
                     Box::new(move |t, f| {
-                        ir::Stm::CJump(lexp.clone(), relop, rexp.clone(), t, f)
+                        ir::Stm::CJump(lhs_exp.clone(), relop, rhs_exp.clone(), t, f)
                     })
                 )
             }
@@ -319,10 +321,16 @@ impl Translator {
 
             // Push exit label of enclosing loop onto context
             self.loops.push(e_label);
-            let body_stm = self.translate_exp(body).into();
+            let body_stm = self.translate_exp(body);
             self.loops.pop().expect("Internal error: loop mismatch");
 
             ir::Stm::Seq(vec![
+
+                // Invariant: all labels must be proceeded by a jump
+                ir::Stm::Jump(
+                    ir::Exp::Name(s_label),
+                    vec![s_label],
+                ),
 
                 // While loop header
                 ir::Stm::Label(s_label),
@@ -338,13 +346,72 @@ impl Translator {
 
                 // Execute loop body and repeat
                 ir::Stm::Label(t_label),
-                body_stm,
+                body_stm.into(),
                 ir::Stm::Jump(
                     ir::Exp::Name(s_label),
                     vec![s_label],
                 ),
 
                 // Exit loop
+                ir::Stm::Label(e_label),
+
+            ]).into()
+        },
+        | Exp::For{name, escape, lo, hi, body, ..} => {
+
+            let index_location = self.frames.last_mut()
+                .expect("Internal error: missing frame")
+                .allocate(*name, *escape);
+
+            let lo_exp = self.translate_exp(lo);
+            let hi_exp = self.translate_exp(hi);
+            let body_stm = self.translate_exp(body);
+
+            let s_label = ir::Label::with_name("START_FOR");
+            let t_label = ir::Label::with_name("TRUE_BRANCH");
+            let e_label = ir::Label::with_name("EXIT_FOR");
+
+            ir::Stm::Seq(vec![
+
+                // Initialize index variable
+                ir::Stm::Move(
+                    lo_exp.into(),
+                    index_location.clone(),
+                ),
+
+                // Invariant: all labels must be proceeded by a jump
+                ir::Stm::Jump(
+                    ir::Exp::Name(s_label),
+                    vec![s_label],
+                ),
+
+                // Loop header
+                ir::Stm::Label(s_label),
+                ir::Stm::CJump(
+                    index_location.clone(),
+                    ir::Relop::Gt,
+                    hi_exp.into(),
+                    e_label,
+                    t_label,
+                ),
+
+                // True branch: execute body and then increment index
+                ir::Stm::Label(t_label),
+                body_stm.into(),
+                ir::Stm::Move(
+                    ir::Exp::Binop(
+                        Box::new(index_location.clone()),
+                        ir::Binop::Add,
+                        Box::new(ir::Exp::Const(1)),
+                    ),
+                    index_location,
+                ),
+                ir::Stm::Jump(
+                    ir::Exp::Name(s_label),
+                    vec![s_label],
+                ),
+
+                // Exit label
                 ir::Stm::Label(e_label),
 
             ]).into()
