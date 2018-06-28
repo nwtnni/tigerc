@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use itertools::FoldWhile::{Continue, Done};
 use sym::{store, Symbol};
+use uuid::Uuid;
 
 use ast::*;
 use ir;
@@ -416,6 +417,17 @@ impl Translator {
 
             ]).into()
         },
+        | Exp::Let{decs, body, ..} => {
+
+            self.tc.push();
+            self.fc.push();
+            for dec in decs { self.translate_dec(&*dec); }
+            let body = self.translate_exp(&*body);
+            self.fc.pop();
+            self.tc.pop();
+            body.into()
+
+        }
         _ => unimplemented!(),
         }
     }
@@ -448,7 +460,38 @@ impl Translator {
 
     }
 
-    fn translate_type(&mut self, ty: &Ty) {
+    fn translate_type(&mut self, ty: &Type) -> Ty {
+
+        match ty {
+        | Type::Name(name, span) => {
+
+            self.tc.get_partial(span, name)
+                .expect("Internal error: missing name type")
+
+        },
+        | Type::Arr(name, name_span, span) => {
+
+            // Look up array element type
+            let elem_ty = self.tc.get_partial(name_span, name)
+                .expect("Internal error: missing element type");
+
+            Ty::Arr(Box::new(elem_ty), Uuid::new_v4())
+
+        },
+        | Type::Rec(decs, _) => {
+
+            let mut fields = Vec::new();
+
+            // Look up each field type
+            for dec in decs {
+                let field_ty = self.tc.get_partial(&dec.ty_span, &dec.ty)
+                    .expect("Internal error: missing field type");
+                fields.push((dec.name, field_ty));
+            }
+
+            Ty::Rec(fields, Uuid::new_v4())
+        },
+        }
 
     }
 }
