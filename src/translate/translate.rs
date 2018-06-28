@@ -457,7 +457,17 @@ impl Translator {
     }
 
     fn translate_dec(&mut self, dec: &Dec) {
+        match dec {
+        | Dec::Fun(fns, _) => {
 
+        },
+        | Dec::Var{name, escape, init, ..} => {
+
+        }
+        | Dec::Type(tys, _) => {
+
+        },
+        }
     }
 
     fn translate_type(&mut self, ty: &Type) -> Ty {
