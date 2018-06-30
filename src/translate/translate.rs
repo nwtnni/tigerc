@@ -14,7 +14,7 @@ use ty::Ty;
 
 pub struct Translator {
     data: Vec<ir::Static>,
-    functions: Vec<Vec<ir::Stm>>,
+    done: Vec<Frame>,
     loops: Vec<ir::Label>,
     frames: Vec<Frame>,
     fc: FnContext,
@@ -456,16 +456,36 @@ impl Translator {
         }
     }
 
-    fn translate_dec(&mut self, dec: &Dec) {
+    fn translate_dec(&mut self, dec: &Dec) -> Option<ir::Tree> {
         match dec {
         | Dec::Fun(fns, _) => {
 
         },
         | Dec::Var{name, escape, init, ..} => {
 
-        }
-        | Dec::Type(tys, _) => {
+            let init_exp = self.translate_exp(init);
+            let name_exp = self.frames.last()
+                .expect("Internal error: missing frame")
+                .allocate(*name, *escape);
 
+            Some(
+                ir::Stm::Move(
+                    init_exp.into(),
+                    name_exp.into(),
+                ).into()
+            )
+        }
+        | Dec::Type(decs, _) => {
+            for dec in decs {
+                self.tc.insert(dec.name, Ty::Name(dec.name, None));
+            }
+
+            for dec in decs {
+                let ty = Box::new(self.translate_type(&dec.ty));
+                self.tc.insert(dec.name, Ty::Name(dec.name, Some(ty)));
+            }
+
+            None
         },
         }
     }
