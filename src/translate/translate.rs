@@ -421,12 +421,22 @@ impl Translator {
 
             self.tc.push();
             self.fc.push();
-            for dec in decs { self.translate_dec(&*dec); }
-            let body = self.translate_exp(&*body);
+
+            // Translate declarations with side effects
+            let mut body_exp = decs.iter()
+                .filter_map(|dec| self.translate_dec(&*dec))
+                .map(|dec| dec.into())
+                .collect::<Vec<_>>();
+
+            // Translate body
+            body_exp.push(
+                self.translate_exp(&*body).into()
+            );
+
             self.fc.pop();
             self.tc.pop();
-            body.into()
 
+            ir::Stm::Seq(body_exp).into()
         }
         _ => unimplemented!(),
         }
@@ -458,13 +468,37 @@ impl Translator {
 
     fn translate_dec(&mut self, dec: &Dec) -> Option<ir::Tree> {
         match dec {
-        | Dec::Fun(fns, _) => {
+        | Dec::Fun(funs, _) => {
+
+            for fun in funs {
+
+                // Collect arg names and escapes
+                let args = fun.args.iter()
+                    .map(|arg| (arg.name, arg.escape))
+                    .collect();
+
+                // Create new frame
+                let label = self.fc.insert(fun.name);
+                let frame = Frame::new(label, args);
+
+                // Translate body with new frame
+                self.frames.push(frame);
+                let body_exp = self.translate_exp(&fun.body);
+                let frame = self.frames.pop()
+                    .expect("Internal error: missing frame");
+
+                // Push finished function to done pile
+                self.done.push(frame.wrap(body_exp));
+
+            }
+
+            None
 
         },
         | Dec::Var{name, escape, init, ..} => {
 
             let init_exp = self.translate_exp(init);
-            let name_exp = self.frames.last()
+            let name_exp = self.frames.last_mut()
                 .expect("Internal error: missing frame")
                 .allocate(*name, *escape);
 
@@ -476,6 +510,7 @@ impl Translator {
             )
         }
         | Dec::Type(decs, _) => {
+
             for dec in decs {
                 self.tc.insert(dec.name, Ty::Name(dec.name, None));
             }
