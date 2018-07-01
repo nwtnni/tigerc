@@ -431,13 +431,16 @@ impl Translator {
                 .expect("Internal error: missing frame")
                 .allocate(*name, *escape);
 
-            let lo_exp = self.translate_exp(lo);
-            let hi_exp = self.translate_exp(hi);
-            let body_stm = self.translate_exp(body);
-
             let s_label = ir::Label::from_str("START_FOR");
             let t_label = ir::Label::from_str("TRUE_BRANCH");
             let e_label = ir::Label::from_str("EXIT_FOR");
+
+            let lo_exp = self.translate_exp(lo);
+            let hi_exp = self.translate_exp(hi);
+
+            self.loops.push(s_label);
+            let body_stm = self.translate_exp(body);
+            self.loops.pop().expect("Internal error: missing for loop");
 
             ir::Stm::Seq(vec![
 
