@@ -33,7 +33,13 @@ impl Translator {
             tc: TypeContext::default(),
         };
 
-        translator.translate_exp(ast);
+        let main_exp = translator.translate_exp(ast);
+        let main_frame = translator.frames.pop()
+            .expect("Internal error: missing main frame");
+
+        translator.done.push(
+            main_frame.wrap(main_exp)
+        );
 
         (translator.data, translator.done)
     }
