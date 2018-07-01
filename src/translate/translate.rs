@@ -119,6 +119,7 @@ impl Translator {
     }
 
     fn translate_exp(&mut self, ast: &Exp) -> ir::Tree {
+
         match ast {
         | Exp::Break(_) => {
 
@@ -224,7 +225,7 @@ impl Translator {
                         Box::new(ir::Exp::Name(malloc)),
                         vec![size],
                     ),
-                    ir::Exp::Temp(pointer), 
+                    ir::Exp::Temp(pointer),
                 ),
             ];
 
@@ -236,7 +237,7 @@ impl Translator {
                         ir::Exp::Mem(
                             Box::new(
                                 ir::Exp::Binop(
-                                    Box::new(ir::Exp::Temp(pointer)), 
+                                    Box::new(ir::Exp::Temp(pointer)),
                                     ir::Binop::Add,
                                     Box::new(ir::Exp::Const(WORD_SIZE * i as i32)),
                                 )
@@ -487,7 +488,24 @@ impl Translator {
 
             ir::Stm::Seq(body_exp).into()
         }
-        _ => unimplemented!(),
+        | Exp::Arr{size, init, ..} => {
+
+            let size_exp = self.translate_exp(&*size);
+            let init_exp = self.translate_exp(&*init);
+
+            let extern_label = match self.fc.get(&store("init_array")) {
+            | Call::Extern(label) => label,
+            | _                   => panic!("Internal error: overridden init_array"),
+            };
+
+            ir::Exp::Call(
+                Box::new(ir::Exp::Name(extern_label)),
+                vec![
+                    size_exp.into(),
+                    init_exp.into()
+                ],
+            ).into()
+        },
         }
     }
 
