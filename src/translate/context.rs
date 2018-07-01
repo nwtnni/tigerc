@@ -1,9 +1,9 @@
 use fnv::FnvHashMap;
-use sym::Symbol;
+use sym::{store, Symbol};
 
+use ir;
 use config::WORD_SIZE;
 use check::Context;
-use ir;
 use operand::{Temp, Reg};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -137,14 +137,20 @@ impl Frame {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+pub enum Call {
+    Extern(ir::Label),
+    Function(ir::Label),
+}
+
 #[derive(Debug)]
-pub struct FnContext(Context<ir::Label>);
+pub struct FnContext(Context<Call>);
 
 impl FnContext {
 
     pub fn insert(&mut self, name: Symbol) -> ir::Label {
         let label = ir::Label::from_symbol(name);
-        self.0.last_mut().unwrap().insert(name, label);
+        self.0.last_mut().unwrap().insert(name, Call::Function(label));
         label
     }
 
@@ -156,7 +162,7 @@ impl FnContext {
         self.0.pop().expect("Internal error: no function context");
     }
 
-    pub fn get(&self, name: &Symbol) -> ir::Label {
+    pub fn get(&self, name: &Symbol) -> Call {
         for env in self.0.iter().rev() {
             if let Some(label) = env.get(name) { return *label }
         }
@@ -166,6 +172,19 @@ impl FnContext {
 
 impl Default for FnContext {
     fn default() -> Self {
-        FnContext(vec![FnvHashMap::default()])
+        FnContext(vec![
+            hashmap!{
+                store("print")     => Call::Extern(ir::Label::from_str("print")),
+                store("flush")     => Call::Extern(ir::Label::from_str("flush")),
+                store("getchar")   => Call::Extern(ir::Label::from_str("getchar")),
+                store("ord")       => Call::Extern(ir::Label::from_str("ord")),
+                store("chr")       => Call::Extern(ir::Label::from_str("chr")),
+                store("size")      => Call::Extern(ir::Label::from_str("size")),
+                store("substring") => Call::Extern(ir::Label::from_str("substring")),
+                store("concat")    => Call::Extern(ir::Label::from_str("concat")),
+                store("not")       => Call::Extern(ir::Label::from_str("not")),
+                store("exit")      => Call::Extern(ir::Label::from_str("exit"))
+            }
+        ])
     }
 }

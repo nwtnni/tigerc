@@ -1,21 +1,9 @@
 use fnv::FnvHashMap;
 use sym::{store, Symbol};
 
+use ty::Ty;
 use error::{Error, TypeError};
 use span::Span;
-use ty::Ty;
-
-macro_rules! hashmap {
-    ( $( $key:expr => $value:expr ),* ) => {
-        {
-            let mut map = FnvHashMap::default();
-            $(
-                map.insert($key, $value);
-            )*
-            map
-        }
-    }
-}
 
 pub type Context<T> = Vec<FnvHashMap<Symbol, T>>;
 
