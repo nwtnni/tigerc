@@ -4,12 +4,12 @@ use sym::Symbol;
 use config::WORD_SIZE;
 use check::Context;
 use ir;
-use operand::Reg;
+use operand::{Temp, Reg};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Access {
     Frame(i32),
-    Reg(ir::Temp),
+    Reg(Temp),
 }
 
 impl Access {
@@ -44,7 +44,7 @@ pub struct Frame {
 
 impl Frame {
     pub fn new(label: ir::Label, args: Vec<(Symbol, bool)>) -> Self {
-        let rbp = ir::Exp::Temp(ir::Temp::Reg(Reg::RBP));
+        let rbp = ir::Exp::Temp(Temp::Reg(Reg::RBP));
         let mut map = FnvHashMap::default();
         let mut prologue = Vec::new();
         let mut offset = 0;
@@ -57,7 +57,7 @@ impl Frame {
                 size += 1;
                 Access::Frame(offset)
             } else {
-                Access::Reg(ir::Temp::with_name("ARG"))
+                Access::Reg(Temp::from_str("ARG"))
             };
 
             prologue.push(ir::Stm::Move(from, to.from_base(rbp.clone())));
@@ -80,14 +80,14 @@ impl Frame {
     }
 
     pub fn allocate(&mut self, name: Symbol, escape: bool) -> ir::Exp {
-        let rbp = ir::Exp::Temp(ir::Temp::Reg(Reg::RBP));
+        let rbp = ir::Exp::Temp(Temp::Reg(Reg::RBP));
         let access = if escape {
             self.offset -= 1;
             self.size += 1;
             Access::Frame(self.offset)
         } else {
             Access::Reg(
-                ir::Temp::with_name("LOCAL")
+                Temp::from_str("LOCAL")
             )
         };
 
@@ -111,13 +111,13 @@ impl Frame {
     fn get_argument(i: usize) -> ir::Exp {
         if i < 6 {
             ir::Exp::Temp(
-                ir::Temp::with_reg(
+                Temp::from_reg(
                     Reg::get_argument(i)
                 )
             )
         } else {
             let fp = ir::Exp::Temp(
-                ir::Temp::with_reg(Reg::RBP)
+                Temp::from_reg(Reg::RBP)
             );
 
             let offset = ir::Exp::Const(
@@ -143,7 +143,7 @@ pub struct FnContext(Context<ir::Label>);
 impl FnContext {
 
     pub fn insert(&mut self, name: Symbol) -> ir::Label {
-        let label = ir::Label::with_symbol(name);
+        let label = ir::Label::from_symbol(name);
         self.0.last_mut().unwrap().insert(name, label);
         label
     }

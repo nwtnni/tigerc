@@ -3,7 +3,7 @@ use std::fmt;
 use sym::{store, Symbol};
 use uuid::Uuid;
 
-use operand::Reg;
+use operand::Temp;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Static {
@@ -16,7 +16,7 @@ impl Static {
     pub fn new(data: String) -> Self {
         Static {
             id: Uuid::new_v4(),
-            label: Label::with_name("STRING"),
+            label: Label::from_str("STRING"),
             data,
         }
     }
@@ -27,51 +27,25 @@ impl Static {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Temp {
-    Reg(Reg),
-    Temp {
+pub enum Label {
+    Fixed(Symbol),
+    Unfixed {
         id: Uuid,
         name: Symbol,
-    },
-}
-
-impl Temp {
-    pub fn new() -> Self {
-        Temp::Temp {
-            id: Uuid::new_v4(),
-            name: store(""),
-        }
     }
-
-    pub fn with_name(name: &'static str) -> Self {
-        Temp::Temp {
-            id: Uuid::new_v4(),
-            name: store(name),
-        }
-    }
-
-    pub fn with_reg(reg: Reg) -> Self {
-        Temp::Reg(reg)
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Label {
-    id: Uuid,    
-    name: Symbol,
 }
 
 impl Label {
-    pub fn new() -> Self {
-        Label { id: Uuid::new_v4(), name: store("") }
+    pub fn from_fixed(name: &'static str) -> Self {
+        Label::Fixed(store(name))
     }
 
-    pub fn with_name(name: &'static str) -> Self {
-        Label { id: Uuid::new_v4(), name: store(name) }
+    pub fn from_str(name: &'static str) -> Self {
+        Label::Unfixed { id: Uuid::new_v4(), name: store(name) }
     }
 
-    pub fn with_symbol(name: Symbol) -> Self {
-        Label { id: Uuid::new_v4(), name }
+    pub fn from_symbol(name: Symbol) -> Self {
+        Label::Unfixed { id: Uuid::new_v4(), name }
     }
 }
 
@@ -103,9 +77,9 @@ impl From<Tree> for Exp {
             )
         },
         | Tree::Cx(gen_stm) => {
-            let r = Temp::with_name("COND_EXP");
-            let t = Label::with_name("TRUE_BRANCH");
-            let f = Label::with_name("FALSE_BRANCH");
+            let r = Temp::from_str("COND_EXP");
+            let t = Label::from_str("TRUE_BRANCH");
+            let f = Label::from_str("FALSE_BRANCH");
             Exp::ESeq(
                 Box::new(Stm::Seq(vec![
                     Stm::Move(Exp::Const(1), Exp::Temp(r)),
@@ -144,8 +118,8 @@ impl From<Tree> for Stm {
         | Tree::Nx(stm) => stm,
         | Tree::Ex(exp) => Stm::Exp(exp),
         | Tree::Cx(gen_stm) => {
-            let t = Label::with_name("TRUE_BRANCH");
-            let f = Label::with_name("FALSE_BRANCH");
+            let t = Label::from_str("TRUE_BRANCH");
+            let f = Label::from_str("FALSE_BRANCH");
             gen_stm(t, f)
         },
         }
@@ -167,7 +141,7 @@ impl From<Tree> for Cond {
         | Tree::Cx(gen_stm) => gen_stm,
         | Tree::Ex(exp) => {
             Box::new(move |t, f| Stm::CJump(
-                Exp::Const(0),     
+                Exp::Const(0),
                 Relop::Eq,
                 exp.clone(),
                 t,
@@ -212,18 +186,12 @@ pub enum Relop {
     Uge,
 }
 
-impl fmt::Display for Temp {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-        | Temp::Temp{id, name} => write!(fmt, "TEMP_{}_{}", name, id.simple()),
-        | Temp::Reg(reg)       => write!(fmt, "TEMP_{:?}", reg),
-        }
-    }
-}
-
 impl fmt::Display for Label {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, "{}_{}", self.name, self.id.simple())
+        match self {
+        | Label::Fixed(name) => write!(fmt, "{}", name),
+        | Label::Unfixed{name, id} => write!(fmt, "{}_{}", name, id.simple()),
+        }
     }
 }
 

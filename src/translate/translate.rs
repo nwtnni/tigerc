@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use itertools::FoldWhile::{Continue, Done};
-use sym::{store, Symbol};
+use sym::store;
 use uuid::Uuid;
 
 use ast::*;
@@ -8,7 +8,7 @@ use ir;
 
 use check::TypeContext;
 use config::WORD_SIZE;
-use operand::Reg;
+use operand::{Temp, Reg};
 use translate::{Frame, FnContext};
 use ty::Ty;
 
@@ -32,7 +32,7 @@ impl Translator {
         | Var::Simple(name, span) => {
 
             // Start off at current frame's base pointer
-            let rbp = ir::Exp::Temp(ir::Temp::Reg(Reg::RBP));
+            let rbp = ir::Exp::Temp(Temp::Reg(Reg::RBP));
             let link = store("STATIC_LINK");
 
             // Retrieve variable type
@@ -237,10 +237,10 @@ impl Translator {
 
             if let Some(or_exp) = or {
 
-                let t_label = ir::Label::with_name("TRUE_BRANCH");
-                let f_label = ir::Label::with_name("FALSE_BRANCH");
-                let e_label = ir::Label::with_name("EXIT_IF_ELSE");
-                let result = ir::Temp::with_name("IF_ELSE_RESULT");
+                let t_label = ir::Label::from_str("TRUE_BRANCH");
+                let f_label = ir::Label::from_str("FALSE_BRANCH");
+                let e_label = ir::Label::from_str("EXIT_IF_ELSE");
+                let result = Temp::from_str("IF_ELSE_RESULT");
 
                 ir::Exp::ESeq(
                     Box::new(ir::Stm::Seq(vec![
@@ -284,8 +284,8 @@ impl Translator {
 
             } else {
 
-                let t_label = ir::Label::with_name("TRUE_BRANCH");
-                let e_label = ir::Label::with_name("EXIT_IF");
+                let t_label = ir::Label::from_str("TRUE_BRANCH");
+                let e_label = ir::Label::from_str("EXIT_IF");
 
                 ir::Stm::Seq(vec![
 
@@ -314,9 +314,9 @@ impl Translator {
         },
         | Exp::While{guard, body, ..} => {
 
-            let s_label = ir::Label::with_name("START_WHILE");
-            let t_label = ir::Label::with_name("TRUE_BRANCH");
-            let e_label = ir::Label::with_name("EXIT_WHILE");
+            let s_label = ir::Label::from_str("START_WHILE");
+            let t_label = ir::Label::from_str("TRUE_BRANCH");
+            let e_label = ir::Label::from_str("EXIT_WHILE");
 
             let guard_exp = self.translate_exp(guard).into();
 
@@ -368,9 +368,9 @@ impl Translator {
             let hi_exp = self.translate_exp(hi);
             let body_stm = self.translate_exp(body);
 
-            let s_label = ir::Label::with_name("START_FOR");
-            let t_label = ir::Label::with_name("TRUE_BRANCH");
-            let e_label = ir::Label::with_name("EXIT_FOR");
+            let s_label = ir::Label::from_str("START_FOR");
+            let t_label = ir::Label::from_str("TRUE_BRANCH");
+            let e_label = ir::Label::from_str("EXIT_FOR");
 
             ir::Stm::Seq(vec![
 

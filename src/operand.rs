@@ -1,3 +1,39 @@
+use std::fmt;
+
+use sym::{store, Symbol};
+use uuid::Uuid;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Temp {
+    Reg(Reg),
+    Temp {
+        id: Uuid,
+        name: Symbol,
+    },
+}
+
+impl Temp {
+    pub fn from_str(name: &'static str) -> Self {
+        Temp::Temp {
+            id: Uuid::new_v4(),
+            name: store(name),
+        }
+    }
+
+    pub fn from_reg(reg: Reg) -> Self {
+        Temp::Reg(reg)
+    }
+}
+
+impl fmt::Display for Temp {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Temp::Temp{id, name} => write!(fmt, "TEMP_{}_{}", name, id.simple()),
+        | Temp::Reg(reg)       => write!(fmt, "TEMP_{:?}", reg),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Reg {
     RAX,
