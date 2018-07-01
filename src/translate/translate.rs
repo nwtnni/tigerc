@@ -203,11 +203,54 @@ impl Translator {
                 panic!("Internal error: non-exhaustive binop check");
             }
         },
-        | Exp::Rec{name, fields, ..} => {
+        | Exp::Rec{fields, ..} => {
 
-            // TODO: do field lookup
-            unimplemented!()
+            // Calculate record size for malloc
+            let size = ir::Exp::Const(WORD_SIZE * fields.len() as i32);
 
+            // Retrieve malloc label
+            let malloc = match self.fc.get(&store("malloc")) {
+            | Call::Extern(label) => label,
+            | _                   => panic!("Internal error: overridden malloc"),
+            };
+
+            // Allocate temp for record pointer
+            let pointer = Temp::from_str("MALLOC");
+
+            // Call malloc and move resulting pointer into temp
+            let mut seq = vec![
+                ir::Stm::Move(
+                    ir::Exp::Call(
+                        Box::new(ir::Exp::Name(malloc)),
+                        vec![size],
+                    ),
+                    ir::Exp::Temp(pointer), 
+                ),
+            ];
+
+            // Move each field into memory offset from record pointer
+            for (i, field) in fields.iter().enumerate() {
+                seq.push(
+                    ir::Stm::Move(
+                        self.translate_exp(&*field.exp).into(),
+                        ir::Exp::Mem(
+                            Box::new(
+                                ir::Exp::Binop(
+                                    Box::new(ir::Exp::Temp(pointer)), 
+                                    ir::Binop::Add,
+                                    Box::new(ir::Exp::Const(WORD_SIZE * i as i32)),
+                                )
+                            )
+                        ),
+                    )
+                );
+            }
+
+            // Return record pointer after initialization
+            ir::Exp::ESeq(
+                Box::new(ir::Stm::Seq(seq)),
+                Box::new(ir::Exp::Temp(pointer)),
+            ).into()
         },
         | Exp::Seq(exps, _) => {
 
