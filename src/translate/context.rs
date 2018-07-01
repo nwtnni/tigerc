@@ -174,16 +174,17 @@ impl Default for FnContext {
     fn default() -> Self {
         FnContext(vec![
             hashmap!{
-                store("print")     => Call::Extern(ir::Label::from_str("print")),
-                store("flush")     => Call::Extern(ir::Label::from_str("flush")),
-                store("getchar")   => Call::Extern(ir::Label::from_str("getchar")),
-                store("ord")       => Call::Extern(ir::Label::from_str("ord")),
-                store("chr")       => Call::Extern(ir::Label::from_str("chr")),
-                store("size")      => Call::Extern(ir::Label::from_str("size")),
-                store("substring") => Call::Extern(ir::Label::from_str("substring")),
-                store("concat")    => Call::Extern(ir::Label::from_str("concat")),
-                store("not")       => Call::Extern(ir::Label::from_str("not")),
-                store("exit")      => Call::Extern(ir::Label::from_str("exit"))
+                store("print")     => Call::Extern(ir::Label::from_fixed("print")),
+                store("flush")     => Call::Extern(ir::Label::from_fixed("flush")),
+                store("getchar")   => Call::Extern(ir::Label::from_fixed("getchar")),
+                store("ord")       => Call::Extern(ir::Label::from_fixed("ord")),
+                store("chr")       => Call::Extern(ir::Label::from_fixed("chr")),
+                store("size")      => Call::Extern(ir::Label::from_fixed("size")),
+                store("substring") => Call::Extern(ir::Label::from_fixed("substring")),
+                store("concat")    => Call::Extern(ir::Label::from_fixed("concat")),
+                store("not")       => Call::Extern(ir::Label::from_fixed("not")),
+                store("exit")      => Call::Extern(ir::Label::from_fixed("exit")),
+                store("malloc")    => Call::Extern(ir::Label::from_fixed("malloc"))
             }
         ])
     }

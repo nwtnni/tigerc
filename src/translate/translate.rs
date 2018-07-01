@@ -37,7 +37,7 @@ impl Translator {
 
             // Retrieve variable type
             let var_ty = self.tc.get_full(span, name)
-                .expect("Internal error: unbounb variable");
+                .expect("Internal error: unbound variable");
 
             // Follow static links
             let var_exp = self.frames.iter().fold_while(rbp, |acc, frame| {
