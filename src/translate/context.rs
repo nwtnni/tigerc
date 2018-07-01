@@ -32,10 +32,11 @@ impl Access {
     }
 }
 
+#[derive(Debug)]
 pub struct Frame {
     label: ir::Label,
     prologue: Vec<ir::Stm>,
-    body: Option<ir::Tree>,
+    body: Option<ir::Stm>,
     epilogue: Vec<ir::Stm>,
     map: FnvHashMap<Symbol, Access>,
     offset: i32,
@@ -104,7 +105,7 @@ impl Frame {
     }
 
     pub fn wrap(mut self, body: ir::Tree) -> Self {
-        self.body = Some(body);
+        self.body = Some(body.into());
         self
     }
 

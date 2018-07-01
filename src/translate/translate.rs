@@ -23,8 +23,19 @@ pub struct Translator {
 
 impl Translator {
 
-    pub fn translate(ast: &Exp) -> ir::Tree {
-        unimplemented!()
+    pub fn translate(ast: &Exp) -> (Vec<ir::Static>, Vec<Frame>) {
+        let mut translator = Translator {
+            data: Vec::new(),
+            done: Vec::new(),
+            loops: Vec::new(),
+            frames: vec![Frame::new(ir::Label::from_fixed("main"), Vec::new())],
+            fc: FnContext::default(),
+            tc: TypeContext::default(),
+        };
+
+        translator.translate_exp(ast);
+
+        (translator.data, translator.done)
     }
 
     fn translate_var(&mut self, var: &Var) -> (ir::Tree, Ty) {
