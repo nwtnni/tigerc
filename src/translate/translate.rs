@@ -9,7 +9,7 @@ use ir;
 use check::TypeContext;
 use config::WORD_SIZE;
 use operand::{Temp, Reg};
-use translate::{Frame, FnContext};
+use translate::{Call, Frame, FnContext};
 use ty::Ty;
 
 pub struct Translator {
@@ -147,18 +147,24 @@ impl Translator {
         | Exp::Call{name, args, ..} => {
 
             // Find label from context
-            let label = self.fc.get(name);
+            let call = self.fc.get(name);
+
+            let (mut arg_exps, label) = match call {
+            | Call::Extern(label) => (Vec::new(), label),
+            | Call::Function(label) => (vec![ir::Exp::Temp(Temp::from_reg(Reg::RBP)).into()], label),
+            };
 
             // Translate args sequentially
-            let exps: Vec<ir::Exp> = args.iter()
-                .map(|arg| self.translate_exp(arg))
-                .map(|arg| arg.into())
-                .collect();
+            arg_exps.extend(
+                args.iter()
+                    .map(|arg| self.translate_exp(arg))
+                    .map(|arg| arg.into())
+            );
 
             // Call function
             ir::Exp::Call(
                 Box::new(ir::Exp::Name(label)),
-                exps,
+                arg_exps,
             ).into()
         },
         | Exp::Neg(exp, _) => {
@@ -472,10 +478,17 @@ impl Translator {
 
             for fun in funs {
 
+                // Set up static link as first argument
+                let mut args = vec![
+                    (store("STATIC_LINK"), true)
+                ];
+
                 // Collect arg names and escapes
-                let args = fun.args.iter()
-                    .map(|arg| (arg.name, arg.escape))
-                    .collect();
+                args.extend(
+                    fun.args
+                        .iter()
+                        .map(|arg| (arg.name, arg.escape))
+                );
 
                 // Create new frame
                 let label = self.fc.insert(fun.name);
