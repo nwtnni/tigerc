@@ -8,14 +8,14 @@ use ir;
 
 use check::TypeContext;
 use config::WORD_SIZE;
-use operand::{Temp, Reg};
+use operand::{Label, Temp, Reg};
 use translate::{Call, Frame, FnContext};
 use ty::Ty;
 
 pub struct Translator {
     data: Vec<ir::Static>,
     done: Vec<Frame>,
-    loops: Vec<ir::Label>,
+    loops: Vec<Label>,
     frames: Vec<Frame>,
     fc: FnContext,
     tc: TypeContext,
@@ -28,7 +28,7 @@ impl Translator {
             data: Vec::new(),
             done: Vec::new(),
             loops: Vec::new(),
-            frames: vec![Frame::new(ir::Label::from_fixed("main"), Vec::new())],
+            frames: vec![Frame::new(Label::from_fixed("main"), Vec::new())],
             fc: FnContext::default(),
             tc: TypeContext::default(),
         };
@@ -304,9 +304,9 @@ impl Translator {
 
             if let Some(or_exp) = or {
 
-                let t_label = ir::Label::from_str("TRUE_BRANCH");
-                let f_label = ir::Label::from_str("FALSE_BRANCH");
-                let e_label = ir::Label::from_str("EXIT_IF_ELSE");
+                let t_label = Label::from_str("TRUE_BRANCH");
+                let f_label = Label::from_str("FALSE_BRANCH");
+                let e_label = Label::from_str("EXIT_IF_ELSE");
                 let result = Temp::from_str("IF_ELSE_RESULT");
 
                 ir::Exp::ESeq(
@@ -351,8 +351,8 @@ impl Translator {
 
             } else {
 
-                let t_label = ir::Label::from_str("TRUE_BRANCH");
-                let e_label = ir::Label::from_str("EXIT_IF");
+                let t_label = Label::from_str("TRUE_BRANCH");
+                let e_label = Label::from_str("EXIT_IF");
 
                 ir::Stm::Seq(vec![
 
@@ -381,9 +381,9 @@ impl Translator {
         },
         | Exp::While{guard, body, ..} => {
 
-            let s_label = ir::Label::from_str("START_WHILE");
-            let t_label = ir::Label::from_str("TRUE_BRANCH");
-            let e_label = ir::Label::from_str("EXIT_WHILE");
+            let s_label = Label::from_str("START_WHILE");
+            let t_label = Label::from_str("TRUE_BRANCH");
+            let e_label = Label::from_str("EXIT_WHILE");
 
             let guard_exp = self.translate_exp(guard).into();
 
@@ -431,9 +431,9 @@ impl Translator {
                 .expect("Internal error: missing frame")
                 .allocate(*name, *escape);
 
-            let s_label = ir::Label::from_str("START_FOR");
-            let t_label = ir::Label::from_str("TRUE_BRANCH");
-            let e_label = ir::Label::from_str("EXIT_FOR");
+            let s_label = Label::from_str("START_FOR");
+            let t_label = Label::from_str("TRUE_BRANCH");
+            let e_label = Label::from_str("EXIT_FOR");
 
             let lo_exp = self.translate_exp(lo);
             let hi_exp = self.translate_exp(hi);

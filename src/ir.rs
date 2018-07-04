@@ -3,7 +3,7 @@ use std::fmt;
 use sym::{store, Symbol};
 use uuid::Uuid;
 
-use operand::Temp;
+use operand::{Label, Temp};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Static {
@@ -23,29 +23,6 @@ impl Static {
 
     pub fn label(&self) -> Label {
         self.label
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Label {
-    Fixed(Symbol),
-    Unfixed {
-        id: Uuid,
-        name: Symbol,
-    }
-}
-
-impl Label {
-    pub fn from_fixed(name: &'static str) -> Self {
-        Label::Fixed(store(name))
-    }
-
-    pub fn from_str(name: &'static str) -> Self {
-        Label::Unfixed { id: Uuid::new_v4(), name: store(name) }
-    }
-
-    pub fn from_symbol(name: Symbol) -> Self {
-        Label::Unfixed { id: Uuid::new_v4(), name }
     }
 }
 

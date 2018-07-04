@@ -4,6 +4,30 @@ use sym::{store, Symbol};
 use uuid::Uuid;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Label {
+    Fixed(Symbol),
+    Unfixed {
+        id: Uuid,
+        name: Symbol,
+    }
+}
+
+impl Label {
+    pub fn from_fixed(name: &'static str) -> Self {
+        Label::Fixed(store(name))
+    }
+
+    pub fn from_str(name: &'static str) -> Self {
+        Label::Unfixed { id: Uuid::new_v4(), name: store(name) }
+    }
+
+    pub fn from_symbol(name: Symbol) -> Self {
+        Label::Unfixed { id: Uuid::new_v4(), name }
+    }
+}
+
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Temp {
     Reg(Reg),
     Temp {
