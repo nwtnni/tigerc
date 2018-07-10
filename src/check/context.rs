@@ -1,7 +1,9 @@
 use fnv::FnvHashMap;
 use sym::{store, Symbol};
 
+use ir;
 use ty::Ty;
+use operand::Label;
 use error::{Error, TypeError};
 use span::Span;
 
@@ -13,23 +15,24 @@ pub struct VarContext(Context<Binding>);
 #[derive(Debug, Clone)]
 pub enum Binding {
     Var(Ty),
-    Fun(Vec<Ty>, Ty),
+    Fun(Vec<Ty>, Ty, Label),
+    Ext(Vec<Ty>, Ty, Label),
 }
 
 impl Default for VarContext {
     fn default() -> Self {
         VarContext(vec![
             hashmap! {
-                store("print")     => Binding::Fun(vec![Ty::Str], Ty::Unit),
-                store("flush")     => Binding::Fun(vec![], Ty::Unit),
-                store("getchar")   => Binding::Fun(vec![], Ty::Str),
-                store("ord")       => Binding::Fun(vec![Ty::Str], Ty::Int),
-                store("chr")       => Binding::Fun(vec![Ty::Int], Ty::Str),
-                store("size")      => Binding::Fun(vec![Ty::Str], Ty::Int),
-                store("substring") => Binding::Fun(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str),
-                store("concat")    => Binding::Fun(vec![Ty::Str, Ty::Str], Ty::Str),
-                store("not")       => Binding::Fun(vec![Ty::Int], Ty::Int),
-                store("exit")      => Binding::Fun(vec![Ty::Int], Ty::Unit)
+                store("print")     => Binding::Ext(vec![Ty::Str], Ty::Unit, Label::from_fixed("print")),
+                store("flush")     => Binding::Ext(vec![], Ty::Unit, Label::from_fixed("flush")),
+                store("getchar")   => Binding::Ext(vec![], Ty::Str, Label::from_fixed("getchar")),
+                store("ord")       => Binding::Ext(vec![Ty::Str], Ty::Int, Label::from_fixed("ord")),
+                store("chr")       => Binding::Ext(vec![Ty::Int], Ty::Str, Label::from_fixed("chr")),
+                store("size")      => Binding::Ext(vec![Ty::Str], Ty::Int, Label::from_fixed("size")),
+                store("substring") => Binding::Ext(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str, Label::from_fixed("substring")),
+                store("concat")    => Binding::Ext(vec![Ty::Str, Ty::Str], Ty::Str, Label::from_fixed("concat")),
+                store("not")       => Binding::Ext(vec![Ty::Int], Ty::Int, Label::from_fixed("not")),
+                store("exit")      => Binding::Ext(vec![Ty::Int], Ty::Unit, Label::from_fixed("exit"))
             }
         ])
     }
@@ -52,20 +55,20 @@ impl VarContext {
     pub fn get_var(&self, span: &Span, name: &Symbol) -> Result<Ty, Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
-            | Some(Binding::Fun(_, _)) => return Err(Error::semantic(*span, TypeError::NotVar)),
             | Some(Binding::Var(ty))   => return Ok(ty.clone()),
+            | Some(_)                  => return Err(Error::semantic(*span, TypeError::NotVar)),
             | None                     => (),
             };
         }
         Err(Error::semantic(*span, TypeError::UnboundVar))
     }
 
-    pub fn get_fun(&self, span: &Span, name: &Symbol) -> Result<(Vec<Ty>, Ty), Error> {
+    pub fn get_fun(&self, span: &Span, name: &Symbol) -> Result<Binding, Error> {
         for env in self.0.iter().rev() {
             match env.get(name) {
-            | Some(Binding::Var(_))         => return Err(Error::semantic(*span, TypeError::NotFun)),
-            | Some(Binding::Fun(args, ret)) => return Ok((args.clone(), ret.clone())),
-            | None                          => (),
+            | Some(Binding::Var(_)) => return Err(Error::semantic(*span, TypeError::NotFun)),
+            | Some(binding)         => return Ok(binding),
+            | _                     => (),
             }
         }
         Err(Error::semantic(*span, TypeError::UnboundFun))

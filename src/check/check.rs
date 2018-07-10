@@ -4,36 +4,42 @@ use sym::Symbol;
 use uuid::Uuid;
 
 use ast::*;
+use ir;
 use ty::*;
+use operand::Label;
 use check::context::{Binding, VarContext, TypeContext};
+use translate::*;
 use error::{Error, TypeError};
 use span::{Span, IntoSpan};
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Typed {
-    ty: Ty,
-    _exp: (),
-}
-
-fn ok(ty: Ty) -> Result<Typed, Error> {
-    Ok(Typed { ty, _exp: () })
-}
+type Typed = (Ty, ir::Tree);
 
 fn error<T>(span: &Span, err: TypeError) -> Result<T, Error> {
     Err(Error::semantic(*span, err))
 }
 
 pub struct Checker {
-    loops: Vec<()>,
+    done: Vec<Unit>,
+    data: Vec<ir::Static>,
+    loops: Vec<Label>,
+    frames: Vec<Frame>,
     vc: VarContext,
     tc: TypeContext,
 }
 
 impl Checker {
 
-    pub fn check(ast: &Exp) -> Result<(), Error> {
+    pub fn check(ast: &Exp) -> Result<Vec<Unit>, Error> {
+        let main = Frame::new(
+            Label::from_fixed("main"),
+            Vec::new(),
+        );
+
         let mut checker = Checker {
+            done: Vec::new(),
+            data: Vec::new(),
             loops: Vec::new(),
+            frames: vec![main],
             vc: VarContext::default(),
             tc: TypeContext::default(),
         };
@@ -44,29 +50,31 @@ impl Checker {
 
     fn check_var(&mut self, var: &Var) -> Result<Typed, Error> {
 
-        macro_rules! is_int {
-            ($exp:expr) => { self.check_exp($exp)?.ty == Ty::Int }
-        }
-
         match var {
         | Var::Simple(name, span) => {
-            let ty = self.vc.get_var(span, name)?;
-            Ok(Typed { ty, _exp: () })
+
+            let var_ty = self.vc.get_var(span, name)?;
+            let exp = translate_simple_var(&self.frames, name);
+            Ok((var_ty, exp))
+
         },
         | Var::Field(rec, field, field_span, _) => {
 
+            let (rec_ty, rec_exp) = self.check_var(&*rec)?;
+
             // Must be bound to record type
-            match self.check_var(&*rec)?.ty {
+            match rec_ty {
             | Ty::Rec(fields, _) => {
 
                 // Find corresponding field
-                let ty = fields.iter()
-                    .find(|(name, _)| field == name)
-                    .map(|(_, ty)| self.tc.trace_full(field_span, ty));
+                let field = fields.iter()
+                    .enumerate()
+                    .find(|(i, (name, _))| field == name)
+                    .map(|(i, (_, ty))| (i, self.tc.trace_full(field_span, ty)));
 
                 // Check field type
-                match ty {
-                | Some(ty) => ok(ty?.clone()),
+                match field {
+                | Some((index, ty)) => Ok((ty?, translate_field_var(rec_exp, index))),
                 | None     => error(field_span, TypeError::UnboundField),
                 }
             },
@@ -75,15 +83,23 @@ impl Checker {
         },
         | Var::Index(arr, index, _) => {
 
+            let (index_ty, index_exp) = self.check_exp(index)?;
+
             // Index must be integer
-            if !is_int!(&*index) {
+            if !index_ty.is_int() {
                 return error(&index.into_span(), TypeError::IndexMismatch)
             }
 
+            let (arr_ty, arr_exp) = self.check_var(&*arr)?;
+
             // Get element type
-            match self.check_var(&*arr)?.ty {
-            | Ty::Arr(elem, _) => ok(*elem.clone()),
-            | _                => error(&arr.into_span(), TypeError::NotArr),
+            if let Ty::Arr(ele_ty, _) = arr_ty {
+                Ok((
+                    *ele_ty.clone(),
+                    translate_index_var(arr_exp, index_exp),
+                ))
+            } else {
+                error(&arr.into_span(), TypeError::NotArr)
             }
         },
         }
@@ -91,154 +107,188 @@ impl Checker {
 
     fn check_exp(&mut self, exp: &Exp) -> Result<Typed, Error> {
 
-        macro_rules! is_int {
-            ($exp:expr) => { self.check_exp($exp)?.ty == Ty::Int }
-        }
-
-        macro_rules! is_unit {
-            ($exp:expr) => { self.check_exp($exp)?.ty == Ty::Unit }
-        }
-
         match exp {
-        | Exp::Nil(_)      => ok(Ty::Nil),
-        | Exp::Int(_, _)   => ok(Ty::Int),
-        | Exp::Str(_, _)   => ok(Ty::Str),
+        | Exp::Nil(_)      => Ok((Ty::Nil, translate_nil())),
+        | Exp::Int(n, _)   => Ok((Ty::Int, translate_int(*n))),
+        | Exp::Str(s, _)   => Ok((Ty::Str, translate_str(&mut self.data, s))),
         | Exp::Var(var, _) => self.check_var(var),
-        | Exp::Break(span) => if self.loops.is_empty() { return error(span, TypeError::Break) } else { ok(Ty::Unit) },
+        | Exp::Break(span) => {
+            if self.loops.is_empty() {
+                error(span, TypeError::Break)
+            } else {
+                Ok((Ty::Unit, translate_break(&self.loops)))
+            }
+        },
         | Exp::Call{name, name_span, args, span} => {
 
             // Get function header
-            let (args_ty, ret_ty) = self.vc.get_fun(name_span, name)?;
+            let binding = self.vc.get_fun(name_span, name)?;
+
+            let (arg_tys, ret_ty) = match binding {
+            | Binding::Fun(arg_tys, ret_ty, _)
+            | Binding::Ext(arg_tys, ret_ty, _) => (arg_tys, ret_ty),
+            | _                                => panic!("Internal error: not function"),
+            };
 
             // Check number of arguments
-            if args.len() != args_ty.len() {
+            if args.len() != arg_tys.len() {
                 return error(name_span, TypeError::CallCountMismatch)
             }
 
+            let mut arg_exps = Vec::new();
+
             // Check that each argument subtypes formal parameter type
-            for (arg, ty) in args.iter().zip(args_ty) {
-                if !self.check_exp(arg)?.ty.subtypes(&ty) { return error(&arg.into_span(), TypeError::CallTypeMismatch) }
+            for (arg, ty) in args.iter().zip(arg_tys) {
+
+                let (arg_ty, arg_exp) = self.check_exp(arg)?;
+
+                if !arg_ty.subtypes(&ty) {
+                    return error(&arg.into_span(), TypeError::CallTypeMismatch)
+                }
+
+                arg_exps.push(arg_exp);
             }
 
-            ok(ret_ty.clone())
+            Ok((ret_ty.clone(), translate_call(&binding, arg_exps)))
         },
-        | Exp::Neg(exp, span) => {
+        | Exp::Neg(neg, span) => {
+
+            let (neg_ty, neg_exp) = self.check_exp(neg)?;
 
             // Unary negation only works on integers
-            if !is_int!(&*exp) { return error(&exp.into_span(), TypeError::Neg) }
+            if !neg_ty.is_int() {
+                return error(&exp.into_span(), TypeError::Neg)
+            }
 
-            ok(Ty::Int)
-
+            Ok((Ty::Int, translate_neg(neg_exp)))
         },
         | Exp::Bin{lhs, op, op_span, rhs, span} => {
 
-            let lt = self.check_exp(lhs)?.ty;
-            let rt = self.check_exp(rhs)?.ty;
+            let (lhs_ty, lhs_exp) = self.check_exp(lhs)?;
+            let (rhs_ty, rhs_exp) = self.check_exp(rhs)?;
 
             // No binary operators work on unit
-            if lt == Ty::Unit {
+            if lhs_ty == Ty::Unit {
                 return error(&lhs.into_span(), TypeError::BinaryUnit)
-            } else if rt == Ty::Unit {
+            } else if rhs_ty == Ty::Unit {
                 return error(&rhs.into_span(), TypeError::BinaryUnit)
             }
 
             // Equality checking is valid for any L<>R, L=R where R: L
-            if op.is_equality() && (lt.subtypes(&rt) || rt.subtypes(&lt)) {
-                return if lt == Ty::Nil && rt == Ty::Nil {
+            if op.is_equality() && (lhs_ty.subtypes(&rhs_ty) || rhs_ty.subtypes(&lhs_ty)) {
+                return if lhs_ty == Ty::Nil && rhs_ty == Ty::Nil {
                     error(span, TypeError::BinaryNil)
                 } else {
-                    ok(Ty::Int)
+                    Ok((Ty::Int, translate_bin(lhs_exp, *op, rhs_exp)))
                 }
             }
 
             // Comparisons are valid for
             // - Str and Str
             // - Int and Int
-            if op.is_comparison() && (lt == Ty::Int || lt == Ty::Str) && lt == rt {
-                return ok(Ty::Int)
+            if op.is_comparison() && (lhs_ty == Ty::Int || lhs_ty == Ty::Str) && lhs_ty == rhs_ty {
+                return Ok((Ty::Int, translate_bin(lhs_exp, *op, rhs_exp)))
             }
 
             // Arithmetic is valid for
             // - Int and Int
-            if lt == Ty::Int && rt == Ty::Int {
-                return ok(Ty::Int)
+            if lhs_ty == Ty::Int && rhs_ty == Ty::Int {
+                return Ok((Ty::Int, translate_bin(lhs_exp, *op, rhs_exp)))
             }
 
             error(op_span, TypeError::BinaryMismatch)
         },
         | Exp::Rec{name, name_span, fields, span} => {
 
-            match self.tc.get_full(name_span, name)? {
-            | Ty::Rec(fields_ty, _) => {
+            let rec_ty = self.tc.get_full(name_span, name)?;
 
-                if fields.len() != fields_ty.len() {
+            match rec_ty {
+            | Ty::Rec(field_tys, _) => {
+
+                if fields.len() != field_tys.len() {
                     return error(span, TypeError::FieldCountMismatch)
                 }
 
                 // Make sure all record fields are fully resolved
-                let fields_ty = fields_ty.iter()
+                let field_tys = field_tys.iter()
                     .map(|(name, ty)| (name, self.tc.trace_full(span, ty)))
                     .collect::<Vec<_>>();
 
-                // Check all field name - value pairs
-                for (field, (field_name, field_ty)) in fields.iter().zip(fields_ty) {
+                let mut field_exps = Vec::new();
 
-                    let exp_ty = self.check_exp(&*field.exp)?.ty;
+                // Check all field name - value pairs
+                for (field, (field_name, field_ty)) in fields.iter().zip(field_tys) {
+
+                    let (field_exp_ty, field_exp) = self.check_exp(&*field.exp)?;
 
                     if &field.name != field_name {
                         return error(&field.name_span, TypeError::FieldNameMismatch)
                     }
 
-                    if !exp_ty.subtypes(&field_ty?) {
+                    if !field_exp_ty.subtypes(&field_ty?) {
                         return error(&field.exp.into_span(), TypeError::FieldTypeMismatch)
                     }
+
+                    field_exps.push(field_exp);
                 }
 
-                ok(self.tc.get_full(name_span, name)?)
+                Ok((rec_ty, translate_rec(field_exps)))
             },
             | _ => error(name_span, TypeError::NotRecord),
             }
         },
-        | Exp::Seq(exps, _) => {
+        | Exp::Seq(statements, _) => {
 
             // Empty sequence is just unit
-            if exps.len() == 0 { return ok(Ty::Unit) }
+            if statements.len() == 0 { return Ok((Ty::Unit, translate_nil())) }
+
+            let mut statement_exps = Vec::new();
 
             // Check intermediate expressions
-            for i in 0..exps.len() - 1 { self.check_exp(&exps[i])?; }
+            for i in 0..statements.len() - 1 {
+                let (_, statement_exp) = self.check_exp(&statements[i])?;
+                statement_exps.push(statement_exp);
+            }
 
             // Result is type of last exp
-            self.check_exp(&exps.last().unwrap())
+            let (result_ty, result_exp) = self.check_exp(&statements.last().unwrap())?;
+
+            statement_exps.push(result_exp);
+
+            Ok((result_ty, translate_seq(statement_exps)))
+
         },
         | Exp::Ass{name, exp, ..} => {
 
-            let var = self.check_var(name)?;
+            let (lhs_ty, lhs_exp) = self.check_var(name)?;
+            let (rhs_ty, rhs_exp) = self.check_exp(exp)?;
 
-            if !self.check_exp(exp)?.ty.subtypes(&var.ty) {
+            if !rhs_ty.subtypes(&lhs_ty) {
                 return error(&exp.into_span(), TypeError::VarMismatch)
             }
 
-            ok(Ty::Unit)
+            Ok((Ty::Unit, translate_ass(lhs_exp, rhs_exp)))
         },
         | Exp::If{guard, then, or, span} => {
 
+            let (guard_ty, guard_exp) = self.check_exp(guard)?;
+            let (then_ty, then_exp) = self.check_exp(then)?;
+
             // Guard must be boolean
-            if !is_int!(&*guard) {
+            if !guard_ty.is_int() {
                 return error(&guard.into_span(), TypeError::GuardMismatch)
             }
-
-            // Check type of if branch
-            let then_ty = self.check_exp(&*then)?.ty;
 
             if let Some(exp) = or {
 
                 // For if-else, both branches must return the same type
-                let or_ty = self.check_exp(&*exp)?.ty;
+                let (or_ty, or_exp) = self.check_exp(&*exp)?;
+
                 if !then_ty.subtypes(&or_ty) && !or_ty.subtypes(&then_ty) {
                     return error(&exp.into_span(), TypeError::BranchMismatch)
                 }
 
-                ok(then_ty.clone())
+                Ok((then_ty, translate_if(guard_exp, then_exp, Some(or_exp))))
 
             } else {
 
@@ -247,61 +297,83 @@ impl Checker {
                     return error(&then.into_span(), TypeError::UnusedBranch)
                 }
 
-                ok(Ty::Unit)
+                Ok((Ty::Unit, translate_if(guard_exp, then_exp, None)))
             }
         },
         | Exp::While{guard, body, ..} => {
 
+            let (guard_ty, guard_exp) = self.check_exp(guard)?;
+
             // Guard must be boolean
-            if !is_int!(&*guard) {
+            if !guard_ty.is_int() {
                 return error(&guard.into_span(), TypeError::GuardMismatch)
             }
 
             // Enter loop body
-            self.loops.push(());
+            let s_label = Label::from_str("START_WHILE");
+            self.loops.push(s_label);
+            let (body_ty, body_exp) = self.check_exp(body)?;
+            self.loops.pop().expect("Internal error: missing loop");
 
             // Body must be unit
-            if !is_unit!(&*body) {
+            if !body_ty.is_unit() {
                 return error(&body.into_span(), TypeError::UnusedWhileBody)
             }
 
-            ok(Ty::Unit)
+            Ok((Ty::Unit, translate_while(s_label, guard_exp, body_exp)))
         },
-        | Exp::For{name, lo, hi, body, ..} => {
+        | Exp::For{name, escape, lo, hi, body, ..} => {
 
-            if !is_int!(&*lo) {
+            let (lo_ty, lo_exp) = self.check_exp(lo)?;
+            let (hi_ty, hi_exp) = self.check_exp(hi)?;
+
+            if !lo_ty.is_int() {
                 return error(&lo.into_span(), TypeError::ForBound)
             }
 
-            if !is_int!(&*hi) {
+            if !hi_ty.is_int() {
                 return error(&hi.into_span(), TypeError::ForBound)
             }
 
             // Enter loop body with new environment and binding
+            let s_label = Label::from_str("START_FOR");
             self.vc.push();
             self.vc.insert(*name, Binding::Var(Ty::Int));
-            self.loops.push(());
+            self.loops.push(s_label);
 
             // Check body with updated VarContext
-            if self.check_exp(&*body)?.ty != Ty::Unit {
+            let (body_ty, body_exp) = self.check_exp(&*body)?;
+
+            if !body_ty.is_unit() {
                 return error(&body.into_span(), TypeError::UnusedForBody)
             }
 
             // Pop environment
             self.vc.pop();
-            ok(Ty::Unit)
+            self.loops.pop().expect("Internal error: missing loop");
+
+            Ok((Ty::Unit, translate_for(&mut self.frames, s_label, name, *escape, lo_exp, hi_exp, body_exp)))
         },
         | Exp::Let{decs, body, ..} => {
 
             // Enter let body with new environment and binding
-            self.vc.push();  
+            self.vc.push();
             self.tc.push();
-            for dec in decs { self.check_dec(&*dec)?; }
-            let body = self.check_exp(&*body);
+
+            let mut dec_exps = Vec::new();
+
+            for dec in decs {
+                if let Some(dec_exp) = self.check_dec(&*dec)? {
+                    dec_exps.push(dec_exp);
+                }
+            }
+
+            let (body_ty, body_exp) = self.check_exp(&*body)?;
+
             self.vc.pop();
             self.tc.pop();
 
-            body
+            Ok((body_ty, translate_let(dec_exps, body_exp)))
         },
         | Exp::Arr{name, name_span, size, init, ..} => {
 
@@ -311,17 +383,21 @@ impl Checker {
             | _                => return error(name_span, TypeError::NotArr),
             };
 
+            let (size_ty, size_exp) = self.check_exp(&*size)?;
+
             // Size must be integer
-            if !is_int!(&*size) {
+            if !size_ty.is_int() {
                 return error(&size.into_span(), TypeError::ForBound)
             }
 
+            let (init_ty, init_exp) = self.check_exp(&*init)?;
+
             // Initialization expression must subtype element type
-            if !self.check_exp(&*init)?.ty.subtypes(&elem) {
+            if init_ty.subtypes(&elem) {
                 return error(&init.into_span(), TypeError::ArrMismatch)
             }
 
-            ok(self.tc.get_full(name_span, name)?)
+            Ok((self.tc.get_full(name_span, name)?, translate_arr(size_exp, init_exp)))
         },
         }
     }
@@ -335,7 +411,7 @@ impl Checker {
         Ok(())
     }
 
-    fn check_dec(&mut self, dec: &Dec) -> Result<(), Error> {
+    fn check_dec(&mut self, dec: &Dec) -> Result<Option<ir::Tree>, Error> {
         match dec {
         | Dec::Fun(funs, _) => {
 

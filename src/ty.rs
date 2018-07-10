@@ -21,6 +21,14 @@ impl Ty {
         | _                        => self == rhs,
         }
     }
+
+    pub fn is_int(&self) -> bool {
+        self == Ty::Int
+    }
+
+    pub fn is_unit(&self) -> bool {
+        self == Ty::Unit
+    }
 }
 
 impl PartialEq for Ty {

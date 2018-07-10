@@ -1,9 +1,8 @@
 use fnv::FnvHashMap;
-use sym::{store, Symbol};
+use sym::Symbol;
 
 use ir;
 use config::WORD_SIZE;
-use check::Context;
 use operand::{Label, Temp, Reg};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -135,59 +134,5 @@ impl Frame {
                 )
             )
         }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub enum Call {
-    Extern(Label),
-    Function(Label),
-}
-
-#[derive(Debug)]
-pub struct FnContext(Context<Call>);
-
-impl FnContext {
-
-    pub fn insert(&mut self, name: Symbol) -> Label {
-        let label = Label::from_symbol(name);
-        self.0.last_mut().unwrap().insert(name, Call::Function(label));
-        label
-    }
-
-    pub fn push(&mut self) {
-        self.0.push(FnvHashMap::default());
-    }
-
-    pub fn pop(&mut self) {
-        self.0.pop().expect("Internal error: no function context");
-    }
-
-    pub fn get(&self, name: &Symbol) -> Call {
-        for env in self.0.iter().rev() {
-            if let Some(label) = env.get(name) { return *label }
-        }
-        panic!("Internal error: missing function label")
-    }
-}
-
-impl Default for FnContext {
-    fn default() -> Self {
-        FnContext(vec![
-            hashmap!{
-                store("print")      => Call::Extern(Label::from_fixed("print")),
-                store("flush")      => Call::Extern(Label::from_fixed("flush")),
-                store("getchar")    => Call::Extern(Label::from_fixed("getchar")),
-                store("ord")        => Call::Extern(Label::from_fixed("ord")),
-                store("chr")        => Call::Extern(Label::from_fixed("chr")),
-                store("size")       => Call::Extern(Label::from_fixed("size")),
-                store("substring")  => Call::Extern(Label::from_fixed("substring")),
-                store("concat")     => Call::Extern(Label::from_fixed("concat")),
-                store("not")        => Call::Extern(Label::from_fixed("not")),
-                store("exit")       => Call::Extern(Label::from_fixed("exit")),
-                store("malloc")     => Call::Extern(Label::from_fixed("malloc")),
-                store("init_array") => Call::Extern(Label::from_fixed("init_array"))
-            }
-        ])
     }
 }
