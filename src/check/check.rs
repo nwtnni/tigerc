@@ -395,13 +395,13 @@ impl Checker {
 
             // Size must be integer
             if !size_ty.is_int() {
-                return error(&size.into_span(), TypeError::ForBound)
+                return error(&size.into_span(), TypeError::ArrSize)
             }
 
             let (init_ty, init_exp) = self.check_exp(&*init)?;
 
             // Initialization expression must subtype element type
-            if init_ty.subtypes(&elem) {
+            if !init_ty.subtypes(&elem) {
                 return error(&init.into_span(), TypeError::ArrMismatch)
             }
 

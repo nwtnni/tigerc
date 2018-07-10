@@ -140,6 +140,7 @@ pub enum TypeError {
     UnboundArr,
     NotArr,
     ArrMismatch,
+    ArrSize,
 
     UnboundType,
 
@@ -210,6 +211,7 @@ impl <'a> Into<String> for &'a TypeError {
         | TypeError::UnboundArr         => "Could not find array.".to_string(),
         | TypeError::NotArr             => "Not an array.".to_string(),
         | TypeError::ArrMismatch        => "Array initializer doesn't match array type.".to_string(),
+        | TypeError::ArrSize            => "Array size must be integer.".to_string(),
         | TypeError::UnboundType        => "Could not find type.".to_string(),
         | TypeError::UnboundField       => "Unbound record field.".to_string(),
         | TypeError::IndexMismatch      => "Array indices must be integers.".to_string(),
