@@ -344,10 +344,12 @@ impl Checker {
             }
 
             // Enter loop body with new environment and binding
-            let s_label = Label::from_str("START_FOR");
+            let label = Label::from_str("START_FOR");
+            let index_exp = translate_for_index(&mut self.frames, *name, *escape);
+
             self.vc.push();
             self.vc.insert(*name, Binding::Var(Ty::Int));
-            self.loops.push(s_label);
+            self.loops.push(label);
 
             // Check body with updated VarContext
             let (body_ty, body_exp) = self.check_exp(&*body)?;
@@ -360,7 +362,7 @@ impl Checker {
             self.vc.pop();
             self.loops.pop().expect("Internal error: missing loop");
 
-            Ok((Ty::Unit, translate_for(&mut self.frames, s_label, name, *escape, lo_exp, hi_exp, body_exp)))
+            Ok((Ty::Unit, translate_for(label, index_exp, lo_exp, hi_exp, body_exp)))
         },
         | Exp::Let{decs, body, ..} => {
 
@@ -432,7 +434,7 @@ impl Checker {
             for fun in funs {
 
                 let label = Label::from_symbol(fun.name);
-                labels.insert(fun.name, label); 
+                labels.insert(fun.name, label);
                 let mut args = Vec::new();
 
                 // Get formal parameter types

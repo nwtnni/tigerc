@@ -35,6 +35,7 @@ pub fn translate_simple_var(frames: &[Frame], name: &Symbol) -> ir::Tree {
 
     // Follow static links
     frames.iter()
+        .rev()
         .fold_while(rbp, |acc, frame| {
             if frame.contains(*name) {
                 Done(frame.get(*name, acc))
@@ -370,20 +371,22 @@ pub fn translate_while(s_label: Label, guard_exp: ir::Tree, body_exp: ir::Tree) 
     ]).into()
 }
 
+pub fn translate_for_index(frames: &mut [Frame], name: Symbol, escape: bool) -> ir::Tree {
+    frames.last_mut()
+        .expect("Internal error: missing frame")
+        .allocate(name, escape)
+        .into()
+}
+
 pub fn translate_for(
-    frames: &mut [Frame],
     s_label: Label,
-    name: &Symbol,
-    escape: bool,
+    index_exp: ir::Tree,
     lo_exp: ir::Tree,
     hi_exp: ir::Tree,
     body_exp: ir::Tree
 ) -> ir::Tree {
 
-    let index_location = frames.last_mut()
-        .expect("Internal error: missing frame")
-        .allocate(*name, escape);
-
+    let index_exp: ir::Exp = index_exp.into();
     let t_label = Label::from_str("TRUE_BRANCH");
     let e_label = Label::from_str("EXIT_FOR");
 
@@ -392,7 +395,7 @@ pub fn translate_for(
         // Initialize index variable
         ir::Stm::Move(
             lo_exp.into(),
-            index_location.clone(),
+            index_exp.clone(),
         ),
 
         // Invariant: all labels must be proceeded by a jump
@@ -404,7 +407,7 @@ pub fn translate_for(
         // Loop header
         ir::Stm::Label(s_label),
         ir::Stm::CJump(
-            index_location.clone(),
+            index_exp.clone(),
             ir::Relop::Gt,
             hi_exp.into(),
             e_label,
@@ -416,11 +419,11 @@ pub fn translate_for(
         body_exp.into(),
         ir::Stm::Move(
             ir::Exp::Binop(
-                Box::new(index_location.clone()),
+                Box::new(index_exp.clone()),
                 ir::Binop::Add,
                 Box::new(ir::Exp::Const(1)),
             ),
-            index_location,
+            index_exp,
         ),
         ir::Stm::Jump(
             ir::Exp::Name(s_label),
