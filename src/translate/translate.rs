@@ -7,16 +7,24 @@ use ir;
 
 use config::WORD_SIZE;
 use operand::{Label, Temp, Reg};
-use check::context::{Binding, VarContext};
-use translate::Frame;
-use ty::Ty;
+use check::context::Binding;
+use translate::{Frame, Unit};
 
-pub struct Unit {
-    label: Label,
-    prologue: Vec<ir::Stm>,
-    body: Vec<ir::Stm>,
-    epilogue: Vec<ir::Stm>,
-    size: usize,
+pub fn translate_fun_dec(frame: Frame, body_exp: ir::Tree) -> Unit {
+    frame.wrap(body_exp)
+}
+
+pub fn translate_var_dec(frames: &mut [Frame], name: Symbol, escape: bool, init_exp: ir::Tree) -> ir::Tree {
+
+    let name_exp = frames.last_mut()
+        .expect("Internal error: missing frame")
+        .allocate(name, escape);
+
+    ir::Stm::Move(
+        init_exp.into(),
+        name_exp.into(),
+    ).into()
+
 }
 
 pub fn translate_simple_var(frames: &[Frame], name: &Symbol) -> ir::Tree {
@@ -121,6 +129,7 @@ pub fn translate_call(binding: &Binding, arg_exps: Vec<ir::Tree>) -> ir::Tree {
         arg_exps.insert(0, ir::Exp::Temp(Temp::from_reg(Reg::RBP)).into());
         label
     },
+    | _ => panic!("Internal error: call of non-function"),
     };
 
     // Call function
@@ -132,22 +141,25 @@ pub fn translate_call(binding: &Binding, arg_exps: Vec<ir::Tree>) -> ir::Tree {
 
 pub fn translate_neg(neg: ir::Tree) -> ir::Tree {
 
-        // Subtract sub-expression from 0
-        ir::Exp::Binop(
-            Box::new(ir::Exp::Const(0)),
-            ir::Binop::Sub,
-            Box::new(neg.into()),
-        ).into()
+    // Subtract sub-expression from 0
+    ir::Exp::Binop(
+        Box::new(ir::Exp::Const(0)),
+        ir::Binop::Sub,
+        Box::new(neg.into()),
+    ).into()
 }
 
 pub fn translate_bin(lhs_exp: ir::Tree, op: Binop, rhs_exp: ir::Tree) -> ir::Tree {
 
+    let lhs_exp = lhs_exp.into();
+    let rhs_exp = rhs_exp.into();
+
     // Straightforward arithmetic operation
     if let Some(binop) = translate_binop(&op) {
         ir::Exp::Binop(
-            Box::new(lhs_exp.into()),
+            Box::new(lhs_exp),
             binop,
-            Box::new(rhs_exp.into()),
+            Box::new(rhs_exp),
         ).into()
     }
 
@@ -155,7 +167,7 @@ pub fn translate_bin(lhs_exp: ir::Tree, op: Binop, rhs_exp: ir::Tree) -> ir::Tre
     else if let Some(relop) = translate_relop(&op) {
         ir::Tree::Cx(
             Box::new(move |t, f| {
-                ir::Stm::CJump(lhs_exp.into(), relop, rhs_exp.into(), t, f)
+                ir::Stm::CJump(lhs_exp.clone(), relop, rhs_exp.clone(), t, f)
             })
         )
     }
@@ -214,7 +226,7 @@ pub fn translate_rec(fields_exp: Vec<ir::Tree>) -> ir::Tree {
     ).into()
 }
 
-pub fn translate_seq(seq_exps: Vec<ir::Tree>) -> ir::Tree {
+pub fn translate_seq(mut seq_exps: Vec<ir::Tree>) -> ir::Tree {
 
     // Unit is a no-op
     if seq_exps.is_empty() {
@@ -422,7 +434,7 @@ pub fn translate_for(
 }
 
 pub fn translate_let(dec_exps: Vec<ir::Tree>, body_exp: ir::Tree) -> ir::Tree {
-    
+
     let dec_stms = dec_exps.into_iter()
         .map(|exp| exp.into())
         .collect::<Vec<_>>();
@@ -471,7 +483,7 @@ fn translate_relop(op: &Binop) -> Option<ir::Relop> {
     }
 }
 
-pub fn translate_fun_dec(frames: &mut [Frame], label: Label, args: &[FieldDec], body_exp: ir::Tree) -> Option<ir::Tree> {
+pub fn translate_frame(label: &Label, args: &[FieldDec]) -> Frame {
 
     // Set up static link as first argument
     let mut all_args = vec![
@@ -484,25 +496,6 @@ pub fn translate_fun_dec(frames: &mut [Frame], label: Label, args: &[FieldDec], 
     );
 
     // Create new frame
-    let frame = Frame::new(label, all_args);
-
-    // Push finished function to done pile
-    self.done.push(frame.wrap(body_exp));
+    Frame::new(*label, all_args)
 
 }
-//     | Dec::Var{name, escape, init, ..} => {
-
-//         let init_exp = self.translate_exp(init);
-//         let name_exp = self.frames.last_mut()
-//             .expect("Internal error: missing frame")
-//             .allocate(*name, *escape);
-
-//         Some(
-//             ir::Stm::Move(
-//                 init_exp.into(),
-//                 name_exp.into(),
-//             ).into()
-//         )
-//     }
-//     }
-// }

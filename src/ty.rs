@@ -23,11 +23,11 @@ impl Ty {
     }
 
     pub fn is_int(&self) -> bool {
-        self == Ty::Int
+        *self == Ty::Int
     }
 
     pub fn is_unit(&self) -> bool {
-        self == Ty::Unit
+        *self == Ty::Unit
     }
 }
 

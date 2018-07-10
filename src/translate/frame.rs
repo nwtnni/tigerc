@@ -32,10 +32,18 @@ impl Access {
 }
 
 #[derive(Debug)]
+pub struct Unit {
+    label: Label,
+    prologue: Vec<ir::Stm>,
+    body: ir::Stm,
+    epilogue: Vec<ir::Stm>,
+    size: usize,
+}
+
+#[derive(Debug)]
 pub struct Frame {
     label: Label,
     prologue: Vec<ir::Stm>,
-    body: Option<ir::Stm>,
     epilogue: Vec<ir::Stm>,
     map: FnvHashMap<Symbol, Access>,
     offset: i32,
@@ -67,7 +75,6 @@ impl Frame {
         Frame {
             label,
             prologue,
-            body: None,
             epilogue: Vec::new(),
             map,
             offset,
@@ -103,9 +110,14 @@ impl Frame {
         self.map[&name].from_base(base)
     }
 
-    pub fn wrap(mut self, body: ir::Tree) -> Self {
-        self.body = Some(body.into());
-        self
+    pub fn wrap(mut self, body: ir::Tree) -> Unit {
+        Unit {
+            label: self.label,
+            prologue: self.prologue,
+            body: body.into(),
+            epilogue: self.epilogue,
+            size: self.size,
+        }
     }
 
     fn get_argument(i: usize) -> ir::Exp {

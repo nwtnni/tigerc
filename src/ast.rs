@@ -160,7 +160,7 @@ pub enum Exp {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Binop {
     Add,
     Sub,

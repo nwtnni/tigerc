@@ -17,7 +17,7 @@ use tigerc::parse::Parser;
 use tigerc::lex::TokenStream;
 use tigerc::error::Error;
 use tigerc::check::Checker;
-use tigerc::translate::{Frame, Translator};
+use tigerc::translate::{Frame, Unit};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tigerc")]
@@ -94,7 +94,7 @@ impl Compiler {
         parsed
     }
 
-    fn type_check(diagnostic: bool, ast: &Exp, path: &PathBuf, code: &CodeMap) -> Result<(), Error> {
+    fn type_check(diagnostic: bool, ast: &Exp, path: &PathBuf, code: &CodeMap) -> Result<Vec<Unit>, Error> {
 
         let checked = Checker::check(ast);
 
@@ -107,21 +107,22 @@ impl Compiler {
             | Err(err) => write!(outfile, "{}", err.to_debug(code)).unwrap(),
             };
         }
+
         checked
     }
 
-    fn translate(ast: &Exp) -> Vec<Frame> {
-        let frames = Translator::translate(ast).1;
-        println!("{:?}", frames);
-        frames
+    fn translate(units: Vec<Unit>) {
+        for unit in units {
+            println!("{:?}", unit);
+        }
     }
 
     fn run_once(&mut self, path: &PathBuf) -> Result<(), Error> {
         let source = self.code.add_filemap_from_disk(&path).unwrap();
         let lexer = Self::lex(self.opts.lex, &*source, path, &self.code)?;
         let ast = Self::parse(self.opts.parse, lexer, path, &self.code)?;
-        let _ = Self::type_check(self.opts.type_check, &ast, path, &self.code)?;
-        let _ = Self::translate(&ast);
+        let ir = Self::type_check(self.opts.type_check, &ast, path, &self.code)?;
+        let _ = Self::translate(ir);
         Ok(())
     }
 

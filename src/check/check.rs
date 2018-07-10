@@ -1,4 +1,4 @@
-use fnv::FnvHashSet;
+use fnv::{FnvHashSet, FnvHashMap};
 
 use sym::Symbol;
 use uuid::Uuid;
@@ -44,8 +44,14 @@ impl Checker {
             tc: TypeContext::default(),
         };
 
-        let _ = checker.check_exp(ast)?;
-        Ok(())
+        let (_, main_exp) = checker.check_exp(ast)?;
+        let main_frame = checker.frames.pop()
+            .expect("Internal error: missing frame");
+
+        let main_unit = main_frame.wrap(main_exp);
+        checker.done.push(main_unit);
+
+        Ok(checker.done)
     }
 
     fn check_var(&mut self, var: &Var) -> Result<Typed, Error> {
@@ -124,7 +130,7 @@ impl Checker {
             // Get function header
             let binding = self.vc.get_fun(name_span, name)?;
 
-            let (arg_tys, ret_ty) = match binding {
+            let (arg_tys, ret_ty) = match &binding {
             | Binding::Fun(arg_tys, ret_ty, _)
             | Binding::Ext(arg_tys, ret_ty, _) => (arg_tys, ret_ty),
             | _                                => panic!("Internal error: not function"),
@@ -202,7 +208,7 @@ impl Checker {
 
             let rec_ty = self.tc.get_full(name_span, name)?;
 
-            match rec_ty {
+            let field_exps = match &rec_ty {
             | Ty::Rec(field_tys, _) => {
 
                 if fields.len() != field_tys.len() {
@@ -232,10 +238,12 @@ impl Checker {
                     field_exps.push(field_exp);
                 }
 
-                Ok((rec_ty, translate_rec(field_exps)))
+                field_exps
             },
-            | _ => error(name_span, TypeError::NotRecord),
-            }
+            | _ => return error(name_span, TypeError::NotRecord),
+            };
+
+            Ok((rec_ty, translate_rec(field_exps)))
         },
         | Exp::Seq(statements, _) => {
 
@@ -418,9 +426,13 @@ impl Checker {
             // Make sure all top-level names are unique
             Self::check_unique(funs.iter().map(|fun| (fun.name, fun.name_span)))?;
 
+            let mut labels = FnvHashMap::default();
+
             // Initialize top-level bindings
             for fun in funs {
 
+                let label = Label::from_symbol(fun.name);
+                labels.insert(fun.name, label); 
                 let mut args = Vec::new();
 
                 // Get formal parameter types
@@ -435,13 +447,19 @@ impl Checker {
                 };
 
                 // Update environment with function header
-                self.vc.insert(fun.name, Binding::Fun(args, ret));
+                self.vc.insert(fun.name, Binding::Fun(args, ret, label));
             }
 
             // Evaluate bodies with all function headers
             for fun in funs {
 
+                let label = labels.get(&fun.name)
+                    .expect("Internal error: missing label");
+
                 self.vc.push();
+                self.frames.push(
+                    translate_frame(label, &fun.args)
+                );
 
                 // Add parameter bindings to body context
                 for arg in &fun.args {
@@ -449,10 +467,13 @@ impl Checker {
                     self.vc.insert(arg.name, Binding::Var(arg_ty));
                 }
 
+
                 // Evaluate body with updated context
-                let body_ty = self.check_exp(&fun.body)?.ty;
+                let (body_ty, body_exp) = self.check_exp(&fun.body)?;
 
                 self.vc.pop();
+                let frame = self.frames.pop()
+                    .expect("Internal error: missing frame");
 
                 // Get return type
                 let ret_ty = match &fun.rets {
@@ -464,14 +485,16 @@ impl Checker {
                 if !body_ty.subtypes(&ret_ty) {
                     return error(&fun.body.into_span(), TypeError::ReturnMismatch)
                 }
+
+                self.done.push(translate_fun_dec(frame, body_exp));
             }
 
-            Ok(())
+            Ok(None)
         },
-        | Dec::Var{name, name_span, ty, ty_span, init, span, ..} => {
+        | Dec::Var{name, name_span, escape, ty, ty_span, init, span} => {
 
             // Initialization expression type
-            let init_ty = self.check_exp(&init)?.ty;
+            let (init_ty, init_exp) = self.check_exp(&init)?;
 
             // Can't assign nil without type annotation
             if init_ty == Ty::Nil && ty.is_none() {
@@ -493,7 +516,7 @@ impl Checker {
             },
             };
 
-            Ok(())
+            Ok(Some(translate_var_dec(&mut self.frames, *name, *escape, init_exp)))
         },
         | Dec::Type(decs, span) => {
 
@@ -511,7 +534,7 @@ impl Checker {
                 self.tc.insert(dec.name, Ty::Name(dec.name, Some(Box::new(ty))));
             }
 
-            Ok(())
+            Ok(None)
         },
         }
     }

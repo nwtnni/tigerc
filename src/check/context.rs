@@ -67,7 +67,7 @@ impl VarContext {
         for env in self.0.iter().rev() {
             match env.get(name) {
             | Some(Binding::Var(_)) => return Err(Error::semantic(*span, TypeError::NotFun)),
-            | Some(binding)         => return Ok(binding),
+            | Some(binding)         => return Ok(binding.clone()),
             | _                     => (),
             }
         }
