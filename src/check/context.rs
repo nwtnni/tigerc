@@ -1,7 +1,6 @@
 use fnv::FnvHashMap;
 use sym::{store, Symbol};
 
-use ir;
 use ty::Ty;
 use operand::Label;
 use error::{Error, TypeError};

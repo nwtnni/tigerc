@@ -74,7 +74,7 @@ impl Checker {
                 // Find corresponding field
                 let field = fields.iter()
                     .enumerate()
-                    .find(|(i, (name, _))| field == name)
+                    .find(|(_, (name, _))| field == name)
                     .map(|(i, (_, ty))| (i, self.tc.trace_full(field_span, ty)));
 
                 // Check field type
@@ -124,7 +124,7 @@ impl Checker {
                 Ok((Ty::Unit, translate_break(&self.loops)))
             }
         },
-        | Exp::Call{name, name_span, args, span} => {
+        | Exp::Call{name, name_span, args, ..} => {
 
             // Get function header
             let binding = self.vc.get_fun(name_span, name)?;
@@ -162,7 +162,7 @@ impl Checker {
 
             // Unary negation only works on integers
             if !neg_ty.is_int() {
-                return error(&exp.into_span(), TypeError::Neg)
+                return error(span, TypeError::Neg)
             }
 
             Ok((Ty::Int, translate_neg(neg_exp)))
@@ -276,7 +276,7 @@ impl Checker {
 
             Ok((Ty::Unit, translate_ass(lhs_exp, rhs_exp)))
         },
-        | Exp::If{guard, then, or, span} => {
+        | Exp::If{guard, then, or, ..} => {
 
             let (guard_ty, guard_exp) = self.check_exp(guard)?;
             let (then_ty, then_exp) = self.check_exp(then)?;
@@ -492,7 +492,7 @@ impl Checker {
 
             Ok(None)
         },
-        | Dec::Var{name, name_span, escape, ty, ty_span, init, span} => {
+        | Dec::Var{name, name_span, escape, ty, ty_span, init, ..} => {
 
             // Initialization expression type
             let (init_ty, init_exp) = self.check_exp(&init)?;
@@ -519,7 +519,7 @@ impl Checker {
 
             Ok(Some(translate_var_dec(&mut self.frames, *name, *escape, init_exp)))
         },
-        | Dec::Type(decs, span) => {
+        | Dec::Type(decs, _) => {
 
             // Make sure all top-level names are unique
             Self::check_unique(decs.iter().map(|dec| (dec.name, dec.name_span)))?;
@@ -544,7 +544,7 @@ impl Checker {
 
         match ty {
         | Type::Name(name, span) => self.tc.get_partial(span, name),
-        | Type::Arr(name, name_span, span) => {
+        | Type::Arr(name, name_span, _) => {
 
             // Look up array element type
             let elem_ty = Box::new(self.tc.get_partial(name_span, name)?);

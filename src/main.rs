@@ -17,7 +17,7 @@ use tigerc::parse::Parser;
 use tigerc::lex::TokenStream;
 use tigerc::error::Error;
 use tigerc::check::Checker;
-use tigerc::translate::{Frame, Unit};
+use tigerc::translate::Unit;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tigerc")]

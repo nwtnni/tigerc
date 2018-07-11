@@ -110,7 +110,7 @@ impl Frame {
         self.map[&name].from_base(base)
     }
 
-    pub fn wrap(mut self, body: ir::Tree) -> Unit {
+    pub fn wrap(self, body: ir::Tree) -> Unit {
         Unit {
             label: self.label,
             prologue: self.prologue,

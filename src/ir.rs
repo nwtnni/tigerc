@@ -1,7 +1,5 @@
 use std::fmt;
 
-use sym::{store, Symbol};
-
 use operand::{Label, Temp};
 
 generate_counter!(StaticID, usize);
