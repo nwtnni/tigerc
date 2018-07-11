@@ -94,7 +94,7 @@ impl Compiler {
         parsed
     }
 
-    fn type_check(diagnostic: bool, ast: &Exp, path: &PathBuf, code: &CodeMap) -> Result<Vec<Unit>, Error> {
+    fn type_check(diagnostic: bool, ast: &mut Exp, path: &PathBuf, code: &CodeMap) -> Result<Vec<Unit>, Error> {
 
         let checked = Checker::check(ast);
 
@@ -120,8 +120,8 @@ impl Compiler {
     fn run_once(&mut self, path: &PathBuf) -> Result<(), Error> {
         let source = self.code.add_filemap_from_disk(&path).unwrap();
         let lexer = Self::lex(self.opts.lex, &*source, path, &self.code)?;
-        let ast = Self::parse(self.opts.parse, lexer, path, &self.code)?;
-        let ir = Self::type_check(self.opts.type_check, &ast, path, &self.code)?;
+        let mut ast = Self::parse(self.opts.parse, lexer, path, &self.code)?;
+        let ir = Self::type_check(self.opts.type_check, &mut ast, path, &self.code)?;
         let _ = Self::translate(ir);
         Ok(())
     }

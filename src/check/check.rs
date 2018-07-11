@@ -7,6 +7,7 @@ use ir;
 use ty::*;
 use operand::Label;
 use check::context::{Binding, VarContext, TypeContext};
+use check::escape::trap_ast;
 use translate::*;
 use error::{Error, TypeError};
 use span::{Span, IntoSpan};
@@ -28,7 +29,7 @@ pub struct Checker {
 
 impl Checker {
 
-    pub fn check(ast: &Exp) -> Result<Vec<Unit>, Error> {
+    pub fn check(ast: &mut Exp) -> Result<Vec<Unit>, Error> {
         let main = Frame::new(
             Label::from_fixed("main"),
             Vec::new(),
@@ -43,6 +44,7 @@ impl Checker {
             tc: TypeContext::default(),
         };
 
+        let _ = trap_ast(ast);
         let (_, main_exp) = checker.check_exp(ast)?;
         let main_frame = checker.frames.pop()
             .expect("Internal error: missing frame");
