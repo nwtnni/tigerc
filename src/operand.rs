@@ -1,13 +1,15 @@
 use std::fmt;
 
 use sym::{store, Symbol};
-use uuid::Uuid;
+
+generate_counter!(LabelID, usize);
+generate_counter!(TempID, usize);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Label {
     Fixed(Symbol),
     Unfixed {
-        id: Uuid,
+        id: usize,
         name: Symbol,
     }
 }
@@ -18,11 +20,11 @@ impl Label {
     }
 
     pub fn from_str(name: &'static str) -> Self {
-        Label::Unfixed { id: Uuid::new_v4(), name: store(name) }
+        Label::Unfixed { id: LabelID::next(), name: store(name) }
     }
 
     pub fn from_symbol(name: Symbol) -> Self {
-        Label::Unfixed { id: Uuid::new_v4(), name }
+        Label::Unfixed { id: LabelID::next(), name }
     }
 }
 
@@ -31,7 +33,7 @@ impl Label {
 pub enum Temp {
     Reg(Reg),
     Temp {
-        id: Uuid,
+        id: usize,
         name: Symbol,
     },
 }
@@ -39,7 +41,7 @@ pub enum Temp {
 impl Temp {
     pub fn from_str(name: &'static str) -> Self {
         Temp::Temp {
-            id: Uuid::new_v4(),
+            id: TempID::next(),
             name: store(name),
         }
     }
@@ -52,7 +54,7 @@ impl Temp {
 impl fmt::Display for Temp {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-        | Temp::Temp{id, name} => write!(fmt, "TEMP_{}_{}", name, id.simple()),
+        | Temp::Temp{id, name} => write!(fmt, "TEMP_{}_{}", name, id),
         | Temp::Reg(reg)       => write!(fmt, "TEMP_{:?}", reg),
         }
     }

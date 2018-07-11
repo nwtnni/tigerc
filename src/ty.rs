@@ -1,7 +1,8 @@
 use std::fmt;
 
 use sym::Symbol;
-use uuid::Uuid;
+
+generate_counter!(TyID, usize);
 
 #[derive(Debug, Eq, Clone)]
 pub enum Ty {
@@ -9,8 +10,8 @@ pub enum Ty {
     Int,
     Str,
     Unit,
-    Arr(Box<Ty>, Uuid),
-    Rec(Vec<(Symbol, Ty)>, Uuid),
+    Arr(Box<Ty>, usize),
+    Rec(Vec<(Symbol, Ty)>, usize),
     Name(Symbol, Option<Box<Ty>>),
 }
 

@@ -1,7 +1,6 @@
 use fnv::{FnvHashSet, FnvHashMap};
 
 use sym::Symbol;
-use uuid::Uuid;
 
 use ast::*;
 use ir;
@@ -549,7 +548,7 @@ impl Checker {
 
             // Look up array element type
             let elem_ty = Box::new(self.tc.get_partial(name_span, name)?);
-            Ok(Ty::Arr(elem_ty, Uuid::new_v4()))
+            Ok(Ty::Arr(elem_ty, TyID::next()))
 
         },
         | Type::Rec(decs, _) => {
@@ -561,7 +560,7 @@ impl Checker {
                 fields.push((dec.name, self.tc.get_partial(&dec.ty_span, &dec.ty)?));
             }
 
-            Ok(Ty::Rec(fields, Uuid::new_v4()))
+            Ok(Ty::Rec(fields, TyID::next()))
 
         },
         }

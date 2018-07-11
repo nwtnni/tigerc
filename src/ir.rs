@@ -1,13 +1,14 @@
 use std::fmt;
 
 use sym::{store, Symbol};
-use uuid::Uuid;
 
 use operand::{Label, Temp};
 
+generate_counter!(StaticID, usize);
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Static {
-    id: Uuid,
+    id: usize,
     label: Label,
     data: String,
 }
@@ -15,7 +16,7 @@ pub struct Static {
 impl Static {
     pub fn new(data: String) -> Self {
         Static {
-            id: Uuid::new_v4(),
+            id: StaticID::next(),
             label: Label::from_str("STRING"),
             data,
         }
@@ -167,7 +168,7 @@ impl fmt::Display for Label {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
         | Label::Fixed(name) => write!(fmt, "{}", name),
-        | Label::Unfixed{name, id} => write!(fmt, "{}_{}", name, id.simple()),
+        | Label::Unfixed{name, id} => write!(fmt, "{}_{}", name, id),
         }
     }
 }
