@@ -153,7 +153,7 @@ FieldDec: ast::FieldDec = {
         ast::FieldDec {
           name,
           name_span: (l, rn).into_span(),
-          escape: false,
+          escape: true,
           ty,
           ty_span: (lt, r).into_span(),
           span: (l, r).into_span()
@@ -183,7 +183,7 @@ VarDec: ast::Dec = {
         ast::Dec::Var {
             name,
             name_span: (ln, rn).into_span(),
-            escape: false,
+            escape: true,
             ty: None,
             ty_span: None,
             init,
@@ -196,7 +196,7 @@ VarDec: ast::Dec = {
         ast::Dec::Var {
             name,
             name_span: (ln, rn).into_span(),
-            escape: false,
+            escape: true,
             ty: Some(ty),
             ty_span: Some((lt, rt).into_span()),
             init,
@@ -318,7 +318,7 @@ OpenStm: ast::Exp = {
 
     // For statement
     <l: @L> FOR <name: ID> ASSIGN <lo: Exp> TO <hi: Exp> DO <body: OpenStm> <r: @R> => {
-        ast::Exp::For { name, escape: false, lo: Box::new(lo), hi: Box::new(hi), body: Box::new(body), span: (l, r).into_span() }
+        ast::Exp::For { name, escape: true, lo: Box::new(lo), hi: Box::new(hi), body: Box::new(body), span: (l, r).into_span() }
     },
 
 }
@@ -332,7 +332,7 @@ ClosedStm: ast::Exp = {
 
     // For statement
     <l: @L> FOR <name: ID> ASSIGN <lo: Exp> TO <hi: Exp> DO <body: ClosedStm> <r: @R> => {
-        ast::Exp::For { name, escape: false, lo: Box::new(lo), hi: Box::new(hi), body: Box::new(body), span: (l, r).into_span() }
+        ast::Exp::For { name, escape: true, lo: Box::new(lo), hi: Box::new(hi), body: Box::new(body), span: (l, r).into_span() }
     },
 
     // Assignment
