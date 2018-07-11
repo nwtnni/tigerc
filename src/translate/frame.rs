@@ -21,10 +21,14 @@ impl Access {
                 n * WORD_SIZE
             );
 
-            ir::Exp::Binop(
-                Box::new(base),
-                ir::Binop::Sub,
-                Box::new(offset)
+            ir::Exp::Mem(
+                Box::new(
+                    ir::Exp::Binop(
+                        Box::new(base),
+                        ir::Binop::Sub,
+                        Box::new(offset)
+                    )
+                )
             )
         },
         }
