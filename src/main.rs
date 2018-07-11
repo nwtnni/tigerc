@@ -113,7 +113,7 @@ impl Compiler {
 
     fn translate(units: Vec<Unit>) {
         for unit in units {
-            println!("{:?}", unit);
+            println!("{}", unit.body);
         }
     }
 

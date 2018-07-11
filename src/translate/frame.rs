@@ -33,11 +33,11 @@ impl Access {
 
 #[derive(Debug)]
 pub struct Unit {
-    label: Label,
-    prologue: Vec<ir::Stm>,
-    body: ir::Stm,
-    epilogue: Vec<ir::Stm>,
-    size: usize,
+    pub label: Label,
+    pub prologue: Vec<ir::Stm>,
+    pub body: ir::Stm,
+    pub epilogue: Vec<ir::Stm>,
+    pub size: usize,
 }
 
 #[derive(Debug)]
