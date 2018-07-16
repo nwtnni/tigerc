@@ -1,4 +1,5 @@
 mod canonize;
+mod fold;
 mod frame;
 mod translate;
 
