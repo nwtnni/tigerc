@@ -175,6 +175,41 @@ fn canonize_exp(exp: Exp) -> (Purity, Exp, Vec<Stm>) {
 
 fn canonize_stm(stm: Stm) -> (Purity, Vec<Stm>) {
 
-    unimplemented!()
+    match stm {
+    | Stm::Move(src_exp, dst_exp) => {
+        
+        let (_, src_exp, mut src_stms) = canonize_exp(src_exp);
+        let (_, dst_exp, mut dst_stms) = canonize_exp(dst_exp);
+
+        src_stms.append(&mut dst_stms);
+
+        src_stms.push(Stm::Move(
+            src_exp,
+            dst_exp,
+        ));
+
+        (Purity::Impure, src_stms)
+
+    },
+    | Stm::Exp(exp) => {
+        
+        let (exp_purity, _, exp_stms) = canonize_exp(exp);
+        (exp_purity, exp_stms)
+
+    },
+    | Stm::Jump(addr_exp, labels) => {
+
+        let (_, addr_exp, mut addr_stms) = canonize_exp(addr_exp); 
+        
+        addr_stms.push(Stm::Jump(
+            addr_exp,
+            labels
+        ));
+
+        (Purity::Impure, addr_stms)
+
+    },
+    | _ => unimplemented!(),
+    }
 
 }
