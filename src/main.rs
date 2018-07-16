@@ -17,7 +17,7 @@ use tigerc::parse::Parser;
 use tigerc::lex::TokenStream;
 use tigerc::error::Error;
 use tigerc::check::Checker;
-use tigerc::translate::{Unit, canonize_ast, fold_ast};
+use tigerc::translate::{Unit, canonize, fold};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tigerc")]
@@ -114,7 +114,7 @@ impl Compiler {
     fn translate(units: Vec<Unit>) {
         for unit in units {
             println!("{}", unit.label);
-            println!("{}", fold_ast(&canonize_ast(unit.body)));
+            println!("{}", fold(&canonize(unit.body)));
         }
     }
 

@@ -1,7 +1,7 @@
 use ir::*;
 use operand::Label;
 
-pub fn fold_ast(ast: &Stm) -> Stm {
+pub fn fold(ast: &Stm) -> Stm {
     fold_stm(ast)
 }
 

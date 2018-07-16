@@ -21,7 +21,7 @@ impl Purity {
     }
 }
 
-pub fn canonize_ast(ast: Stm) -> Stm {
+pub fn canonize(ast: Stm) -> Stm {
     let (_, statements) = canonize_stm(ast);
     Stm::Seq(statements)
 }
