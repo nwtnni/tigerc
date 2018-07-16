@@ -254,24 +254,20 @@ pub fn translate_ass(lhs_exp: ir::Tree, rhs_exp: ir::Tree) -> ir::Tree {
 
 pub fn translate_if(guard_exp: ir::Tree, then_exp: ir::Tree, opt_or_exp: Option<ir::Tree>) -> ir::Tree {
 
+    let guard_cond: ir::Cond = guard_exp.into();
+    let t_label = Label::from_str("TRUE_BRANCH");
+    let e_label = Label::from_str("EXIT_IF_ELSE");
+
     if let Some(or_exp) = opt_or_exp {
 
-        let t_label = Label::from_str("TRUE_BRANCH");
         let f_label = Label::from_str("FALSE_BRANCH");
-        let e_label = Label::from_str("EXIT_IF_ELSE");
         let result = Temp::from_str("IF_ELSE_RESULT");
 
         ir::Exp::ESeq(
             Box::new(ir::Stm::Seq(vec![
 
                 // Evaluate guard expression and jump to correct branch
-                ir::Stm::CJump(
-                    guard_exp.into(),
-                    ir::Relop::Eq,
-                    ir::Exp::Const(0),
-                    f_label,
-                    t_label,
-                ),
+                guard_cond(t_label, f_label),
 
                 // Move result of true branch
                 ir::Stm::Label(t_label),
@@ -303,19 +299,10 @@ pub fn translate_if(guard_exp: ir::Tree, then_exp: ir::Tree, opt_or_exp: Option<
 
     } else {
 
-        let t_label = Label::from_str("TRUE_BRANCH");
-        let e_label = Label::from_str("EXIT_IF");
-
         ir::Stm::Seq(vec![
 
             // Evaluate guard expression and jumpt to exit if false
-            ir::Stm::CJump(
-                guard_exp.into(),
-                ir::Relop::Eq,
-                ir::Exp::Const(0),
-                e_label,
-                t_label,
-            ),
+            guard_cond(t_label, e_label),
 
             // Execute branch
             ir::Stm::Label(t_label),
@@ -336,6 +323,7 @@ pub fn translate_while(s_label: Label, guard_exp: ir::Tree, body_exp: ir::Tree) 
 
     let t_label = Label::from_str("TRUE_BRANCH");
     let e_label = Label::from_str("EXIT_WHILE");
+    let guard_cond: ir::Cond = guard_exp.into();
 
     ir::Stm::Seq(vec![
 
@@ -349,13 +337,7 @@ pub fn translate_while(s_label: Label, guard_exp: ir::Tree, body_exp: ir::Tree) 
         ir::Stm::Label(s_label),
 
         // Evaluate guard expression and jump to exit if false
-        ir::Stm::CJump(
-            guard_exp.into(),
-            ir::Relop::Eq,
-            ir::Exp::Const(0),
-            e_label,
-            t_label,
-        ),
+        guard_cond(t_label, e_label),
 
         // Execute loop body and repeat
         ir::Stm::Label(t_label),
