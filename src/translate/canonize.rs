@@ -21,8 +21,9 @@ impl Purity {
     }
 }
 
-pub fn canonize_ast(ast: Stm) {
-    unimplemented!()
+pub fn canonize_ast(ast: Stm) -> Stm {
+    let (_, statements) = canonize_stm(ast);
+    Stm::Seq(statements)
 }
 
 fn canonize_exp(exp: Exp) -> (Purity, Exp, Vec<Stm>) {
@@ -176,8 +177,10 @@ fn canonize_exp(exp: Exp) -> (Purity, Exp, Vec<Stm>) {
 fn canonize_stm(stm: Stm) -> (Purity, Vec<Stm>) {
 
     match stm {
+    | Stm::Label(_)
+    | Stm::Comment(_) => (Purity::Pure, vec![stm]),
     | Stm::Move(src_exp, dst_exp) => {
-        
+
         let (_, src_exp, mut src_stms) = canonize_exp(src_exp);
         let (_, dst_exp, mut dst_stms) = canonize_exp(dst_exp);
 
@@ -192,15 +195,15 @@ fn canonize_stm(stm: Stm) -> (Purity, Vec<Stm>) {
 
     },
     | Stm::Exp(exp) => {
-        
+
         let (exp_purity, _, exp_stms) = canonize_exp(exp);
         (exp_purity, exp_stms)
 
     },
     | Stm::Jump(addr_exp, labels) => {
 
-        let (_, addr_exp, mut addr_stms) = canonize_exp(addr_exp); 
-        
+        let (_, addr_exp, mut addr_stms) = canonize_exp(addr_exp);
+
         addr_stms.push(Stm::Jump(
             addr_exp,
             labels
@@ -209,7 +212,26 @@ fn canonize_stm(stm: Stm) -> (Purity, Vec<Stm>) {
         (Purity::Impure, addr_stms)
 
     },
-    | _ => unimplemented!(),
-    }
+    | Stm::CJump(lhs_exp, op, rhs_exp, t, f) => {
 
+        let (_, lhs_exp, mut lhs_stms) = canonize_exp(lhs_exp);
+        let (_, rhs_exp, mut rhs_stms) = canonize_exp(rhs_exp);
+
+        lhs_stms.append(&mut rhs_stms);
+        lhs_stms.push(Stm::CJump(lhs_exp, op, rhs_exp, t, f));
+
+        (Purity::Impure, lhs_stms)
+
+    },
+    | Stm::Seq(stms) => {
+
+        stms.into_iter()
+            .map(|stm| canonize_stm(stm))
+            .fold((Purity::Pure, vec![]), |(all_purity, mut all_stms), (stm_purity, mut stm_stms)| {
+                all_stms.append(&mut stm_stms);
+                (stm_purity.and(all_purity), all_stms)
+            })
+
+    },
+    }
 }
