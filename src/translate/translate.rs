@@ -152,31 +152,74 @@ pub fn translate_neg(neg: ir::Tree) -> ir::Tree {
 
 pub fn translate_bin(lhs_exp: ir::Tree, op: Binop, rhs_exp: ir::Tree) -> ir::Tree {
 
-    let lhs_exp = lhs_exp.into();
-    let rhs_exp = rhs_exp.into();
+    match op {
+    | Binop::LAnd => {
 
-    // Straightforward arithmetic operation
-    if let Some(binop) = translate_binop(&op) {
-        ir::Exp::Binop(
-            Box::new(lhs_exp),
-            binop,
-            Box::new(rhs_exp),
-        ).into()
-    }
+        let lhs_cond: ir::Cond = lhs_exp.into();
+        let rhs_cond: ir::Cond = rhs_exp.into();
+        let rhs_label = Label::from_str("TRANSLATE_LOR");
 
-    // Conditional operation
-    else if let Some(relop) = translate_relop(&op) {
         ir::Tree::Cx(
             Box::new(move |t, f| {
-                ir::Stm::CJump(lhs_exp.clone(), relop, rhs_exp.clone(), t, f)
+                ir::Stm::Seq(vec![
+                    lhs_cond(rhs_label, f),
+                    ir::Stm::Label(rhs_label),
+                    rhs_cond(t, f),
+                ])
             })
         )
+
+
+    },
+    | Binop::LOr => {
+        
+        let lhs_cond: ir::Cond = lhs_exp.into();
+        let rhs_cond: ir::Cond = rhs_exp.into();
+        let rhs_label = Label::from_str("TRANSLATE_LOR");
+
+        ir::Tree::Cx(
+            Box::new(move |t, f| {
+                ir::Stm::Seq(vec![
+                    lhs_cond(t, rhs_label),
+                    ir::Stm::Label(rhs_label),
+                    rhs_cond(t, f),
+                ])
+            })
+        )
+
+    },
+    | _ if translate_binop(&op).is_some() => {
+
+        // Straightforward arithmetic operation
+        ir::Exp::Binop(
+            Box::new(lhs_exp.into()),
+            translate_binop(&op).unwrap(),
+            Box::new(rhs_exp.into()),
+        ).into()
+
+    },
+    | _ if translate_relop(&op).is_some() => {
+
+        let lhs_exp: ir::Exp = lhs_exp.into();
+        let rhs_exp: ir::Exp = rhs_exp.into();
+
+        // Conditional operation
+        ir::Tree::Cx(
+            Box::new(move |t, f| {
+                ir::Stm::CJump(
+                    lhs_exp.clone(),
+                    translate_relop(&op).unwrap(),
+                    rhs_exp.clone(),
+                    t,
+                    f
+                )
+            })
+        )
+
+    },
+    | _ => panic!("Internal error: non-exhaustive binop check"),
     }
 
-    // All operations must be covered
-    else {
-        panic!("Internal error: non-exhaustive binop check");
-    }
 }
 
 pub fn translate_rec(fields_exp: Vec<ir::Tree>) -> ir::Tree {
