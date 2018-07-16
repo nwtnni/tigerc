@@ -1,8 +1,8 @@
 use ir::*;
 use operand::Label;
 
-pub fn fold_ast(ast: Stm) -> Stm {
-    unimplemented!()
+pub fn fold_ast(ast: &Stm) -> Stm {
+    fold_stm(ast)
 }
 
 fn fold_exp(exp: &Exp) -> Exp {
