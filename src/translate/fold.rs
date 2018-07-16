@@ -99,5 +99,38 @@ fn fold_stm(stm: &Stm) -> Stm {
 }
 
 fn fold_cjump(lhs_exp: &Exp, op: &Relop, rhs_exp: &Exp, t: &Label, f: &Label) -> Stm {
-    unimplemented!()
+
+    let lhs_exp = fold_exp(lhs_exp);
+    let rhs_exp = fold_exp(rhs_exp);
+
+    if let (Exp::Const(lhs), Exp::Const(rhs)) = (&lhs_exp, &rhs_exp) {
+
+        let result = match op {
+        | Relop::Eq  => lhs == rhs,
+        | Relop::Ne  => lhs != rhs,
+        | Relop::Lt  => lhs <  rhs,
+        | Relop::Gt  => lhs >  rhs,
+        | Relop::Le  => lhs <= rhs,
+        | Relop::Ge  => lhs >= rhs,
+        | Relop::Ult => (*lhs as u32) <  (*rhs as u32),
+        | Relop::Ule => (*lhs as u32) <= (*rhs as u32),
+        | Relop::Ugt => (*lhs as u32) >  (*rhs as u32),
+        | Relop::Uge => (*lhs as u32) >= (*rhs as u32),
+        };
+
+        let target = if result { *t } else { *f };
+
+        return Stm::Jump(
+            Exp::Name(target),
+            vec![target],
+        )
+    }
+
+    Stm::CJump(
+        lhs_exp, 
+        *op,
+        rhs_exp,
+        *t,
+        *f,
+    )
 }
