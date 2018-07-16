@@ -196,16 +196,16 @@ impl fmt::Display for Stm {
         match self {
         | Stm::Move(d, s)            => write!(fmt, "(MOVE {} {})", d, s),
         | Stm::Exp(e)                => write!(fmt, "(EXP {})", e),
-        | Stm::Jump(e, _)            => write!(fmt, "(LABEL {})", e),
+        | Stm::Jump(e, _)            => write!(fmt, "(JUMP {})", e),
         | Stm::CJump(l, op, r, t, f) => write!(fmt, "(CJUMP {} {} {} {} {})", l, op, r, t, f),
         | Stm::Label(l)              => write!(fmt, "(LABEL {})", l),
         | Stm::Comment(c)            => write!(fmt, "(COMMENT {})", c),
         | Stm::Seq(stms)                => {
             write!(fmt, "(SEQ").unwrap();
             for stm in stms {
-                write!(fmt, " {}", stm).unwrap();
+                write!(fmt, "\n    {}", stm).unwrap();
             }
-            write!(fmt, ")")
+            write!(fmt, "\n)")
         },
         }
     }
