@@ -1,3 +1,4 @@
+mod canonize;
 mod frame;
 mod translate;
 
