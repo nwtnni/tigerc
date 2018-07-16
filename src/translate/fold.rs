@@ -1,4 +1,5 @@
 use ir::*;
+use operand::Label;
 
 pub fn fold_ast(ast: Stm) -> Stm {
     unimplemented!()
@@ -62,5 +63,41 @@ fn fold_binop(lhs_exp: &Exp, op: &Binop, rhs_exp: &Exp) -> Exp {
 }
 
 fn fold_stm(stm: &Stm) -> Stm {
+
+    match stm {
+    | Stm::Label(_)
+    | Stm::Comment(_) => stm.clone(),
+    | Stm::Move(src_exp, dst_exp) => {
+        Stm::Move(
+            fold_exp(src_exp),
+            fold_exp(dst_exp),
+        )
+    },
+    | Stm::Exp(exp) => {
+        Stm::Exp(
+            fold_exp(exp),
+        )
+    },
+    | Stm::Jump(dst_exp, labels) => {
+        Stm::Jump(
+            fold_exp(dst_exp),
+            labels.clone(),
+        )
+    },
+    | Stm::CJump(lhs_exp, op, rhs_exp, t, f) => {
+        fold_cjump(lhs_exp, op, rhs_exp, t, f)
+    },
+    | Stm::Seq(stms) => {
+        Stm::Seq(
+            stms.into_iter()
+                .map(|stm| fold_stm(stm))
+                .collect()
+        )
+    },
+    }
+
+}
+
+fn fold_cjump(lhs_exp: &Exp, op: &Relop, rhs_exp: &Exp, t: &Label, f: &Label) -> Stm {
     unimplemented!()
 }
