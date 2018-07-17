@@ -5,6 +5,7 @@ use sym::Symbol;
 use ast::*;
 use ir;
 use ty::*;
+use unit::Unit;
 use operand::Label;
 use check::context::{Binding, VarContext, TypeContext};
 use check::escape::trap_ast;
@@ -49,7 +50,7 @@ impl Checker {
         let main_frame = checker.frames.pop()
             .expect("Internal error: missing frame");
 
-        let main_unit = main_frame.wrap(main_exp);
+        let main_unit = Unit::new(main_frame, main_exp);
         checker.done.push(main_unit);
 
         Ok(checker.done)

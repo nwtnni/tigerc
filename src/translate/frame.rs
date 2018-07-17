@@ -36,21 +36,12 @@ impl Access {
 }
 
 #[derive(Debug)]
-pub struct Unit {
+pub struct Frame {
     pub label: Label,
     pub prologue: Vec<ir::Stm>,
-    pub body: Vec<ir::Stm>,
-    pub epilogue: Vec<ir::Stm>,
     pub size: usize,
-}
-
-#[derive(Debug)]
-pub struct Frame {
-    label: Label,
-    prologue: Vec<ir::Stm>,
-    map: FnvHashMap<Symbol, Access>,
     offset: i32,
-    size: usize,
+    map: FnvHashMap<Symbol, Access>,
 }
 
 impl Frame {
@@ -110,28 +101,6 @@ impl Frame {
 
     pub fn get(&self, name: Symbol, base: ir::Exp) -> ir::Exp {
         self.map[&name].from_base(base)
-    }
-
-    pub fn wrap(self, body: ir::Tree) -> Unit {
-
-        let return_temp = Temp::from_str("RETURN");
-        let return_reg = Temp::Reg(Reg::get_return());
-
-        Unit {
-            label: self.label,
-            prologue: self.prologue,
-            epilogue: vec![
-                ir::Stm::Move(
-                    ir::Exp::Temp(return_temp),
-                    ir::Exp::Temp(return_reg),
-                )
-            ],
-            size: self.size,
-            body: vec![ir::Stm::Move(
-                body.into(),
-                ir::Exp::Temp(return_temp)
-            )],
-        }
     }
 
     fn get_argument(i: usize) -> ir::Exp {

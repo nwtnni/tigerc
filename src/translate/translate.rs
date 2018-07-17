@@ -4,14 +4,14 @@ use sym::{store, Symbol};
 
 use ast::*;
 use ir;
-
+use operand::*;
 use config::WORD_SIZE;
-use operand::{Label, Temp, Reg};
+use unit::Unit;
+use translate::Frame;
 use check::context::Binding;
-use translate::{Frame, Unit};
 
 pub fn translate_fun_dec(frame: Frame, body_exp: ir::Tree) -> Unit {
-    frame.wrap(body_exp)
+    Unit::new(frame, body_exp)
 }
 
 pub fn translate_var_dec(frames: &mut [Frame], name: Symbol, escape: bool, init_exp: ir::Tree) -> ir::Tree {
