@@ -112,13 +112,13 @@ fn canonize_exp(exp: Exp) -> (Purity, Exp, Vec<Stm>) {
                 // Append later arg statements
                 arg_stms.append(&mut all_stms);
                 all_stms = arg_stms;
-                all_exps.push(Exp::Temp(arg_temp));
+                all_exps.insert(0, Exp::Temp(arg_temp));
                 all_purity = Purity::Impure;
 
             } else {
                 arg_stms.append(&mut all_stms);
                 all_stms = arg_stms;
-                all_exps.push(arg_exp);
+                all_exps.insert(0, arg_exp);
             }
         }
 
