@@ -21,9 +21,14 @@ impl Purity {
     }
 }
 
-pub fn canonize(ast: Stm) -> Stm {
-    let (_, statements) = canonize_stm(ast);
-    Stm::Seq(statements)
+pub fn canonize(ir: Vec<Stm>) -> Vec<Stm> {
+    ir.into_iter()
+        .map(|stm| canonize_stm(stm))
+        .map(|(_, stms)| stms)
+        .fold(vec![], |mut all_stms, mut stms| {
+            all_stms.append(&mut stms);
+            all_stms
+        })
 }
 
 fn canonize_exp(exp: Exp) -> (Purity, Exp, Vec<Stm>) {

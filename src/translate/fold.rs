@@ -1,8 +1,10 @@
 use ir::*;
 use operand::Label;
 
-pub fn fold(ast: &Stm) -> Stm {
-    fold_stm(ast)
+pub fn fold(ir: &[Stm]) -> Vec<Stm> {
+    ir.into_iter()
+        .map(|stm| fold_stm(stm))
+        .collect()
 }
 
 fn fold_exp(exp: &Exp) -> Exp {

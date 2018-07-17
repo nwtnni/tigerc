@@ -39,7 +39,7 @@ impl Access {
 pub struct Unit {
     pub label: Label,
     pub prologue: Vec<ir::Stm>,
-    pub body: ir::Stm,
+    pub body: Vec<ir::Stm>,
     pub epilogue: Vec<ir::Stm>,
     pub size: usize,
 }
@@ -48,7 +48,6 @@ pub struct Unit {
 pub struct Frame {
     label: Label,
     prologue: Vec<ir::Stm>,
-    epilogue: Vec<ir::Stm>,
     map: FnvHashMap<Symbol, Access>,
     offset: i32,
     size: usize,
@@ -79,7 +78,6 @@ impl Frame {
         Frame {
             label,
             prologue,
-            epilogue: Vec::new(),
             map,
             offset,
             size,
@@ -115,12 +113,24 @@ impl Frame {
     }
 
     pub fn wrap(self, body: ir::Tree) -> Unit {
+
+        let return_temp = Temp::from_str("RETURN");
+        let return_reg = Temp::Reg(Reg::get_return());
+
         Unit {
             label: self.label,
             prologue: self.prologue,
-            body: body.into(),
-            epilogue: self.epilogue,
+            epilogue: vec![
+                ir::Stm::Move(
+                    ir::Exp::Temp(return_temp),
+                    ir::Exp::Temp(return_reg),
+                )
+            ],
             size: self.size,
+            body: vec![ir::Stm::Move(
+                body.into(),
+                ir::Exp::Temp(return_temp)
+            )],
         }
     }
 

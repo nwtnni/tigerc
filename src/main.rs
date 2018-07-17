@@ -114,7 +114,9 @@ impl Compiler {
     fn translate(units: Vec<Unit>) {
         for unit in units {
             println!("{}", unit.label);
-            println!("{}", fold(&canonize(unit.body)));
+            for stm in fold(&canonize(unit.body)) {
+                println!("{}", stm);
+            }
         }
     }
 
