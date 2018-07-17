@@ -157,7 +157,7 @@ pub fn translate_bin(lhs_exp: ir::Tree, op: Binop, rhs_exp: ir::Tree) -> ir::Tre
 
         let lhs_cond: ir::Cond = lhs_exp.into();
         let rhs_cond: ir::Cond = rhs_exp.into();
-        let rhs_label = Label::from_str("TRANSLATE_LOR");
+        let rhs_label = Label::from_str("TRANSLATE_LAND");
 
         ir::Tree::Cx(
             Box::new(move |t, f| {
