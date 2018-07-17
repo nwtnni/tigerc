@@ -1,3 +1,5 @@
+use std::fmt;
+
 use ir::*;
 use translate::Frame;
 use operand::*;
@@ -33,5 +35,32 @@ impl Unit {
                 )
             ],
         }
+    }
+
+    pub fn map(self, f: impl Fn(Vec<Stm>) -> Vec<Stm>) -> Self {
+        Unit {
+            label: self.label,
+            prologue: f(self.prologue),
+            body: f(self.body),
+            epilogue: f(self.epilogue),
+            size: self.size,
+        }
+    }
+}
+
+impl fmt::Display for Unit {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+
+        let combined = self.prologue.iter()
+            .chain(self.body.iter())
+            .chain(self.epilogue.iter());
+
+        write!(fmt, "{}", self.label)?;
+
+        for stm in combined {
+            write!(fmt, "\n    {}", stm)?;
+        }
+        
+        Ok(())
     }
 }

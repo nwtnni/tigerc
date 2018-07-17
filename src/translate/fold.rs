@@ -1,9 +1,9 @@
 use ir::*;
 use operand::Label;
 
-pub fn fold(ir: &[Stm]) -> Vec<Stm> {
+pub fn fold(ir: Vec<Stm>) -> Vec<Stm> {
     ir.into_iter()
-        .map(|stm| fold_stm(stm))
+        .map(|stm| fold_stm(&stm))
         .collect()
 }
 
