@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate count;
+extern crate simple_counter;
 extern crate codespan;
 extern crate codespan_reporting;
 extern crate fnv;
