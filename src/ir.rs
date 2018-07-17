@@ -118,7 +118,7 @@ impl From<Tree> for Cond {
         | Tree::Ex(exp) => {
             Box::new(move |t, f| Stm::CJump(
                 Exp::Const(0),
-                Relop::Eq,
+                Relop::Ne,
                 exp.clone(),
                 t,
                 f,
