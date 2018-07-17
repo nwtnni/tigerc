@@ -1,5 +1,5 @@
 use fnv::FnvHashMap;
-use sym::Symbol;
+use simple_symbol::Symbol;
 
 use ast::*;
 

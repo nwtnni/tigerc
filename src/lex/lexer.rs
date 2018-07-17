@@ -2,7 +2,7 @@ use std::str::CharIndices;
 use std::str::FromStr;
 
 use codespan::{ByteIndex, ByteOffset, FileMap};
-use sym;
+use simple_symbol::store;
 
 use lex::Spanned;
 use token::Token;
@@ -219,7 +219,7 @@ impl <'input> Iterator for Lexer<'input> {
                 // Check for identifier
                 match ident {
                 | "" => (),
-                | id => return success(start, end, Token::Ident(sym::store(id))),
+                | id => return success(start, end, Token::Ident(store(id))),
                 };
 
                 // Check for literal int

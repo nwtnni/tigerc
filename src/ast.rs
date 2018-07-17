@@ -1,6 +1,6 @@
 use std::fmt;
 
-use sym::Symbol;
+use simple_symbol::Symbol;
 use span::Span;
 
 #[derive(Debug)]

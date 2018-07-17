@@ -15,7 +15,7 @@ lalrpop-util = "0.15.2"
 regex = "1.0.0"
 structopt = "0.2"
 simple-counter = "0.1.0"
-sym = { git = "https://github.com/nwtnni/sym" }
+simple-symbol = "0.1.0"
 
 [[bin]]
 name = "tigerc"

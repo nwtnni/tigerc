@@ -1,6 +1,6 @@
 use fnv::{FnvHashSet, FnvHashMap};
 
-use sym::Symbol;
+use simple_symbol::Symbol;
 
 use ast::*;
 use ir;

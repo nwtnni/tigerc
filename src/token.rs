@@ -1,6 +1,6 @@
 use std::fmt;
 
-use sym::Symbol;
+use simple_symbol::Symbol;
 
 /// Represents all valid lexical tokens in the Tiger language.
 #[derive(Debug)]

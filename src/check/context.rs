@@ -1,5 +1,5 @@
 use fnv::FnvHashMap;
-use sym::{store, Symbol};
+use simple_symbol::{store, Symbol};
 
 use ty::Ty;
 use operand::Label;

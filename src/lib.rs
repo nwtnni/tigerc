@@ -1,11 +1,11 @@
 #[macro_use]
 extern crate simple_counter;
+extern crate simple_symbol;
 extern crate codespan;
 extern crate codespan_reporting;
 extern crate fnv;
 extern crate itertools;
 extern crate lalrpop_util;
-extern crate sym;
 
 #[macro_use]
 pub mod util;

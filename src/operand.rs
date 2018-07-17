@@ -1,6 +1,6 @@
 use std::fmt;
 
-use sym::{store, Symbol};
+use simple_symbol::{store, Symbol};
 
 generate_counter!(LabelID, usize);
 generate_counter!(TempID, usize);

@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use itertools::FoldWhile::{Continue, Done};
-use sym::{store, Symbol};
+use simple_symbol::{store, Symbol};
 
 use ast::*;
 use ir;

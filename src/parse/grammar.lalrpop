@@ -1,5 +1,5 @@
 use codespan::ByteIndex;
-use sym::Symbol;
+use simple_symbol::Symbol;
 
 use ast;
 use error::Error;
