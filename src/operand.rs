@@ -28,6 +28,15 @@ impl Label {
     }
 }
 
+impl<'a> Into<Symbol> for &'a Label {
+    fn into(self) -> Symbol {
+        match self {
+        | Label::Fixed(symbol) => *symbol,
+        | Label::Unfixed{id, name} => store(&format!("{}_{}", name, id)),
+        }
+    }
+}
+
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Temp {
