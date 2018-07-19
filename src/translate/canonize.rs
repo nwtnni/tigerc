@@ -4,20 +4,27 @@ use operand::Temp;
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 enum Purity {
     Pure,
+    Memory,
     Impure,
 }
 
 impl Purity {
     fn and(self, other: Purity) -> Purity {
-        if (self, other) == (Purity::Pure, Purity::Pure) {
-            Purity::Pure
-        } else {
-            Purity::Impure
+        match (self, other) {
+        | (Purity::Pure, Purity::Pure)     => Purity::Pure,
+        | (Purity::Memory, Purity::Pure)   => Purity::Memory,     
+        | (Purity::Pure, Purity::Memory)   => Purity::Memory,
+        | (Purity::Memory, Purity::Memory) => Purity::Memory,
+        | _                                => Purity::Impure,
         }
     }
 
     fn is_affected_by(self, other: Purity) -> bool {
-        (self, other) == (Purity::Impure, Purity::Impure)
+        match (self, other) {
+        | (Purity::Impure, Purity::Impure)
+        | (Purity::Memory, Purity::Impure) => true,
+        | _                                => false,
+        }
     }
 }
 
@@ -81,14 +88,19 @@ fn canonize_exp(exp: Exp) -> (Purity, Exp, Vec<Stm>) {
     }
     | Exp::Mem(addr_exp) => {
 
-        // Memory access is pure if address expression is pure
         let (purity, exp, stms) = canonize_exp(*addr_exp);
 
         let canonized = Exp::Mem(
             Box::new(exp)
         );
 
-        (purity, canonized, stms)
+        // Memory access is pure if address expression is pure
+        let memory_purity = match purity {
+        | Purity::Impure => Purity::Impure, 
+        | _              => Purity::Memory,
+        };
+
+        (memory_purity, canonized, stms)
 
     },
     | Exp::Call(name_exp, arg_exps) => {
@@ -186,15 +198,35 @@ fn canonize_stm(stm: Stm) -> (Purity, Vec<Stm>) {
     | Stm::Comment(_) => (Purity::Pure, vec![stm]),
     | Stm::Move(src_exp, dst_exp) => {
 
-        let (_, src_exp, mut src_stms) = canonize_exp(src_exp);
-        let (_, dst_exp, mut dst_stms) = canonize_exp(dst_exp);
+        let (src_purity, src_exp, mut src_stms) = canonize_exp(src_exp);
+        let (dst_purity, dst_exp, mut dst_stms) = canonize_exp(dst_exp);
 
-        src_stms.append(&mut dst_stms);
+        if src_purity.is_affected_by(dst_purity) {
 
-        src_stms.push(Stm::Move(
-            src_exp,
-            dst_exp,
-        ));
+            let src_temp = Temp::from_str("CANONIZE_MOVE_SRC");
+
+            src_stms.push(Stm::Move(
+                src_exp,
+                Exp::Temp(src_temp),
+            ));
+
+            src_stms.append(&mut dst_stms);
+
+            src_stms.push(Stm::Move(
+                Exp::Temp(src_temp),
+                dst_exp
+            ));
+
+        } else {
+
+            src_stms.append(&mut dst_stms);
+
+            src_stms.push(Stm::Move(
+                src_exp,
+                dst_exp,
+            ));
+
+        }
 
         (Purity::Impure, src_stms)
 
@@ -219,11 +251,29 @@ fn canonize_stm(stm: Stm) -> (Purity, Vec<Stm>) {
     },
     | Stm::CJump(lhs_exp, op, rhs_exp, t, f) => {
 
-        let (_, lhs_exp, mut lhs_stms) = canonize_exp(lhs_exp);
-        let (_, rhs_exp, mut rhs_stms) = canonize_exp(rhs_exp);
+        let (lhs_purity, lhs_exp, mut lhs_stms) = canonize_exp(lhs_exp);
+        let (rhs_purity, rhs_exp, mut rhs_stms) = canonize_exp(rhs_exp);
 
-        lhs_stms.append(&mut rhs_stms);
-        lhs_stms.push(Stm::CJump(lhs_exp, op, rhs_exp, t, f));
+        if lhs_purity.is_affected_by(rhs_purity) {
+
+            let lhs_temp = Temp::from_str("CANONIZE_CJUMP_LHS");
+
+            lhs_stms.push(Stm::Move(
+                lhs_exp,
+                Exp::Temp(lhs_temp),
+            ));
+
+            lhs_stms.append(&mut rhs_stms);
+
+            lhs_stms.push(Stm::CJump(Exp::Temp(lhs_temp), op, rhs_exp, t, f));
+
+        } else {
+
+            lhs_stms.append(&mut rhs_stms);
+            lhs_stms.push(Stm::CJump(lhs_exp, op, rhs_exp, t, f));
+
+        }
+
 
         (Purity::Impure, lhs_stms)
 
