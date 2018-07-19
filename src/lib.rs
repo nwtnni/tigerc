@@ -6,6 +6,7 @@ extern crate codespan_reporting;
 extern crate fnv;
 extern crate itertools;
 extern crate lalrpop_util;
+extern crate petgraph;
 
 #[macro_use]
 pub mod util;

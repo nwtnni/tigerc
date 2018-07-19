@@ -48,7 +48,7 @@ impl Frame {
     pub fn new(label: Label, args: Vec<(Symbol, bool)>) -> Self {
         let rbp = ir::Exp::Temp(Temp::Reg(Reg::RBP));
         let mut map = FnvHashMap::default();
-        let mut prologue = Vec::new();
+        let mut prologue = vec![ir::Stm::Label(Label::from_str("PROLOGUE"))];
         let mut offset = 0;
         let mut size = 0;
 

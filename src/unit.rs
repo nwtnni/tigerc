@@ -48,6 +48,15 @@ impl Unit {
     }
 }
 
+impl Into<Vec<Stm>> for Unit {
+    fn into(self) -> Vec<Stm> {
+        self.prologue.into_iter()
+            .chain(self.body.into_iter())
+            .chain(self.epilogue.into_iter())
+            .collect()
+    }
+}
+
 impl fmt::Display for Unit {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 

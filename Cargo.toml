@@ -12,10 +12,11 @@ codespan-reporting = "0.1.3"
 fnv = "1.0.6"
 itertools = "0.7"
 lalrpop-util = "0.15.2"
+petgraph = "0.4.12"
 regex = "1.0.0"
 structopt = "0.2"
 simple-counter = "0.1.0"
-simple-symbol = "0.1.0"
+simple-symbol = "1.0.0"
 
 [[bin]]
 name = "tigerc"
