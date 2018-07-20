@@ -17,9 +17,8 @@ use tigerc::parse::Parser;
 use tigerc::lex::TokenStream;
 use tigerc::error::Error;
 use tigerc::check::Checker;
-use tigerc::translate::{canonize, fold, Flow};
+use tigerc::translate::{canonize, fold, Flow, reorder, condense};
 use tigerc::unit::Unit;
-use tigerc::ir;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "tigerc")]
@@ -115,8 +114,9 @@ impl Compiler {
 
     fn translate(units: Vec<Unit>) {
         for unit in units {
-            let ir: Vec<ir::Stm> = unit.map(fold).map(canonize).into();
-            let flow = Flow::new(&ir);
+            let unit = unit.map(canonize).map(fold).map(reorder).map(condense);
+            println!("{}", unit);
+            let flow = Flow::new(unit.into());
             println!("{}", flow.export());
         }
     }

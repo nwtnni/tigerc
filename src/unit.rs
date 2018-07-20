@@ -20,18 +20,23 @@ impl Unit {
 
         Unit {
             label: frame.label,
-            prologue: frame.prologue,
-            epilogue: vec![
-                Stm::Move(
-                    Exp::Temp(return_temp),
-                    Exp::Temp(return_reg),
-                )
+            prologue: vec![
+                Stm::Label(Label::from_str("PROLOGUE")),
+                Stm::Seq(frame.prologue),
             ],
             size: frame.size,
             body: vec![
+                Stm::Label(Label::from_str("BODY")),
                 Stm::Move(
                     body.into(),
                     Exp::Temp(return_temp)
+                ),
+            ],
+            epilogue: vec![
+                Stm::Label(Label::from_str("EPILOGUE")),
+                Stm::Move(
+                    Exp::Temp(return_temp),
+                    Exp::Temp(return_reg),
                 )
             ],
         }

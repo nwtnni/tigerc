@@ -28,10 +28,10 @@ impl Label {
     }
 }
 
-impl<'a> Into<Symbol> for &'a Label {
+impl Into<Symbol> for Label {
     fn into(self) -> Symbol {
         match self {
-        | Label::Fixed(symbol) => *symbol,
+        | Label::Fixed(symbol) => symbol,
         | Label::Unfixed{id, name} => store(&format!("{}_{}", name, id)),
         }
     }
