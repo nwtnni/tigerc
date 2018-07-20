@@ -40,7 +40,21 @@ fn fold_binop(lhs_exp: &Exp, op: &Binop, rhs_exp: &Exp) -> Exp {
     let lhs_exp = fold_exp(lhs_exp);
     let rhs_exp = fold_exp(rhs_exp);
 
-    if let (Exp::Const(lhs), Exp::Const(rhs)) = (&lhs_exp, &rhs_exp) {
+    match (lhs_exp, op, rhs_exp) {
+    | (Exp::Const(0),   Binop::Add,     rhs          )
+    | (Exp::Const(0),   Binop::Or,      rhs          ) => rhs,
+    | (lhs,             Binop::Add,     Exp::Const(0))
+    | (lhs,             Binop::Sub,     Exp::Const(0))
+    | (lhs,             Binop::Or ,     Exp::Const(0))
+    | (lhs,             Binop::LShift,  Exp::Const(0))
+    | (lhs,             Binop::RShift,  Exp::Const(0))
+    | (lhs,             Binop::ARShift, Exp::Const(0)) => lhs,
+    | (Exp::Const(0),   Binop::Mul,     _            )
+    | (_            ,   Binop::Mul,     Exp::Const(0))
+    | (Exp::Const(0),   Binop::And,     _            )
+    | (_            ,   Binop::And,     Exp::Const(0)) => Exp::Const(0),
+    | (Exp::Const(lhs), op,             Exp::Const(rhs)) => {
+
         let result = match op {
         | Binop::Add => lhs + rhs,
         | Binop::Sub => lhs - rhs,
@@ -49,19 +63,15 @@ fn fold_binop(lhs_exp: &Exp, op: &Binop, rhs_exp: &Exp) -> Exp {
         | Binop::And => lhs & rhs,
         | Binop::Or  => lhs | rhs,
         | Binop::LShift => lhs << rhs,
-        | Binop::RShift => (*lhs as u32 >> rhs) as i32,
+        | Binop::RShift => (lhs as u32 >> rhs) as i32,
         | Binop::ARShift => lhs >> rhs,
         | Binop::XOr => lhs ^ rhs,
         };
 
-        return Exp::Const(result)
+        Exp::Const(result)
+    },
+    | (lhs_exp, op, rhs_exp) => Exp::Binop(Box::new(lhs_exp), *op, Box::new(rhs_exp)),
     }
-
-    Exp::Binop(
-        Box::new(lhs_exp),
-        *op,
-        Box::new(rhs_exp),
-    )
 }
 
 fn fold_stm(stm: &Stm) -> Stm {
@@ -129,7 +139,7 @@ fn fold_cjump(lhs_exp: &Exp, op: &Relop, rhs_exp: &Exp, t: &Label, f: &Label) ->
     }
 
     Stm::CJump(
-        lhs_exp, 
+        lhs_exp,
         *op,
         rhs_exp,
         *t,
