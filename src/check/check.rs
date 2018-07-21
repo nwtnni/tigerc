@@ -1,5 +1,6 @@
-use fnv::{FnvHashSet, FnvHashMap};
+use std::mem;
 
+use fnv::{FnvHashSet, FnvHashMap};
 use simple_symbol::Symbol;
 
 use ast::*;
@@ -50,7 +51,7 @@ impl Checker {
         let main_frame = checker.frames.pop()
             .expect("Internal error: missing frame");
 
-        let main_unit = Unit::new(main_frame, main_exp);
+        let main_unit = Unit::new(main_frame, checker.data, main_exp);
         checker.done.push(main_unit);
 
         Ok(checker.done)
@@ -490,7 +491,8 @@ impl Checker {
                     return error(&fun.body.into_span(), TypeError::ReturnMismatch)
                 }
 
-                self.done.push(translate_fun_dec(frame, body_exp));
+                let data = mem::replace(&mut self.data, Vec::new());
+                self.done.push(translate_fun_dec(frame, data, body_exp));
             }
 
             Ok(None)

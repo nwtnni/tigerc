@@ -10,8 +10,8 @@ use unit::Unit;
 use translate::Frame;
 use check::context::Binding;
 
-pub fn translate_fun_dec(frame: Frame, body_exp: ir::Tree) -> Unit {
-    Unit::new(frame, body_exp)
+pub fn translate_fun_dec(frame: Frame, data: Vec<ir::Static>, body_exp: ir::Tree) -> Unit {
+    Unit::new(frame, data, body_exp)
 }
 
 pub fn translate_var_dec(frames: &mut [Frame], name: Symbol, escape: bool, init_exp: ir::Tree) -> ir::Tree {

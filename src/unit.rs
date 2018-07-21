@@ -6,6 +6,7 @@ use operand::*;
 
 #[derive(Debug)]
 pub struct Unit {
+    pub data: Vec<Static>,
     pub label: Label,
     pub prologue: Vec<Stm>,
     pub body: Vec<Stm>,
@@ -14,11 +15,12 @@ pub struct Unit {
 }
 
 impl Unit {
-    pub fn new(frame: Frame, body: Tree) -> Self {
+    pub fn new(frame: Frame, data: Vec<Static>, body: Tree) -> Self {
         let return_temp = Temp::from_str("RETURN");
         let return_reg = Temp::Reg(Reg::get_return());
 
         Unit {
+            data,
             label: frame.label,
             prologue: vec![
                 Stm::Label(Label::from_str("PROLOGUE")),
@@ -44,6 +46,7 @@ impl Unit {
 
     pub fn map(self, f: impl Fn(Vec<Stm>) -> Vec<Stm>) -> Self {
         Unit {
+            data: self.data,
             label: self.label,
             prologue: f(self.prologue),
             body: f(self.body),
