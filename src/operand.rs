@@ -12,7 +12,7 @@ pub struct Imm(i32);
     
 impl fmt::Display for Imm {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, "{}", self.0)
+        write!(fmt, "${}", self.0)
     }
 }
 
@@ -59,7 +59,7 @@ impl fmt::Display for Label {
 
 impl Operand for Label {}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Temp {
     Reg(Reg),
     Temp {
@@ -92,7 +92,7 @@ impl fmt::Display for Temp {
 
 impl Operand for Temp {}
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Reg {
     RAX,
     RBX,
@@ -191,6 +191,7 @@ impl fmt::Display for Scale {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Mem<T: Operand> {
     R(T),
     RO(T, isize),

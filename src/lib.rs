@@ -23,5 +23,6 @@ pub mod token;
 pub mod ast;
 pub mod ty;
 pub mod ir;
+pub mod asm;
 pub mod operand;
 pub mod unit;
