@@ -7,6 +7,15 @@ generate_counter!(TempID, usize);
 
 pub trait Operand: fmt::Display {}
 
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub struct Imm(i32);
+    
+impl fmt::Display for Imm {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(fmt, "{}", self.0)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Label {
     Fixed(Symbol),
@@ -163,7 +172,7 @@ impl fmt::Display for Reg {
 
 impl Operand for Reg {}
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum Scale {
     One,
     Two,
