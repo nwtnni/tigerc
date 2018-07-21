@@ -5,6 +5,8 @@ use simple_symbol::{store, Symbol};
 generate_counter!(LabelID, usize);
 generate_counter!(TempID, usize);
 
+pub trait Operand: fmt::Display {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Label {
     Fixed(Symbol),
@@ -37,6 +39,16 @@ impl Into<Symbol> for Label {
     }
 }
 
+impl fmt::Display for Label {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Label::Fixed(symbol) => write!(fmt, "{}:", symbol),
+        | Label::Unfixed{id, name} => write!(fmt, "{}_{}", name, id),
+        }
+    }
+}
+
+impl Operand for Label {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Temp {
@@ -68,6 +80,8 @@ impl fmt::Display for Temp {
         }
     }
 }
+
+impl Operand for Temp {}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Reg {
@@ -121,5 +135,67 @@ impl Reg {
 
     pub fn get_return() -> Self {
         Reg::RAX
+    }
+}
+
+impl fmt::Display for Reg {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Reg::RAX => write!(fmt, "{}", "%rax"),
+        | Reg::RBX => write!(fmt, "{}", "%rbx"),
+        | Reg::RCX => write!(fmt, "{}", "%rcx"),
+        | Reg::RDX => write!(fmt, "{}", "%rdx"),
+        | Reg::RBP => write!(fmt, "{}", "%rbp"),
+        | Reg::RSP => write!(fmt, "{}", "%rsp"),
+        | Reg::RSI => write!(fmt, "{}", "%rsi"),
+        | Reg::RDI => write!(fmt, "{}", "%rdi"),
+        | Reg::R8  => write!(fmt, "{}", "%r8"),
+        | Reg::R9  => write!(fmt, "{}", "%r9"),
+        | Reg::R10 => write!(fmt, "{}", "%r10"),
+        | Reg::R11 => write!(fmt, "{}", "%r11"),
+        | Reg::R12 => write!(fmt, "{}", "%r12"),
+        | Reg::R13 => write!(fmt, "{}", "%r13"),
+        | Reg::R14 => write!(fmt, "{}", "%r14"),
+        | Reg::R15 => write!(fmt, "{}", "%r15"),
+        }
+    }
+}
+
+impl Operand for Reg {}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum Scale {
+    One,
+    Two,
+    Four,
+    Eight,
+}
+
+impl fmt::Display for Scale {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Scale::One   => write!(fmt, "{}", 1),
+        | Scale::Two   => write!(fmt, "{}", 2),
+        | Scale::Four  => write!(fmt, "{}", 4),
+        | Scale::Eight => write!(fmt, "{}", 8),
+        }
+    }
+}
+
+pub enum Mem<T: Operand> {
+    R(T),
+    RO(T, isize),
+    RSO(T, Scale, isize),
+    BRSO(T, T, Scale, isize),
+}
+
+impl <T: Operand> fmt::Display for Mem<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Mem::R(reg)          => write!(fmt, "({})", reg),
+        | Mem::RO(reg, offset) => write!(fmt, "{}({})", offset, reg),
+        | Mem::RSO(reg, scale, offset) => write!(fmt, "{}(,{},{})", offset, reg, scale),
+        | Mem::BRSO(base, reg, scale, offset) => write!(fmt, "{}({}, {}, {})", offset, base, reg, scale),
+        }
     }
 }

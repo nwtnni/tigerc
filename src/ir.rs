@@ -162,15 +162,6 @@ pub enum Relop {
     Uge,
 }
 
-impl fmt::Display for Label {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-        | Label::Fixed(name) => write!(fmt, "{}", name),
-        | Label::Unfixed{name, id} => write!(fmt, "{}_{}", name, id),
-        }
-    }
-}
-
 impl fmt::Display for Exp {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
