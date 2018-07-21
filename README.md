@@ -14,7 +14,9 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 
 - [x] Type checking
 
-- [ ] IR generation
+- [x] IR translation
+
+- [ ] Abstract assembly generation
 
 ### TODO
 
@@ -40,6 +42,29 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [ ] Upgrade `TypeError` variants with more information
   - [ ] Use `codespan::Label` to display better errors
   - [x] Possibly use macros to clean up repeated code, or reduce the number of `clone` calls
+
+- IR translation
+  - [x] Implement Appel's Tree enum
+  - [x] Implement AST translation functions
+  - [x] Attach AST translation to type checking phase
+  - [x] Implement canonization
+  - [ ] Implement interpreter for testing purposes
+  - [ ] Write test cases for interpreted IR
+  - [ ] Make sure commuting logic is sound (i.e. pure vs. impure expressions)
+  - [x] Implement constant folding
+  - [x] Implement finding escaping variables
+  - [x] Implement static link traversal
+  - [x] Construct control flow graph from canonized IR
+  - [x] Reorder IR using control flow graph to remove unnecessary jumps
+
+- Abstract assembly generation
+  - [x] Design instruction types for assembly
+  - [ ] Implement AT&T and Intel syntax in separate traits for easy swapping
+  - [ ] Implement tiling using maximal munch
+  - [ ] Implement trivial register allocation
+  - [ ] Figure out how to write a C runtime for Tiger
+  - [ ] Clean up command-line interface
+  - [ ] Organize compiler passes into distinct phases (maybe use a Phase trait?)
 
 ### Deviations
 
