@@ -1,3 +1,3 @@
 mod tile;
 
-pub use tile::tile;
+pub use self::tile::tile;

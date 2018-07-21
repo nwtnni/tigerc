@@ -150,22 +150,22 @@ impl Reg {
 impl fmt::Display for Reg {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-        | Reg::RAX => write!(fmt, "{}", "%rax"),
-        | Reg::RBX => write!(fmt, "{}", "%rbx"),
-        | Reg::RCX => write!(fmt, "{}", "%rcx"),
-        | Reg::RDX => write!(fmt, "{}", "%rdx"),
-        | Reg::RBP => write!(fmt, "{}", "%rbp"),
-        | Reg::RSP => write!(fmt, "{}", "%rsp"),
-        | Reg::RSI => write!(fmt, "{}", "%rsi"),
-        | Reg::RDI => write!(fmt, "{}", "%rdi"),
-        | Reg::R8  => write!(fmt, "{}", "%r8"),
-        | Reg::R9  => write!(fmt, "{}", "%r9"),
-        | Reg::R10 => write!(fmt, "{}", "%r10"),
-        | Reg::R11 => write!(fmt, "{}", "%r11"),
-        | Reg::R12 => write!(fmt, "{}", "%r12"),
-        | Reg::R13 => write!(fmt, "{}", "%r13"),
-        | Reg::R14 => write!(fmt, "{}", "%r14"),
-        | Reg::R15 => write!(fmt, "{}", "%r15"),
+        | Reg::RAX => write!(fmt, "%rax"),
+        | Reg::RBX => write!(fmt, "%rbx"),
+        | Reg::RCX => write!(fmt, "%rcx"),
+        | Reg::RDX => write!(fmt, "%rdx"),
+        | Reg::RBP => write!(fmt, "%rbp"),
+        | Reg::RSP => write!(fmt, "%rsp"),
+        | Reg::RSI => write!(fmt, "%rsi"),
+        | Reg::RDI => write!(fmt, "%rdi"),
+        | Reg::R8  => write!(fmt, "%r8"),
+        | Reg::R9  => write!(fmt, "%r9"),
+        | Reg::R10 => write!(fmt, "%r10"),
+        | Reg::R11 => write!(fmt, "%r11"),
+        | Reg::R12 => write!(fmt, "%r12"),
+        | Reg::R13 => write!(fmt, "%r13"),
+        | Reg::R14 => write!(fmt, "%r14"),
+        | Reg::R15 => write!(fmt, "%r15"),
         }
     }
 }
@@ -202,9 +202,9 @@ pub enum Mem<T: Operand> {
 impl <T: Operand> fmt::Display for Mem<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-        | Mem::R(reg)          => write!(fmt, "({})", reg),
-        | Mem::RO(reg, offset) => write!(fmt, "{}({})", offset, reg),
-        | Mem::RSO(reg, scale, offset) => write!(fmt, "{}(,{},{})", offset, reg, scale),
+        | Mem::R(reg)                         => write!(fmt, "({})", reg),
+        | Mem::RO(reg, offset)                => write!(fmt, "{}({})", offset, reg),
+        | Mem::RSO(reg, scale, offset)        => write!(fmt, "{}(,{},{})", offset, reg, scale),
         | Mem::BRSO(base, reg, scale, offset) => write!(fmt, "{}({}, {}, {})", offset, base, reg, scale),
         }
     }
