@@ -21,6 +21,7 @@ pub mod lex;
 pub mod parse;
 pub mod check;
 pub mod translate;
+pub mod interpret;
 pub mod assemble;
 
 pub mod token;
