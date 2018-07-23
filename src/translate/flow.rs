@@ -77,16 +77,21 @@ impl Flow {
         format!("{}", Dot::with_config(&self.graph, &[Config::EdgeNoLabel]))
     }
 
-    fn trace(&self, node: Symbol, map: &mut FnvHashMap<Symbol, usize>) -> usize {
+    fn trace(&self, node: Symbol, map: &mut FnvHashMap<Symbol, usize>, seen: &mut FnvHashSet<Symbol>) -> usize {
+        seen.insert(node);
 
-        let depth = self.graph.neighbors(node)
-            .map(|node| self.trace(node, map) + 1)
+        let neighbors = self.graph.neighbors(node)
+            .filter(|node| !seen.contains(node))
+            .collect::<Vec<_>>();
+
+        let height = neighbors.into_iter()
+            .map(|node| self.trace(node, map, seen) + 1)
             .max()
             .unwrap_or(0);
 
-        map.insert(node, depth);
-
-        depth
+        seen.remove(&node);
+        map.insert(node, height);
+        height
     }
 
     fn remove(&mut self, node: Symbol) -> Option<Vec<Stm>> {
@@ -98,14 +103,15 @@ impl Flow {
 pub fn reorder(ir: Vec<Stm>) -> Vec<Stm> {
 
     let mut flow = Flow::new(ir);
-    let mut depth = FnvHashMap::default();
+    let mut height = FnvHashMap::default();
+    let mut seen = FnvHashSet::default();
     let mut reordered = Vec::new();
-    flow.trace(flow.start, &mut depth);
+    flow.trace(flow.start, &mut height, &mut seen);
 
     while !flow.blocks.is_empty() {
 
         let mut node_symbol = flow.blocks.keys()
-            .max_by_key(|symbol| depth[symbol])
+            .max_by_key(|symbol| height[symbol])
             .cloned()
             .expect("Impossible: blocks is non-empty");
 
@@ -116,7 +122,7 @@ pub fn reorder(ir: Vec<Stm>) -> Vec<Stm> {
 
         while let Some(symbol) = flow.graph
             .neighbors(node_symbol)
-            .max_by_key(|symbol| depth[symbol]) {
+            .max_by_key(|symbol| height[symbol]) {
             
             node_symbol = symbol;
             node_block = flow.remove(node_symbol)
