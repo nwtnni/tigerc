@@ -49,58 +49,83 @@ impl Tiler {
         | Exp::ESeq(_, _) => panic!("Internal error: non-canonical IR"),
 
         // BRSO memory addressing
-        | Exp::Mem(box Binop(box Binop(box Temp(b), ir::Binop::Add, box Binop(box Temp(r), ir::Binop::Mul, box Const(s))), ir::Binop::Add, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Temp(b), ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box Temp(r))), ir::Binop::Add, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Binop(box Temp(r), ir::Binop::Mul, box Const(s)), ir::Binop::Add, box Temp(b)), ir::Binop::Add, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Binop(box Const(s), ir::Binop::Mul, box Temp(r)), ir::Binop::Add, box Temp(b)), ir::Binop::Add, box Const(o)))
-        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Temp(b), ir::Binop::Add, box Binop(box Temp(r), ir::Binop::Mul, box Const(s)))))
-        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Temp(b), ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box Temp(r)))))
-        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Binop(box Temp(r), ir::Binop::Mul, box Const(s)), ir::Binop::Add, box Temp(b))))
-        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Binop(box Const(s), ir::Binop::Mul, box Temp(r)), ir::Binop::Add, box Temp(b)))) => {
-            Value::Mem(Mem::BRSO(*b, *r, Scale::try_from(*s), *o))
+        | Exp::Mem(box Binop(box Binop(box b, ir::Binop::Add, box Binop(box r, ir::Binop::Mul, box Const(s))), ir::Binop::Add, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box b, ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box r)), ir::Binop::Add, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box Binop(box r, ir::Binop::Mul, box Const(s)), ir::Binop::Add, box b), ir::Binop::Add, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box Binop(box Const(s), ir::Binop::Mul, box r), ir::Binop::Add, box b), ir::Binop::Add, box Const(o)))
+        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box b, ir::Binop::Add, box Binop(box r, ir::Binop::Mul, box Const(s)))))
+        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box b, ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box r))))
+        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Binop(box r, ir::Binop::Mul, box Const(s)), ir::Binop::Add, box b)))
+        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Binop(box Const(s), ir::Binop::Mul, box r), ir::Binop::Add, box b))) => {
+            let b = self.tile_exp(b);
+            let r = self.tile_exp(r);
+            Value::Mem(Mem::BRSO(
+                self.into_temp(b),
+                self.into_temp(r),
+                Scale::try_from(*s),
+                *o,
+            ))
         },
-        | Exp::Mem(box Binop(box Binop(box Temp(b), ir::Binop::Add, box Binop(box Temp(r), ir::Binop::Mul, box Const(s))), ir::Binop::Sub, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Temp(b), ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box Temp(r))), ir::Binop::Sub, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Binop(box Temp(r), ir::Binop::Mul, box Const(s)), ir::Binop::Add, box Temp(b)), ir::Binop::Sub, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Binop(box Const(s), ir::Binop::Mul, box Temp(r)), ir::Binop::Add, box Temp(b)), ir::Binop::Sub, box Const(o))) => {
-            Value::Mem(Mem::BRSO(*b, *r, Scale::try_from(*s), -*o))
+        | Exp::Mem(box Binop(box Binop(box b, ir::Binop::Add, box Binop(box r, ir::Binop::Mul, box Const(s))), ir::Binop::Sub, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box b, ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box r)), ir::Binop::Sub, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box Binop(box r, ir::Binop::Mul, box Const(s)), ir::Binop::Add, box b), ir::Binop::Sub, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box Binop(box Const(s), ir::Binop::Mul, box r), ir::Binop::Add, box b), ir::Binop::Sub, box Const(o))) => {
+            let b = self.tile_exp(b);
+            let r = self.tile_exp(r);
+            Value::Mem(Mem::BRSO(
+                self.into_temp(b),
+                self.into_temp(r),
+                Scale::try_from(*s),
+                -*o,
+            ))
         },
 
         // RSO memory addressing
-        | Exp::Mem(box Binop(box Binop(box Temp(r), ir::Binop::Mul, box Const(s)), ir::Binop::Add, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Const(s), ir::Binop::Mul, box Temp(r)), ir::Binop::Add, box Const(o)))
-        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Temp(r), ir::Binop::Mul, box Const(s))))
-        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box Temp(r)))) => {
-            Value::Mem(Mem::RSO(*r, Scale::try_from(*s), *o))
+        | Exp::Mem(box Binop(box Binop(box r, ir::Binop::Mul, box Const(s)), ir::Binop::Add, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box Const(s), ir::Binop::Mul, box r), ir::Binop::Add, box Const(o)))
+        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box r, ir::Binop::Mul, box Const(s))))
+        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Binop(box Const(s), ir::Binop::Mul, box r))) => {
+            let r = self.tile_exp(r);
+            Value::Mem(Mem::RSO(
+                self.into_temp(r),
+                Scale::try_from(*s),
+                *o
+            ))
         }
-        | Exp::Mem(box Binop(box Binop(box Temp(r), ir::Binop::Mul, box Const(s)), ir::Binop::Sub, box Const(o)))
-        | Exp::Mem(box Binop(box Binop(box Const(s), ir::Binop::Mul, box Temp(r)), ir::Binop::Sub, box Const(o))) => {
-            Value::Mem(Mem::RSO(*r, Scale::try_from(*s), -*o))
-        }
-
-        // RO memory addressing
-        | Exp::Mem(box Binop(box Temp(r), ir::Binop::Add, box Const(o)))
-        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box Temp(r))) => {
-            Value::Mem(Mem::RO(*r, *o))
-        },
-        | Exp::Mem(box Binop(box Temp(r), ir::Binop::Sub, box Const(o))) => {
-            Value::Mem(Mem::RO(*r, -*o))
-        },
-
-        // R memory addressing
-        | Exp::Mem(box Temp(r)) => {
-            Value::Mem(Mem::R(*r))
-        }
-
-        // General memory 
-        | Exp::Mem(box mem) => {
-            let value = self.tile_exp(mem);
-
-            Value::Mem(Mem::R(
-                self.into_temp(value)
+        | Exp::Mem(box Binop(box Binop(box r, ir::Binop::Mul, box Const(s)), ir::Binop::Sub, box Const(o)))
+        | Exp::Mem(box Binop(box Binop(box Const(s), ir::Binop::Mul, box r), ir::Binop::Sub, box Const(o))) => {
+            let r = self.tile_exp(r);
+            Value::Mem(Mem::RSO(
+                self.into_temp(r),
+                Scale::try_from(*s),
+                -*o
             ))
         }
 
+        // RO memory addressing
+        | Exp::Mem(box Binop(box r, ir::Binop::Add, box Const(o)))
+        | Exp::Mem(box Binop(box Const(o), ir::Binop::Add, box r)) => {
+            let r = self.tile_exp(r);
+            Value::Mem(Mem::RO(
+                self.into_temp(r),
+                *o
+            ))
+        },
+        | Exp::Mem(box Binop(box r, ir::Binop::Sub, box Const(o))) => {
+            let r = self.tile_exp(r);
+            Value::Mem(Mem::RO(
+                self.into_temp(r),
+                -*o
+            ))
+        },
+
+        // General memory 
+        | Exp::Mem(box r) => {
+            let r = self.tile_exp(r);
+            Value::Mem(Mem::R(
+                self.into_temp(r)
+            ))
+        }
 
         | _ => unimplemented!(),
         }
