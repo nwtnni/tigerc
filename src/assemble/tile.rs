@@ -128,24 +128,36 @@ impl Tiler {
         }
 
         // Negation
-        | Exp::Binop(box Const(0), ir::Binop::Sub, box neg) => {
+        | Exp::Binop(box Const(0), ir::Binop::Sub, box r) => {
+            self.tile_unop(r, asm::Unop::Neg)
+        }
 
-            let neg_tile = self.tile_exp(neg);
+        // Increment
+        | Exp::Binop(box r, ir::Binop::Add, box Const(1))
+        | Exp::Binop(box Const(1), ir::Binop::Add, box r) => {
+            self.tile_unop(r, asm::Unop::Inc)
+        }
 
-            match neg_tile {
-            | Value::Mem(mem) => {
-                self.asm.push(asm::Asm::Un(asm::Unop::Neg, asm::Unary::M(mem)));
-                Value::Mem(mem)
-            },
-            | temp => {
-                let temp = self.into_temp(temp);
-                self.asm.push(asm::Asm::Un(asm::Unop::Neg, asm::Unary::R(temp)));
-                Value::Temp(temp)
-            },
-            }
+        // Decrement
+        | Exp::Binop(box r, ir::Binop::Sub, box Const(1)) => {
+            self.tile_unop(r, asm::Unop::Dec)
         }
 
         | _ => unimplemented!(),
+        }
+    }
+
+    fn tile_unop(&mut self, exp: &Exp, unop: asm::Unop) -> Value {
+        match self.tile_exp(exp) {
+        | Value::Mem(mem) => {
+            self.asm.push(asm::Asm::Un(unop, asm::Unary::M(mem)));
+            Value::Mem(mem)
+        },
+        | tile => {
+            let temp = self.into_temp(tile);
+            self.asm.push(asm::Asm::Un(unop, asm::Unary::R(temp)));
+            Value::Temp(temp)
+        },
         }
     }
 }
