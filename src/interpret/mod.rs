@@ -3,11 +3,13 @@ use fnv::FnvHashMap;
 use ir::*;
 use operand::*;
 
+const MEM_SIZE: usize = 1024;
+
 pub struct Debugger<'ir> {
     ir: &'ir [Stm],
     pc: usize,
     env: FnvHashMap<Temp, i32>,
-    stack: FnvHashMap<usize, i32>,
+    stack: Vec<i32>,
 }
 
 impl <'ir> Debugger<'ir> {
@@ -20,7 +22,7 @@ impl <'ir> Debugger<'ir> {
                 Temp::Reg(Reg::RBP) => 0,            
                 Temp::Reg(Reg::RSP) => 0
             },
-            stack: FnvHashMap::default(),
+            stack: vec![0; MEM_SIZE],
         }
     }
 }
