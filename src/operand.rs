@@ -8,7 +8,7 @@ generate_counter!(TempID, usize);
 pub trait Operand: fmt::Display {}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Imm(i32);
+pub struct Imm(pub i32);
     
 impl fmt::Display for Imm {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -180,6 +180,18 @@ pub enum Scale {
     Eight,
 }
 
+impl Scale {
+    pub fn try_from(i: i32) -> Self {
+        match i {
+        | 1 => Scale::One,
+        | 2 => Scale::Two,
+        | 4 => Scale::Four,
+        | 8 => Scale::Eight,
+        | _ => panic!("Internal error: incorrect scale"),
+        }
+    }
+}
+
 impl fmt::Display for Scale {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
@@ -194,9 +206,9 @@ impl fmt::Display for Scale {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Mem<T: Operand> {
     R(T),
-    RO(T, isize),
-    RSO(T, Scale, isize),
-    BRSO(T, T, Scale, isize),
+    RO(T, i32),
+    RSO(T, Scale, i32),
+    BRSO(T, T, Scale, i32),
 }
 
 impl <T: Operand> fmt::Display for Mem<T> {

@@ -1,3 +1,6 @@
+#![feature(box_patterns)]
+
+
 #[macro_use]
 extern crate simple_counter;
 extern crate simple_symbol;
