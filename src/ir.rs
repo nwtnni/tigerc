@@ -1,5 +1,6 @@
 use std::fmt;
 
+use asm;
 use operand::{Label, Temp};
 
 generate_counter!(StaticID, usize);
@@ -146,6 +147,27 @@ pub enum Binop {
     RShift,
     ARShift,
     XOr,
+}
+
+impl Binop {
+    
+    pub fn is_asm_binop(&self) -> bool {
+        match self {
+        | Binop::Add | Binop::Sub | Binop::And | Binop::Or | Binop::XOr => true,
+        | _ => false,
+        }
+    }
+
+    pub fn into_asm_binop(&self) -> asm::Binop {
+        match self {
+        | Binop::Add => asm::Binop::Add,
+        | Binop::Sub => asm::Binop::Sub,
+        | Binop::And => asm::Binop::And,
+        | Binop::Or => asm::Binop::Or,
+        | Binop::XOr => asm::Binop::XOr,
+        | _ => panic!("Internal error: converting non-asm binop"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -143,6 +143,32 @@ impl Tiler {
             self.tile_unop(r, asm::Unop::Dec)
         }
 
+        | Exp::Binop(box l, op, box r) if op.is_asm_binop() => {
+
+            let l_tile = self.tile_exp(l);
+            let r_tile = self.tile_exp(r);
+
+            let (binary, result) = match (l_tile, r_tile) {
+            | (Value::Imm(imm),     Value::Temp(temp))   => (asm::Binary::IR(imm, temp), Value::Temp(temp)),
+            | (Value::Imm(imm),     Value::Mem(mem))     => (asm::Binary::IM(imm, mem), Value::Mem(mem)),
+            | (Value::Temp(temp),   Value::Mem(mem))     => (asm::Binary::RM(temp, mem), Value::Mem(mem)), 
+            | (Value::Mem(mem),     Value::Temp(temp))   => (asm::Binary::MR(mem, temp), Value::Temp(temp)),
+            | (Value::Temp(temp_a), Value::Temp(temp_b)) => (asm::Binary::RR(temp_a, temp_b), Value::Temp(temp_b)),
+            | (Value::Mem(mem_a),   Value::Mem(mem_b))   => {
+                let temp_b = self.into_temp(Value::Mem(mem_b));
+                (asm::Binary::MR(mem_a, temp_b), Value::Temp(temp_b))
+            },
+            | (temp_a, temp_b) => {
+                let temp_a = self.into_temp(temp_a);
+                let temp_b = self.into_temp(temp_b);
+                (asm::Binary::RR(temp_a, temp_b), Value::Temp(temp_b))
+            }
+            };
+            
+            self.asm.push(asm::Asm::Bin(op.into_asm_binop(), binary));
+            result
+        }
+
         | _ => unimplemented!(),
         }
     }
@@ -153,8 +179,8 @@ impl Tiler {
             self.asm.push(asm::Asm::Un(unop, asm::Unary::M(mem)));
             Value::Mem(mem)
         },
-        | tile => {
-            let temp = self.into_temp(tile);
+        | temp => {
+            let temp = self.into_temp(temp);
             self.asm.push(asm::Asm::Un(unop, asm::Unary::R(temp)));
             Value::Temp(temp)
         },
