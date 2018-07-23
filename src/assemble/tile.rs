@@ -40,12 +40,12 @@ impl Tiler {
 
     fn tile_exp(&mut self, exp: &Exp) -> Value {
 
-        use ir::Exp::{Binop, Const, Name, Temp};
+        use ir::Exp::{Binop, Const};
 
         match exp {
-        | Const(n) => Value::Imm(Imm(*n)),
-        | Name(l)  => Value::Label(*l),
-        | Temp(t)  => Value::Temp(*t),
+        | Exp::Const(n) => Value::Imm(Imm(*n)),
+        | Exp::Name(l)  => Value::Label(*l),
+        | Exp::Temp(t)  => Value::Temp(*t),
         | Exp::ESeq(_, _) => panic!("Internal error: non-canonical IR"),
 
         // BRSO memory addressing
@@ -119,7 +119,7 @@ impl Tiler {
             ))
         },
 
-        // General memory 
+        // General memory
         | Exp::Mem(box r) => {
             let r = self.tile_exp(r);
             Value::Mem(Mem::R(
@@ -127,9 +127,25 @@ impl Tiler {
             ))
         }
 
-        | _ => unimplemented!(),
+        // Negation
+        | Exp::Binop(box Const(0), ir::Binop::Sub, box neg) => {
+
+            let neg_tile = self.tile_exp(neg);
+
+            match neg_tile {
+            | Value::Mem(mem) => {
+                self.asm.push(asm::Asm::Un(asm::Unop::Neg, asm::Unary::M(mem)));
+                Value::Mem(mem)
+            },
+            | temp => {
+                let temp = self.into_temp(temp);
+                self.asm.push(asm::Asm::Un(asm::Unop::Neg, asm::Unary::R(temp)));
+                Value::Temp(temp)
+            },
+            }
         }
 
+        | _ => unimplemented!(),
+        }
     }
-
 }
