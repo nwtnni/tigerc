@@ -19,23 +19,35 @@ impl Unit {
         let return_temp = Temp::from_str("RETURN");
         let return_reg = Temp::Reg(Reg::get_return());
 
+        let prologue_label = Label::from_str("PROLOGUE");
+        let body_label = Label::from_str("BODY");
+        let epilogue_label = Label::from_str("EPILOGUE");
+
         Unit {
             data,
             label: frame.label,
             prologue: vec![
-                Stm::Label(Label::from_str("PROLOGUE")),
+                Stm::Label(prologue_label),
                 Stm::Seq(frame.prologue),
+                Stm::Jump(
+                    Exp::Name(body_label),
+                    vec![body_label]
+                ),
             ],
             size: frame.size,
             body: vec![
-                Stm::Label(Label::from_str("BODY")),
+                Stm::Label(body_label),
                 Stm::Move(
                     body.into(),
                     Exp::Temp(return_temp)
                 ),
+                Stm::Jump(
+                    Exp::Name(epilogue_label),
+                    vec![epilogue_label]
+                ),
             ],
             epilogue: vec![
-                Stm::Label(Label::from_str("EPILOGUE")),
+                Stm::Label(epilogue_label),
                 Stm::Move(
                     Exp::Temp(return_temp),
                     Exp::Temp(return_reg),

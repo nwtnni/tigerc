@@ -30,6 +30,7 @@ impl Flow {
                 let symbol = label.into();
                 start = start.or_else(|| Some(symbol));
                 header = Some(symbol);
+                block.push(stm);
             },
             | Stm::Jump(Exp::Name(label), _) => {
 
@@ -37,6 +38,7 @@ impl Flow {
                     .expect("Internal error: missing header for block");
 
                 graph.add_edge(current, label.into(), Void {});
+                block.push(stm);
                 blocks.insert(current, block);
 
                 block = Vec::new();
@@ -49,22 +51,21 @@ impl Flow {
 
                 graph.add_edge(current, t_label.into(), Void {});
                 graph.add_edge(current, f_label.into(), Void {});
+                block.push(stm);
                 blocks.insert(current, block);
 
                 block = Vec::new();
                 header = None;
             },
-            _ => (),
+            _ => block.push(stm),
             }
 
-            block.push(stm);
         }
 
         // TODO: decide on prologue/body/epilogue boundary w.r.t. control flow analysis
-        blocks.insert(
-            header.expect("Internal error: no trailing block"),
-            block,
-        );
+        if let Some(header) = header {
+            blocks.insert(header, block);
+        }
 
         Flow {
             start: start.expect("Internal error: missing start label"),
