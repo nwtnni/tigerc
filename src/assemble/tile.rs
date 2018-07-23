@@ -46,6 +46,7 @@ impl Tiler {
         | Const(n) => Value::Imm(Imm(*n)),
         | Name(l)  => Value::Label(*l),
         | Temp(t)  => Value::Temp(*t),
+        | Exp::ESeq(_, _) => panic!("Internal error: non-canonical IR"),
 
         // BRSO memory addressing
         | Exp::Mem(box Binop(box Binop(box Temp(b), ir::Binop::Add, box Binop(box Temp(r), ir::Binop::Mul, box Const(s))), ir::Binop::Add, box Const(o)))
