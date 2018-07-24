@@ -42,6 +42,10 @@ impl Tiler {
 
         match stm {
         | Stm::Exp(_) => panic!("Internal error: no Exp statement in canonical IR"),
+        | Stm::Seq(_) => panic!("Internal error: no Seq statement in canonical IR"),
+        | Stm::Comment(_) => unimplemented!(),
+        | Stm::Label(l) => self.asm.push(asm::Asm::Label(*l)),
+        | Stm::Jump(Exp::Name(label), _) => self.asm.push(asm::Asm::Jmp(*label)),
         | Stm::Move(l, r) => {
             let l_tile = self.tile_exp(l); 
             let r_tile = self.tile_exp(r); 
@@ -64,16 +68,9 @@ impl Tiler {
             self.asm.push(asm::Asm::Mov(binary));
 
         },
-        | Stm::Jump(Exp::Name(label), _) => {
-
-            self.asm.push(asm::Asm::Jmp(*label));
-
-        }
 
         | _ => unimplemented!(),
         }
-
-
     }
 
     fn tile_exp(&mut self, exp: &Exp) -> Value {
