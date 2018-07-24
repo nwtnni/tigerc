@@ -16,6 +16,7 @@ pub enum Asm<T: Operand> {
     Jmp(Label),
     Jcc(Relop, Label),
     Call(Label),
+    Label(Label),
     Cqo,
     Ret,
 }
@@ -78,6 +79,7 @@ impl <T: Operand> fmt::Display for Asm<T> {
         | Asm::Jmp(name)     => write!(fmt, "jmp {}", name),
         | Asm::Jcc(op, name) => write!(fmt, "j{} {}", op,  name),
         | Asm::Call(name)    => write!(fmt, "callq {}", name),
+        | Asm::Label(label)  => write!(fmt, "{}:", label),
         | Asm::Cqo           => write!(fmt, "cqo"),
         | Asm::Ret           => write!(fmt, "retq"),
         }
