@@ -168,6 +168,13 @@ impl Binop {
         | _ => panic!("Internal error: converting non-asm binop"),
         }
     }
+
+    pub fn is_asm_div_mul(&self) -> bool {
+        match self {
+        | Binop::Div | Binop::Mul => true,
+        | _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
