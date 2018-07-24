@@ -41,6 +41,7 @@ impl Tiler {
     fn tile_stm(&mut self, stm: &Stm) {
 
         match stm {
+        | Stm::Exp(_) => panic!("Internal error: no Exp statement in canonical IR"),
         | Stm::Move(l, r) => {
             let l_tile = self.tile_exp(l); 
             let r_tile = self.tile_exp(r); 
@@ -63,6 +64,11 @@ impl Tiler {
             self.asm.push(asm::Asm::Mov(binary));
 
         },
+        | Stm::Jump(Exp::Name(label), _) => {
+
+            self.asm.push(asm::Asm::Jmp(*label));
+
+        }
 
         | _ => unimplemented!(),
         }
@@ -78,7 +84,7 @@ impl Tiler {
         | Exp::Const(n) => Value::Imm(Imm(*n)),
         | Exp::Name(l)  => Value::Label(*l),
         | Exp::Temp(t)  => Value::Temp(*t),
-        | Exp::ESeq(_, _) => panic!("Internal error: non-canonical IR"),
+        | Exp::ESeq(_, _) => panic!("Internal error: no ESeq expression in canonical IR"),
 
         // BRSO memory addressing
         | Exp::Mem(box Binop(box Binop(box b, ir::Binop::Add, box Binop(box r, ir::Binop::Mul, box Const(s))), ir::Binop::Add, box Const(o)))
