@@ -29,4 +29,3 @@ pub mod ty;
 pub mod ir;
 pub mod asm;
 pub mod operand;
-pub mod unit;

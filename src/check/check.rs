@@ -6,7 +6,6 @@ use simple_symbol::Symbol;
 use ast::*;
 use ir;
 use ty::*;
-use unit::Unit;
 use operand::Label;
 use check::context::{Binding, VarContext, TypeContext};
 use check::escape::trap_ast;
@@ -21,7 +20,7 @@ fn error<T>(span: &Span, err: TypeError) -> Result<T, Error> {
 }
 
 pub struct Checker {
-    done: Vec<Unit>,
+    done: Vec<ir::Unit>,
     data: Vec<ir::Static>,
     loops: Vec<Label>,
     frames: Vec<Frame>,
@@ -31,7 +30,7 @@ pub struct Checker {
 
 impl Checker {
 
-    pub fn check(ast: &mut Exp) -> Result<Vec<Unit>, Error> {
+    pub fn check(ast: &mut Exp) -> Result<Vec<ir::Unit>, Error> {
         let main = Frame::new(
             Label::from_fixed("main"),
             Vec::new(),
@@ -51,7 +50,7 @@ impl Checker {
         let main_frame = checker.frames.pop()
             .expect("Internal error: missing frame");
 
-        let main_unit = Unit::new(main_frame, checker.data, main_exp);
+        let main_unit = ir::Unit::new(main_frame, checker.data, main_exp);
         checker.done.push(main_unit);
 
         Ok(checker.done)
