@@ -1,5 +1,6 @@
 use asm;
 use asm::Value;
+use config::WORD_SIZE;
 use ir;
 use ir::*;
 use operand::*;
@@ -11,6 +12,7 @@ pub fn tile(ir: &[Stm]) -> asm::Unit<Temp> {
 
 struct Tiler {
     asm: Vec<asm::Asm<Temp>>,
+    spilled_args: usize,
 }
 
 impl Tiler {
@@ -45,7 +47,7 @@ impl Tiler {
             self.asm.push(asm::Asm::Mov(binary));
         },
         | Stm::CJump(l, op, r, t, _) => {
-            let binary = self.tile_binary(l, r);  
+            let binary = self.tile_binary(l, r);
             self.asm.push(asm::Asm::Cmp(binary));
             self.asm.push(asm::Asm::Jcc(op.into(), *t));
         },
@@ -215,6 +217,69 @@ impl Tiler {
 
             Value::Reg(res)
         }
+        | Exp::Call(box Exp::Name(label), args) => {
+
+            let mut arg_offset = 0;
+            let return_temp = Temp::from_str("TILE_CALL");
+
+            for (i, arg) in args.into_iter().enumerate() {
+
+                // Dedicated register for first six arguments
+                let binary = match self.tile_exp(arg) {
+                | Value::Mem(mem) if i < 6 => {
+                    asm::Binary::MR(
+                        mem,
+                        Temp::Reg(Reg::get_argument(i)),
+                    )
+                }
+                | temp if i < 6 => {
+                    asm::Binary::RR(
+                        self.into_temp(temp),
+                        Temp::Reg(Reg::get_argument(i)),
+                    )
+                }
+
+                // Spill arguments onto stack
+                //
+                //       ---------
+                //       | ARG 9 |
+                //       ---------
+                //       | ARG 8 |
+                //       ---------
+                //       | ARG 7 |
+                // RSP   ---------
+                //       |       |
+                //       ---------
+                | temp => {
+
+                    let temp = self.into_temp(temp);
+                    arg_offset += 1;
+
+                    asm::Binary::RM(
+                        temp,
+                        Mem::RO(
+                            Temp::Reg(Reg::RSP),
+                            arg_offset as i32 * WORD_SIZE,
+                        ),
+                    )
+                },
+                };
+
+                self.asm.push(asm::Asm::Mov(binary));
+            }
+
+            self.spilled_args = usize::max(self.spilled_args, arg_offset);
+            self.asm.push(asm::Asm::Call(*label));
+            self.asm.push(asm::Asm::Mov(
+                asm::Binary::RR(
+                    Temp::Reg(Reg::get_return()),
+                    return_temp
+                )
+            ));
+
+            Value::Reg(return_temp)
+        }
+        | Exp::Call(_, _) => panic!("Internal error: calling non-label"),
 
         | _ => unimplemented!(),
         }
