@@ -5,16 +5,8 @@ use simple_symbol::{store, Symbol};
 generate_counter!(LabelID, usize);
 generate_counter!(TempID, usize);
 
-pub trait Operand: fmt::Display {}
-
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Imm(pub i32);
-    
-impl fmt::Display for Imm {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, "${}", self.0)
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Label {
@@ -48,17 +40,6 @@ impl Into<Symbol> for Label {
     }
 }
 
-impl fmt::Display for Label {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-        | Label::Fixed(symbol) => write!(fmt, "{}:", symbol),
-        | Label::Unfixed{id, name} => write!(fmt, "{}_{}", name, id),
-        }
-    }
-}
-
-impl Operand for Label {}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Temp {
     Reg(Reg),
@@ -80,17 +61,6 @@ impl Temp {
         Temp::Reg(reg)
     }
 }
-
-impl fmt::Display for Temp {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-        | Temp::Temp{id, name} => write!(fmt, "TEMP_{}_{}", name, id),
-        | Temp::Reg(reg)       => write!(fmt, "TEMP_{:?}", reg),
-        }
-    }
-}
-
-impl Operand for Temp {}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Reg {
@@ -147,6 +117,47 @@ impl Reg {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub enum Scale {
+    One,
+    Two,
+    Four,
+    Eight,
+}
+
+impl Scale {
+    pub fn try_from(i: i32) -> Self {
+        match i {
+        | 1 => Scale::One,
+        | 2 => Scale::Two,
+        | 4 => Scale::Four,
+        | 8 => Scale::Eight,
+        | _ => panic!("Internal error: incorrect scale"),
+        }
+    }
+}
+
+pub trait Operand: fmt::Display {}
+impl Operand for Temp {}
+impl Operand for Reg {}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Mem<T: Operand> {
+    R(T),
+    RO(T, i32),
+    RSO(T, Scale, i32),
+    BRSO(T, T, Scale, i32),
+}
+
+impl fmt::Display for Temp {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Temp::Temp{id, name} => write!(fmt, "TEMP_{}_{}", name, id),
+        | Temp::Reg(reg)       => write!(fmt, "TEMP_{:?}", reg),
+        }
+    }
+}
+    
 impl fmt::Display for Reg {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
@@ -170,24 +181,17 @@ impl fmt::Display for Reg {
     }
 }
 
-impl Operand for Reg {}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub enum Scale {
-    One,
-    Two,
-    Four,
-    Eight,
+impl fmt::Display for Imm {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(fmt, "${}", self.0)
+    }
 }
 
-impl Scale {
-    pub fn try_from(i: i32) -> Self {
-        match i {
-        | 1 => Scale::One,
-        | 2 => Scale::Two,
-        | 4 => Scale::Four,
-        | 8 => Scale::Eight,
-        | _ => panic!("Internal error: incorrect scale"),
+impl fmt::Display for Label {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Label::Fixed(symbol) => write!(fmt, "{}:", symbol),
+        | Label::Unfixed{id, name} => write!(fmt, "{}_{}", name, id),
         }
     }
 }
@@ -201,14 +205,6 @@ impl fmt::Display for Scale {
         | Scale::Eight => write!(fmt, "{}", 8),
         }
     }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Mem<T: Operand> {
-    R(T),
-    RO(T, i32),
-    RSO(T, Scale, i32),
-    BRSO(T, T, Scale, i32),
 }
 
 impl <T: Operand> fmt::Display for Mem<T> {
