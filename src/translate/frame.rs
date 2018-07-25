@@ -39,7 +39,7 @@ impl Access {
 pub struct Frame {
     pub label: Label,
     pub prologue: Vec<ir::Stm>,
-    pub size: usize,
+    pub escapes: usize,
     offset: i32,
     map: FnvHashMap<Symbol, Access>,
 }
@@ -50,13 +50,13 @@ impl Frame {
         let mut map = FnvHashMap::default();
         let mut prologue = Vec::new();
         let mut offset = 0;
-        let mut size = 0;
+        let mut escapes = 0;
 
         for (i, (name, escape)) in args.iter().enumerate() {
             let from = Frame::get_argument(i);
             let to = if *escape {
                 offset -= 1;
-                size += 1;
+                escapes += 1;
                 Access::Frame(offset)
             } else {
                 Access::Reg(Temp::from_str("ARG"))
@@ -71,7 +71,7 @@ impl Frame {
             prologue,
             map,
             offset,
-            size,
+            escapes,
         }
     }
 
@@ -83,7 +83,7 @@ impl Frame {
         let rbp = ir::Exp::Temp(Temp::Reg(Reg::RBP));
         let access = if escape {
             self.offset -= 1;
-            self.size += 1;
+            self.escapes += 1;
             Access::Frame(self.offset)
         } else {
             Access::Reg(

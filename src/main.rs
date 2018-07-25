@@ -116,7 +116,7 @@ impl Compiler {
         for unit in units {
             let unit = unit.map(canonize).map(fold).map(reorder).map(condense);
             println!("{}", unit);
-            let flow = Flow::new(unit.into());
+            let flow = Flow::new(unit.body);
             println!("{}", flow.export());
         }
     }
