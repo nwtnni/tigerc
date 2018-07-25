@@ -3,7 +3,7 @@ use ir;
 use ir::*;
 use operand::*;
 
-pub fn tile(ir: &[Stm]) -> Vec<asm::Asm<Temp>> {
+pub fn tile(ir: &[Stm]) -> asm::Unit<Temp> {
 
     unimplemented!()
 }

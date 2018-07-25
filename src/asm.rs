@@ -2,6 +2,14 @@ use std::fmt;
 
 use operand::*;
 
+pub struct Unit<T: Operand> {
+    asm: Vec<Asm<T>>,
+}
+
+impl <T: Operand> Unit<T> {
+
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Asm<T: Operand> {
     Mov(Binary<T>),
