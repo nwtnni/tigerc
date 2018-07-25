@@ -19,6 +19,7 @@ impl Unit {
             label: frame.label,
             escapes: frame.escapes,
             body: vec![
+                Stm::Label(frame.label),
                 Stm::Seq(frame.prologue),
                 Stm::Move(
                     body.into(),

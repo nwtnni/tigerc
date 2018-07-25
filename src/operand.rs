@@ -191,7 +191,7 @@ impl fmt::Display for Imm {
 impl fmt::Display for Label {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-        | Label::Fixed(symbol) => write!(fmt, "{}:", symbol),
+        | Label::Fixed(symbol) => write!(fmt, "{}", symbol),
         | Label::Unfixed{id, name} => write!(fmt, "{}_{}", name, id),
         }
     }
