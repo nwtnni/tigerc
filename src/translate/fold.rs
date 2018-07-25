@@ -45,10 +45,7 @@ fn fold_binop(lhs_exp: &Exp, op: &Binop, rhs_exp: &Exp) -> Exp {
     | (Exp::Const(0),   Binop::Or,      rhs          ) => rhs,
     | (lhs,             Binop::Add,     Exp::Const(0))
     | (lhs,             Binop::Sub,     Exp::Const(0))
-    | (lhs,             Binop::Or ,     Exp::Const(0))
-    | (lhs,             Binop::LShift,  Exp::Const(0))
-    | (lhs,             Binop::RShift,  Exp::Const(0))
-    | (lhs,             Binop::ARShift, Exp::Const(0)) => lhs,
+    | (lhs,             Binop::Or ,     Exp::Const(0)) => lhs,
     | (Exp::Const(0),   Binop::Mul,     _            )
     | (_            ,   Binop::Mul,     Exp::Const(0))
     | (Exp::Const(0),   Binop::And,     _            )
@@ -62,9 +59,6 @@ fn fold_binop(lhs_exp: &Exp, op: &Binop, rhs_exp: &Exp) -> Exp {
         | Binop::Div => lhs / rhs,
         | Binop::And => lhs & rhs,
         | Binop::Or  => lhs | rhs,
-        | Binop::LShift => lhs << rhs,
-        | Binop::RShift => (lhs as u32 >> rhs) as i32,
-        | Binop::ARShift => lhs >> rhs,
         | Binop::XOr => lhs ^ rhs,
         };
 

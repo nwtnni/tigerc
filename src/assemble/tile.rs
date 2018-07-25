@@ -184,7 +184,7 @@ impl Tiler {
         }
 
         // Mul, Div
-        | Exp::Binop(box l, op, box r) if op.is_asm_div_mul() => {
+        | Exp::Binop(box l, op, box r) => {
 
             let l_tile = self.tile_exp(l);
             let r_tile = self.tile_exp(r);
@@ -281,7 +281,6 @@ impl Tiler {
         }
         | Exp::Call(_, _) => panic!("Internal error: calling non-label"),
 
-        | _ => unimplemented!(),
         }
     }
 

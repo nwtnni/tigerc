@@ -217,14 +217,10 @@ pub enum Binop {
     Div,
     And,
     Or,
-    LShift,
-    RShift,
-    ARShift,
     XOr,
 }
 
 impl Binop {
-    
     pub fn is_asm_binop(&self) -> bool {
         match self {
         | Binop::Add | Binop::Sub | Binop::And | Binop::Or | Binop::XOr => true,
@@ -240,13 +236,6 @@ impl Binop {
         | Binop::Or => asm::Binop::Or,
         | Binop::XOr => asm::Binop::XOr,
         | _ => panic!("Internal error: converting non-asm binop"),
-        }
-    }
-
-    pub fn is_asm_div_mul(&self) -> bool {
-        match self {
-        | Binop::Div | Binop::Mul => true,
-        | _ => false,
         }
     }
 }
@@ -329,9 +318,6 @@ impl fmt::Display for Binop {
         | Binop::Div     => write!(fmt, "DIV"),
         | Binop::And     => write!(fmt, "LAND"),
         | Binop::Or      => write!(fmt, "LOR"),
-        | Binop::LShift  => write!(fmt, "LSHIFT"),
-        | Binop::RShift  => write!(fmt, "RSHIFT"),
-        | Binop::ARShift => write!(fmt, "ARSHIFT"),
         | Binop::XOr     => write!(fmt, "XOR"),
         }
     }
