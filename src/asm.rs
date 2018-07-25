@@ -1,5 +1,6 @@
 use std::fmt;
 
+use ir;
 use operand::*;
 
 pub struct Unit<T: Operand> {
@@ -28,7 +29,7 @@ pub enum Asm<T: Operand> {
     Pop(Unary<T>),
     Push(Unary<T>),
     Lea(Mem<T>, T),
-    Cmp(Relop, Binary<T>),
+    Cmp(Binary<T>),
     Jmp(Label),
     Jcc(Relop, Label),
     Call(Label),
@@ -58,9 +59,9 @@ impl <T: Operand> Binary<T> {
     pub fn dest(&self) -> Value<T> {
         match self {
         | Binary::IR(_, dest)
-        | Binary::RR(_, dest) 
+        | Binary::RR(_, dest)
         | Binary::MR(_, dest) => Value::Reg(*dest),
-        | Binary::IM(_, dest) 
+        | Binary::IM(_, dest)
         | Binary::RM(_, dest) => Value::Mem(*dest),
         }
     }
@@ -76,7 +77,7 @@ pub enum Unary<T: Operand> {
 pub enum Unop {
     Inc,
     Dec,
-    Not, 
+    Not,
     Neg,
 }
 
@@ -93,11 +94,23 @@ pub enum Binop {
 pub enum Relop {
     E,
     Ne,
-    Z,
     G,
     Ge,
     L,
     Le,
+}
+
+impl <'a> From<&'a ir::Relop> for Relop {
+    fn from(relop: &'a ir::Relop) -> Self {
+        match relop {
+        | ir::Relop::Eq => Relop::E,
+        | ir::Relop::Ne => Relop::Ne,
+        | ir::Relop::Lt => Relop::L,
+        | ir::Relop::Gt => Relop::G,
+        | ir::Relop::Le => Relop::Le,
+        | ir::Relop::Ge => Relop::Ge,
+        }
+    }
 }
 
 impl <T: Operand> fmt::Display for Asm<T> {
@@ -111,7 +124,7 @@ impl <T: Operand> fmt::Display for Asm<T> {
         | Asm::Pop(un)       => write!(fmt, "popq {}", un),
         | Asm::Push(un)      => write!(fmt, "pushq {}", un),
         | Asm::Lea(mem, reg) => write!(fmt, "leaq {}, {}", mem, reg),
-        | Asm::Cmp(op, bin)  => write!(fmt, "j{} {}", op, bin),
+        | Asm::Cmp(bin)      => write!(fmt, "cmpq {}", bin),
         | Asm::Jmp(name)     => write!(fmt, "jmp {}", name),
         | Asm::Jcc(op, name) => write!(fmt, "j{} {}", op,  name),
         | Asm::Call(name)    => write!(fmt, "callq {}", name),
@@ -171,7 +184,6 @@ impl fmt::Display for Relop {
         match self {
         | Relop::E  => write!(fmt, "e"),
         | Relop::Ne => write!(fmt, "ne"),
-        | Relop::Z  => write!(fmt, "z"),
         | Relop::G  => write!(fmt, "g"),
         | Relop::Ge => write!(fmt, "ge"),
         | Relop::L  => write!(fmt, "l"),

@@ -259,11 +259,9 @@ pub enum Relop {
     Gt,
     Le,
     Ge,
-    Ult,
-    Ule,
-    Ugt,
-    Uge,
 }
+
+
 
 impl fmt::Display for Unit {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -348,10 +346,6 @@ impl fmt::Display for Relop {
         | Relop::Gt  => write!(fmt, "GT"),
         | Relop::Le  => write!(fmt, "LE"),
         | Relop::Ge  => write!(fmt, "GE"),
-        | Relop::Ult => write!(fmt, "ULT"),
-        | Relop::Ule => write!(fmt, "ULE"),
-        | Relop::Ugt => write!(fmt, "UGT"),
-        | Relop::Uge => write!(fmt, "UGE"),
         }
     }
 }

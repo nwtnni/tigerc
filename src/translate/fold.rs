@@ -124,10 +124,6 @@ fn fold_cjump(lhs_exp: &Exp, op: &Relop, rhs_exp: &Exp, t: &Label, f: &Label) ->
         | Relop::Gt  => lhs >  rhs,
         | Relop::Le  => lhs <= rhs,
         | Relop::Ge  => lhs >= rhs,
-        | Relop::Ult => (*lhs as u32) <  (*rhs as u32),
-        | Relop::Ule => (*lhs as u32) <= (*rhs as u32),
-        | Relop::Ugt => (*lhs as u32) >  (*rhs as u32),
-        | Relop::Uge => (*lhs as u32) >= (*rhs as u32),
         };
 
         let target = if result { *t } else { *f };
