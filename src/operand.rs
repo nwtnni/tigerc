@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash;
 
 use simple_symbol::{store, Symbol};
 
@@ -137,7 +138,7 @@ impl Scale {
     }
 }
 
-pub trait Operand: fmt::Display {}
+pub trait Operand: fmt::Display + Copy + Clone + fmt::Debug + PartialEq + Eq + hash::Hash {}
 impl Operand for Temp {}
 impl Operand for Reg {}
 

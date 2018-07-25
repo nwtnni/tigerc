@@ -10,6 +10,14 @@ impl <T: Operand> Unit<T> {
 
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Value<T: Operand> {
+    Reg(T),
+    Mem(Mem<T>),
+    Imm(Imm),
+    Label(Label),
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Asm<T: Operand> {
     Mov(Binary<T>),
@@ -36,6 +44,26 @@ pub enum Binary<T: Operand> {
     RM(T, Mem<T>),
     MR(Mem<T>, T),
     RR(T, T),
+}
+
+impl <T: Operand> Binary<T> {
+    pub fn source(&self) -> Value<T> {
+        match self {
+        | Binary::IR(src, _) | Binary::IM(src, _) => Value::Imm(*src),
+        | Binary::RM(src, _) | Binary::RR(src, _) => Value::Reg(*src),
+        | Binary::MR(src, _) => Value::Mem(*src),
+        }
+    }
+
+    pub fn dest(&self) -> Value<T> {
+        match self {
+        | Binary::IR(_, dest)
+        | Binary::RR(_, dest) 
+        | Binary::MR(_, dest) => Value::Reg(*dest),
+        | Binary::IM(_, dest) 
+        | Binary::RM(_, dest) => Value::Mem(*dest),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

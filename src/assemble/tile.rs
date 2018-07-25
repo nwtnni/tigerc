@@ -1,4 +1,5 @@
 use asm;
+use asm::Value;
 use ir;
 use ir::*;
 use operand::*;
@@ -8,22 +9,15 @@ pub fn tile(ir: &[Stm]) -> asm::Unit<Temp> {
     unimplemented!()
 }
 
-pub enum Value {
-    Temp(Temp),
-    Mem(Mem<Temp>),
-    Imm(Imm),
-    Label(Label),
-}
-
 struct Tiler {
     asm: Vec<asm::Asm<Temp>>,
 }
 
 impl Tiler {
 
-    fn into_temp(&mut self, value: Value) -> Temp {
+    fn into_temp(&mut self, value: Value<Temp>) -> Temp {
         match value {
-        | Value::Temp(temp) => temp,
+        | Value::Reg(temp) => temp,
         | Value::Mem(mem) => {
             let temp = Temp::from_str("TILE_MEM");
             self.asm.push(asm::Asm::Mov(asm::Binary::MR(mem, temp)));
@@ -51,9 +45,9 @@ impl Tiler {
             let r_tile = self.tile_exp(r); 
 
             let binary = match (l_tile, r_tile) {
-            | (Value::Imm(imm), Value::Temp(temp)) => asm::Binary::IR(imm, temp),
+            | (Value::Imm(imm), Value::Reg(temp)) => asm::Binary::IR(imm, temp),
             | (Value::Imm(imm), Value::Mem(mem))   => asm::Binary::IM(imm, mem),
-            | (Value::Mem(mem), Value::Temp(temp)) => asm::Binary::MR(mem, temp),
+            | (Value::Mem(mem), Value::Reg(temp)) => asm::Binary::MR(mem, temp),
             | (temp, Value::Mem(mem)) => {
                 let temp = self.into_temp(temp);
                 asm::Binary::RM(temp, mem)
@@ -68,19 +62,18 @@ impl Tiler {
             self.asm.push(asm::Asm::Mov(binary));
 
         },
-
         | _ => unimplemented!(),
         }
     }
 
-    fn tile_exp(&mut self, exp: &Exp) -> Value {
+    fn tile_exp(&mut self, exp: &Exp) -> Value<Temp> {
 
         use ir::Exp::{Binop, Const};
 
         match exp {
         | Exp::Const(n) => Value::Imm(Imm(*n)),
         | Exp::Name(l)  => Value::Label(*l),
-        | Exp::Temp(t)  => Value::Temp(*t),
+        | Exp::Temp(t)  => Value::Reg(*t),
         | Exp::ESeq(_, _) => panic!("Internal error: no ESeq expression in canonical IR"),
 
         // BRSO memory addressing
@@ -185,17 +178,17 @@ impl Tiler {
             let r_tile = self.tile_exp(r);
 
             let (binary, result) = match (l_tile, r_tile) {
-            | (Value::Imm(imm),   Value::Temp(temp)) => (asm::Binary::IR(imm, temp), Value::Temp(temp)),
+            | (Value::Imm(imm),   Value::Reg(temp)) => (asm::Binary::IR(imm, temp), Value::Reg(temp)),
             | (Value::Imm(imm),   Value::Mem(mem))   => (asm::Binary::IM(imm, mem), Value::Mem(mem)),
-            | (Value::Temp(temp), Value::Mem(mem))   => (asm::Binary::RM(temp, mem), Value::Mem(mem)), 
+            | (Value::Reg(temp), Value::Mem(mem))   => (asm::Binary::RM(temp, mem), Value::Mem(mem)), 
             | (Value::Mem(mem),   temp)              => {
                 let temp = self.into_temp(temp);
-                (asm::Binary::MR(mem, temp), Value::Temp(temp))
+                (asm::Binary::MR(mem, temp), Value::Reg(temp))
             },
             | (temp_a, temp_b) => {
                 let temp_a = self.into_temp(temp_a);
                 let temp_b = self.into_temp(temp_b);
-                (asm::Binary::RR(temp_a, temp_b), Value::Temp(temp_b))
+                (asm::Binary::RR(temp_a, temp_b), Value::Reg(temp_b))
             }
             };
             
@@ -235,14 +228,14 @@ impl Tiler {
 
             self.asm.push(asm::Asm::Mov(asm::Binary::RR(rax, res)));
 
-            Value::Temp(res)
+            Value::Reg(res)
         }
 
         | _ => unimplemented!(),
         }
     }
 
-    fn tile_unop(&mut self, exp: &Exp, unop: asm::Unop) -> Value {
+    fn tile_unop(&mut self, exp: &Exp, unop: asm::Unop) -> Value<Temp> {
         match self.tile_exp(exp) {
         | Value::Mem(mem) => {
             self.asm.push(asm::Asm::Un(unop, asm::Unary::M(mem)));
@@ -251,7 +244,7 @@ impl Tiler {
         | temp => {
             let temp = self.into_temp(temp);
             self.asm.push(asm::Asm::Un(unop, asm::Unary::R(temp)));
-            Value::Temp(temp)
+            Value::Reg(temp)
         },
         }
     }
