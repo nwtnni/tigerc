@@ -3,11 +3,8 @@ extern crate codespan;
 extern crate codespan_reporting;
 extern crate tigerc;
 
-use std::fs::File;
-use std::io::prelude::*;
 use std::path::PathBuf;
 
-use codespan::{FileMap, CodeMap};
 use codespan_reporting::emit;
 use codespan_reporting::termcolor::{StandardStream, ColorChoice};
 use structopt::StructOpt;

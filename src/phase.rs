@@ -6,7 +6,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use codespan::{CodeMap, FileMap};
-use codespan_reporting::emit;
 
 use ast;
 use ir;
