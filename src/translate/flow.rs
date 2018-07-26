@@ -138,20 +138,39 @@ pub fn reorder(unit: Unit) -> Unit {
 
 pub fn condense(unit: Unit) -> Unit {
 
-    let mut condense = FnvHashSet::default();
+    let body_len = unit.body.len();
+    let mut condensed = Vec::new();
 
-    for i in 0..unit.body.len() {
-        match (unit.body.get(i), unit.body.get(i + 1)) {
-        | (Some(Stm::Jump(Exp::Name(target), _)), Some(Stm::Label(label))) if target == label => {},
-        | _ => { condense.insert(i); },
+    for i in 0..body_len {
+        if i == body_len - 1 {
+            condensed.push(unit.body[i].clone()); 
+            break
+        }
+
+        match (&unit.body[i], &unit.body[i + 1]) {
+        | (Stm::Jump(Exp::Name(j_label), _), Stm::Label(label)) if j_label == label => (),
+        | (Stm::CJump(_, _, _, _, f_label), Stm::Label(label)) if f_label == label => {
+            condensed.push(unit.body[i].clone())  
+        }
+        | (Stm::CJump(l, op, r, t_label, f_label), Stm::Label(label)) if t_label == label => {
+            condensed.push(Stm::CJump(l.clone(), op.negate(), r.clone(), *f_label, *t_label));
+        }
+        | (Stm::CJump(l, op, r, t_label, f_label), _) => {
+            let label = Label::from_str("CONDENSE_CJUMP");
+            condensed.push(Stm::CJump(l.clone(), *op, r.clone(), *t_label, label));
+            condensed.push(Stm::Label(label));
+            condensed.push(Stm::Jump(Exp::Name(*f_label), vec![*f_label]));
+        }
+        | _ => {
+            condensed.push(unit.body[i].clone())  
+        },
         }
     }
 
-    unit.map(|body| {
-        body.into_iter()
-            .enumerate()
-            .filter(|(i, _)| condense.contains(i))
-            .map(|(_, stm)| stm)
-            .collect()
-    })
+    Unit {
+        data: unit.data,
+        label: unit.label,
+        body: condensed,
+        escapes: unit.escapes,
+    }
 }
