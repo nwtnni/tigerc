@@ -1,10 +1,12 @@
 use ir::*;
 use operand::Label;
 
-pub fn fold(ir: Vec<Stm>) -> Vec<Stm> {
-    ir.into_iter()
-        .map(|stm| fold_stm(&stm))
-        .collect()
+pub fn fold(unit: Unit) -> Unit {
+    unit.map(|body| {
+        body.into_iter()
+            .map(|stm| fold_stm(&stm))
+            .collect()
+    })
 }
 
 fn fold_exp(exp: &Exp) -> Exp {

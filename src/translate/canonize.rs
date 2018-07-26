@@ -1,6 +1,19 @@
 use ir::*;
 use operand::Temp;
 
+pub fn canonize(unit: Unit) -> Unit {
+    unit.map(|body| {
+        body.into_iter()
+            .map(|stm| canonize_stm(stm))
+            .map(|(_, stms)| stms)
+            .fold(vec![], |mut all_stms, mut stms| {
+                all_stms.append(&mut stms);
+                all_stms
+            })
+        }
+    )
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 enum Purity {
     Pure,
@@ -26,16 +39,6 @@ impl Purity {
         | _                                => false,
         }
     }
-}
-
-pub fn canonize(ir: Vec<Stm>) -> Vec<Stm> {
-    ir.into_iter()
-        .map(|stm| canonize_stm(stm))
-        .map(|(_, stms)| stms)
-        .fold(vec![], |mut all_stms, mut stms| {
-            all_stms.append(&mut stms);
-            all_stms
-        })
 }
 
 fn canonize_exp(exp: Exp) -> (Purity, Exp, Vec<Stm>) {

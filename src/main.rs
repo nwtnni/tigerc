@@ -114,9 +114,13 @@ impl Compiler {
 
     fn translate(units: Vec<Unit>) {
         for unit in units {
-            let unit = unit.map(canonize).map(fold).map(reorder).map(condense);
+            let unit = unit
+                .and_then(canonize)
+                .and_then(fold)
+                .and_then(reorder)
+                .and_then(condense);
             println!("{}", unit);
-            let flow = Flow::new(unit.body);
+            let flow = Flow::new(unit.label, unit.body);
             println!("{}", flow.export());
         }
     }

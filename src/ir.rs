@@ -19,7 +19,6 @@ impl Unit {
             label: frame.label,
             escapes: frame.escapes,
             body: vec![
-                Stm::Label(frame.label),
                 Stm::Seq(frame.prologue),
                 Stm::Move(
                     body.into(),
@@ -36,6 +35,10 @@ impl Unit {
             body: f(self.body),
             escapes: self.escapes,
         }
+    }
+
+    pub fn and_then(self, f: impl Fn(Self) -> Self) -> Self {
+        f(self)
     }
 }
 

@@ -5,6 +5,7 @@ use petgraph::dot::*;
 
 use ir::*;
 use util::Void;
+use operand::Label;
 
 #[derive(Debug)]
 pub struct Flow {
@@ -15,12 +16,11 @@ pub struct Flow {
 
 impl Flow {
 
-    pub fn new(ir: Vec<Stm>) -> Flow {
+    pub fn new(start: Label, ir: Vec<Stm>) -> Flow {
         let mut graph = DiGraphMap::default();
         let mut blocks = FnvHashMap::default();
 
-        let mut start: Option<Symbol> = None;
-        let mut header: Option<Symbol> = None;
+        let mut header: Option<Symbol> = Some(start.into());
         let mut block = Vec::new();
 
         for stm in ir {
@@ -28,7 +28,6 @@ impl Flow {
             match stm {
             | Stm::Label(label) => {
                 let symbol = label.into();
-                start = start.or_else(|| Some(symbol));
                 header = Some(symbol);
                 block.push(stm);
             },
@@ -62,16 +61,12 @@ impl Flow {
 
         }
 
-        // TODO: decide on prologue/body/epilogue boundary w.r.t. control flow analysis
-        if let Some(header) = header {
-            blocks.insert(header, block);
-        }
+        blocks.insert(
+            header.expect("Internal error: missing final header"),
+            block
+        );
 
-        Flow {
-            start: start.expect("Internal error: missing start label"),
-            graph,
-            blocks
-        }
+        Flow { start: start.into(), graph, blocks }
     }
 
     pub fn export(&self) -> String {
@@ -101,9 +96,9 @@ impl Flow {
     }
 }
 
-pub fn reorder(ir: Vec<Stm>) -> Vec<Stm> {
+pub fn reorder(unit: Unit) -> Unit {
 
-    let mut flow = Flow::new(ir);
+    let mut flow = Flow::new(unit.label, unit.body);
     let mut height = FnvHashMap::default();
     let mut seen = FnvHashSet::default();
     let mut reordered = Vec::new();
@@ -133,23 +128,30 @@ pub fn reorder(ir: Vec<Stm>) -> Vec<Stm> {
         }
     }
 
-    reordered
+    Unit {
+        data: unit.data,
+        label: unit.label,
+        body: reordered,
+        escapes: unit.escapes,
+    }
 }
 
-pub fn condense(ir: Vec<Stm>) -> Vec<Stm> {
+pub fn condense(unit: Unit) -> Unit {
 
     let mut condense = FnvHashSet::default();
 
-    for i in 0..ir.len() {
-        match (ir.get(i), ir.get(i + 1)) {
+    for i in 0..unit.body.len() {
+        match (unit.body.get(i), unit.body.get(i + 1)) {
         | (Some(Stm::Jump(Exp::Name(target), _)), Some(Stm::Label(label))) if target == label => {},
         | _ => { condense.insert(i); },
         }
     }
 
-    ir.into_iter()
-        .enumerate()
-        .filter(|(i, _)| condense.contains(i))
-        .map(|(_, stm)| stm)
-        .collect()
+    unit.map(|body| {
+        body.into_iter()
+            .enumerate()
+            .filter(|(i, _)| condense.contains(i))
+            .map(|(_, stm)| stm)
+            .collect()
+    })
 }
