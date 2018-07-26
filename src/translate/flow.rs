@@ -1,5 +1,4 @@
 use fnv::{FnvHashSet, FnvHashMap};
-use simple_symbol::Symbol;
 use petgraph::prelude::*;
 use petgraph::dot::*;
 

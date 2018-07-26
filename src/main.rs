@@ -17,7 +17,7 @@ use tigerc::parse::Parser;
 use tigerc::lex::TokenStream;
 use tigerc::error::Error;
 use tigerc::check::Checker;
-use tigerc::translate::{canonize, fold, Flow, reorder, condense, clean};
+use tigerc::translate::{canonize, fold, reorder, condense, clean};
 use tigerc::assemble::tile;
 use tigerc::ir::Unit;
 
