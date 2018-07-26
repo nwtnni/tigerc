@@ -1,3 +1,4 @@
+use std::iter;
 use simple_symbol::store;
 
 use asm;
@@ -48,7 +49,18 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
         asm: prologue.into_iter()
             .chain(tiler.asm.into_iter())
             .chain(epilogue.into_iter())
-            .collect()
+            .collect(),
+
+        rodata: ir.rodata.into_iter()
+            .flat_map(|data| {
+                iter::once(
+                        asm::Asm::Direct(asm::Direct::Local(data.label))
+                    ).chain(iter::once(
+                        asm::Asm::Direct(asm::Direct::Ascii(data.data))
+                    ))
+            }).collect(),
+
+        stack_size: ir.escapes + tiler.spilled_args,
     }
 }
 

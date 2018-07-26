@@ -1,4 +1,5 @@
 use std::fmt;
+use simple_symbol::Symbol;
 
 use asm;
 use translate::Frame;
@@ -6,16 +7,16 @@ use operand::*;
 
 #[derive(Debug)]
 pub struct Unit {
-    pub data: Vec<Static>,
+    pub rodata: Vec<Static>,
     pub label: Label,
     pub body: Vec<Stm>,
     pub escapes: usize,
 }
 
 impl Unit {
-    pub fn new(frame: Frame, data: Vec<Static>, body: Tree) -> Self {
+    pub fn new(frame: Frame, rodata: Vec<Static>, body: Tree) -> Self {
         Unit {
-            data,
+            rodata,
             label: frame.label,
             escapes: frame.escapes,
             body: vec![
@@ -30,7 +31,7 @@ impl Unit {
 
     pub fn map(self, f: impl Fn(Vec<Stm>) -> Vec<Stm>) -> Self {
         Unit {
-            data: self.data,
+            rodata: self.rodata,
             label: self.label,
             body: f(self.body),
             escapes: self.escapes,
@@ -47,21 +48,17 @@ generate_counter!(StaticID, usize);
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Static {
     id: usize,
-    label: Label,
-    data: String,
+    pub label: Label,
+    pub data: Symbol,
 }
 
 impl Static {
-    pub fn new(data: String) -> Self {
+    pub fn new(data: Symbol) -> Self {
         Static {
             id: StaticID::next(),
             label: Label::from_str("STRING"),
             data,
         }
-    }
-
-    pub fn label(&self) -> Label {
-        self.label
     }
 }
 

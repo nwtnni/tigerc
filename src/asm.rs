@@ -6,10 +6,8 @@ use operand::*;
 
 pub struct Unit<T: Operand> {
     pub asm: Vec<Asm<T>>,
-}
-
-impl <T: Operand> Unit<T> {
-
+    pub rodata: Vec<Asm<T>>,
+    pub stack_size: usize,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -165,9 +163,9 @@ impl fmt::Display for Direct {
         | Direct::Local(label)  => write!(fmt, ".local {}", label),
         | Direct::Global(label) => write!(fmt, ".globl {}", label),
         | Direct::Align(n)      => write!(fmt, ".align {}", n),
-        | Direct::Ascii(s)      => write!(fmt, ".asciz \"{}\0\"", s),
         | Direct::ROData        => write!(fmt, ".rodata"),
         | Direct::Text          => write!(fmt, ".text"),
+        | Direct::Ascii(s)      => write!(fmt, "    .asciz \"{}\0\"", s),
         }
     }
 }

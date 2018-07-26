@@ -111,8 +111,8 @@ pub fn translate_int(n: i32) -> ir::Tree {
 }
 
 pub fn translate_str(data: &mut Vec<ir::Static>, string: &str) -> ir::Tree {
-    let string = ir::Static::new(string.to_string());
-    let label = string.label();
+    let string = ir::Static::new(store(string));
+    let label = string.label;
     data.push(string);
     ir::Exp::Name(label).into()
 }
