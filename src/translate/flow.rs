@@ -54,7 +54,7 @@ impl Flow {
                 blocks.insert(current, block);
 
                 block = Vec::new();
-                header = None;
+                header = Some(f_label.into());
             },
             _ => block.push(stm),
             }
