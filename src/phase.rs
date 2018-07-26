@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use codespan::{CodeMap, FileMap};
+use codespan_reporting::emit;
 
 use ast;
 use ir;
@@ -62,7 +63,7 @@ impl Compiler {
         }
     }
 
-    pub fn run(mut self) {
+    pub fn run(mut self) -> Result<Item, Error> {
         let map = self.code.add_filemap_from_disk(&self.path)
             .expect("Internal error: IO")
             .clone();
@@ -75,7 +76,7 @@ impl Compiler {
         phases.into_iter()
             .try_fold(Item::Source(map), |item, phase| {
                 phase.process(&self, item)
-            });
+            })
     }
 
     fn write(&self, ext: &'static str, item: &Result<Item, Error>) {
@@ -84,8 +85,8 @@ impl Compiler {
             .expect("Internal error: IO");
 
         match item {
-        | Ok(item) => write!(outfile, "{}", item),
-        | Err(err) => write!(outfile, "{}", err.to_debug(&self.code)),
+        | Ok(item) => write!(outfile, "{}", item).expect("Internal error: IO"),
+        | Err(err) => write!(outfile, "{}", err.to_debug(&self.code)).expect("Internal error: IO"),
         };
     }
 }
