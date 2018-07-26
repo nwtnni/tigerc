@@ -215,6 +215,18 @@ pub enum Relop {
     Ge,
 }
 
+impl Relop {
+    pub fn negate(&self) -> Self {
+        match self {
+        | Relop::Eq => Relop::Ne,
+        | Relop::Ne => Relop::Eq,
+        | Relop::Lt => Relop::Ge,
+        | Relop::Gt => Relop::Le,
+        | Relop::Le => Relop::Gt,
+        | Relop::Ge => Relop::Lt,
+        }
+    }
+}
 
 
 impl fmt::Display for Unit {
