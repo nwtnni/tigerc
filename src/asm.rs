@@ -36,8 +36,19 @@ pub enum Asm<T: Operand> {
     Call(Label),
     Label(Label),
     Comment(Symbol),
+    Direct(Direct),
     Cqo,
     Ret,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Direct {
+    Local(Label),
+    Global(Label),
+    Align(i32), 
+    Ascii(Symbol),
+    ROData,
+    Text,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -139,10 +150,24 @@ impl <T: Operand> fmt::Display for Asm<T> {
         | Asm::Jmp(name)        => write!(fmt, "    jmp {}", name),
         | Asm::Jcc(op, name)    => write!(fmt, "    j{} {}", op,  name),
         | Asm::Call(name)       => write!(fmt, "    callq {}", name),
-        | Asm::Label(label)     => write!(fmt, "{}:", label),
-        | Asm::Comment(comment) => write!(fmt, "# {}", comment),
         | Asm::Cqo              => write!(fmt, "    cqo"),
         | Asm::Ret              => write!(fmt, "    retq"),
+        | Asm::Direct(direct)   => write!(fmt, "{}", direct),
+        | Asm::Label(label)     => write!(fmt, "{}:", label),
+        | Asm::Comment(comment) => write!(fmt, "# {}", comment),
+        }
+    }
+}
+
+impl fmt::Display for Direct {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+        | Direct::Local(label)  => write!(fmt, ".local {}", label),
+        | Direct::Global(label) => write!(fmt, ".globl {}", label),
+        | Direct::Align(n)      => write!(fmt, ".align {}", n),
+        | Direct::Ascii(s)      => write!(fmt, ".asciz \"{}\0\"", s),
+        | Direct::ROData        => write!(fmt, ".rodata"),
+        | Direct::Text          => write!(fmt, ".text"),
         }
     }
 }

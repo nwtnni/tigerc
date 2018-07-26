@@ -19,6 +19,7 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
     let store_r15 = Temp::from_str("STORE_R15");
 
     let prologue = vec![
+        asm::Asm::Label(ir.label),
         asm::Asm::Push(asm::Unary::R(Temp::Reg(Reg::RBP))),
         asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RSP), Temp::Reg(Reg::RBP))),
         asm::Asm::Comment(store("REPLACE WITH RSP SUBTRACTION")),
