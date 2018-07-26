@@ -25,6 +25,7 @@ pub enum Item {
     Source(Arc<FileMap>),
     Tokens(lex::TokenStream),
     Syntax(ast::Exp),
+    Typed(Vec<ir::Unit>),
     Intermediate(Vec<ir::Unit>),
     Abstract(Vec<asm::Unit<Temp>>),
     Assembly(Vec<asm::Unit<Reg>>),
@@ -36,6 +37,7 @@ impl fmt::Display for Item {
         | Item::Source(_) => panic!("Internal error: printing source"),
         | Item::Tokens(stream) => write!(fmt, "{}", stream),
         | Item::Syntax(ast) => write!(fmt, "{}", ast),
+        | Item::Typed(_) => write!(fmt, "Valid Tiger Program"),
         | Item::Intermediate(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
         | Item::Abstract(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
         | Item::Assembly(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
@@ -63,7 +65,12 @@ impl Compiler {
         }
     }
 
-    pub fn run(mut self) -> Result<Item, Error> {
+    pub fn with_phase(mut self, phase: Box<Phase>) -> Self {
+        self.phases.push(phase);
+        self
+    }
+
+    pub fn run(&mut self) -> Result<Item, Error> {
         let map = self.code.add_filemap_from_disk(&self.path)
             .expect("Internal error: IO")
             .clone();
@@ -77,6 +84,10 @@ impl Compiler {
             .try_fold(Item::Source(map), |item, phase| {
                 phase.process(&self, item)
             })
+    }
+
+    pub fn code(&self) -> &CodeMap {
+        &self.code
     }
 
     fn write(&self, ext: &'static str, item: &Result<Item, Error>) {
@@ -95,6 +106,8 @@ macro_rules! impl_phase {
     ($phase:ident, $ext:expr, $item:pat => $result:expr) => {
         impl Phase for $phase {
             fn process(&self, compiler: &Compiler, input: Item) -> Result<Item, Error> {
+                if self.1 { return Ok(input) }
+
                 match input {
                 | $item => {
                     let result = $result;
@@ -105,29 +118,49 @@ macro_rules! impl_phase {
                 }
             }
         }
+
+        impl $phase {
+            pub fn new(diagnostics: bool) -> Box<Self> {
+                Box::new($phase(diagnostics, false))
+            }
+
+            pub fn maybe(diagnostics: bool, disable: bool) -> Box<Self> {
+                Box::new($phase(diagnostics, disable))
+            }
+        }
     }
 }
 
-pub struct Lex(bool);
+pub struct Lex(pub bool, pub bool);
 
 impl_phase! (Lex, "lexed", Item::Source(source) => {
     lex::lex(source).map(|tokens| Item::Tokens(tokens)) 
 });
 
-pub struct Parse(bool);
+pub struct Parse(pub bool, pub bool);
 
 impl_phase! (Parse, "parsed", Item::Tokens(tokens) => {
     parse::parse(tokens).map(|ast| Item::Syntax(ast))
 });
 
 
-pub struct Type(bool);
+pub struct Type(pub bool, pub bool);
 
 impl_phase! (Type, "typed", Item::Syntax(ast) => {
-    check::check(ast).map(|ir| Item::Intermediate(ir))
+    check::check(ast).map(|ir| Item::Typed(ir))
 });
 
-pub struct Fold(bool);
+pub struct Canonize(pub bool, pub bool);
+
+impl_phase! (Canonize, "canonized", Item::Typed(units) => {
+    Ok(Item::Intermediate(
+        units.into_iter()
+            .map(|unit| unit.and_then(translate::canonize))
+            .collect()
+    ))
+});
+
+pub struct Fold(pub bool, pub bool);
 
 impl_phase! (Fold, "folded", Item::Intermediate(units) => {
     Ok(Item::Intermediate(
@@ -137,19 +170,9 @@ impl_phase! (Fold, "folded", Item::Intermediate(units) => {
     ))
 });
 
-pub struct Canonize(bool);
+pub struct Reorder(pub bool, pub bool);
 
-impl_phase! (Canonize, "canonized", Item::Intermediate(units) => {
-    Ok(Item::Intermediate(
-        units.into_iter()
-            .map(|unit| unit.and_then(translate::canonize))
-            .collect()
-    ))
-});
-
-pub struct Condense(bool);
-
-impl_phase! (Condense, "condensed", Item::Intermediate(units) => {
+impl_phase! (Reorder, "reordered", Item::Intermediate(units) => {
     Ok(Item::Intermediate(
         units.into_iter()
             .map(|unit| unit.and_then(translate::reorder))
@@ -159,7 +182,7 @@ impl_phase! (Condense, "condensed", Item::Intermediate(units) => {
     ))
 });
 
-pub struct Tile(bool);
+pub struct Tile(pub bool, pub bool);
 
 impl_phase! (Tile, "tiled", Item::Intermediate(units) => {
     Ok(Item::Abstract(
