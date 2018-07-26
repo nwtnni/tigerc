@@ -73,7 +73,11 @@ impl Tiler {
             self.asm.push(asm::Asm::Mov(asm::Binary::IR(imm, temp)));
             temp
         }
-        | _ => unimplemented!(),
+        | Value::Label(label) => {
+            let temp = Temp::from_str("TILE_LABEL");
+            self.asm.push(asm::Asm::Mov(asm::Binary::LR(label, temp)));
+            temp
+        }
         }
     }
 
