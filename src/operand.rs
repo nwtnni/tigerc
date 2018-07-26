@@ -9,7 +9,7 @@ generate_counter!(TempID, usize);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Imm(pub i32);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Label {
     Fixed(Symbol),
     Unfixed {

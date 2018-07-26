@@ -9,9 +9,9 @@ use operand::Label;
 
 #[derive(Debug)]
 pub struct Flow {
-    start: Symbol,
-    graph: DiGraphMap<Symbol, Void>,
-    blocks: FnvHashMap<Symbol, Vec<Stm>>,
+    start: Label,
+    graph: DiGraphMap<Label, Void>,
+    blocks: FnvHashMap<Label, Vec<Stm>>,
 }
 
 impl Flow {
@@ -20,14 +20,14 @@ impl Flow {
         let mut graph = DiGraphMap::default();
         let mut blocks = FnvHashMap::default();
 
-        let mut header: Option<Symbol> = Some(start.into());
+        let mut header: Option<Label> = Some(start);
         let mut block = Vec::new();
 
         for stm in ir {
 
             match stm {
             | Stm::Label(label) => {
-                let symbol = label.into();
+                let symbol = label;
                 header = Some(symbol);
                 block.push(stm);
             },
@@ -36,7 +36,7 @@ impl Flow {
                 let current = header
                     .expect("Internal error: missing header for block");
 
-                graph.add_edge(current, label.into(), Void {});
+                graph.add_edge(current, label, Void {});
                 block.push(stm);
                 blocks.insert(current, block);
 
@@ -48,13 +48,13 @@ impl Flow {
                 let current = header
                     .expect("Internal error: missing header for block");
 
-                graph.add_edge(current, t_label.into(), Void {});
-                graph.add_edge(current, f_label.into(), Void {});
+                graph.add_edge(current, t_label, Void {});
+                graph.add_edge(current, f_label, Void {});
                 block.push(stm);
                 blocks.insert(current, block);
 
                 block = Vec::new();
-                header = Some(f_label.into());
+                header = Some(f_label);
             },
             _ => block.push(stm),
             }
@@ -66,14 +66,14 @@ impl Flow {
             block
         );
 
-        Flow { start: start.into(), graph, blocks }
+        Flow { start, graph, blocks }
     }
 
     pub fn export(&self) -> String {
         format!("{}", Dot::with_config(&self.graph, &[Config::EdgeNoLabel]))
     }
 
-    fn trace(&self, node: Symbol, map: &mut FnvHashMap<Symbol, usize>, seen: &mut FnvHashSet<Symbol>) -> usize {
+    fn trace(&self, node: Label, map: &mut FnvHashMap<Label, usize>, seen: &mut FnvHashSet<Label>) -> usize {
         seen.insert(node);
 
         let neighbors = self.graph.neighbors(node)
@@ -90,7 +90,7 @@ impl Flow {
         height
     }
 
-    fn remove(&mut self, node: Symbol) -> Option<Vec<Stm>> {
+    fn remove(&mut self, node: Label) -> Option<Vec<Stm>> {
         self.graph.remove_node(node);
         self.blocks.remove(&node)
     }
