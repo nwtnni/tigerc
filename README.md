@@ -60,7 +60,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 - Abstract assembly generation
   - [x] Design instruction types for assembly
   - [ ] Implement AT&T and Intel syntax in separate traits for easy swapping
-  - [ ] Implement tiling using maximal munch
+  - [x] Implement tiling using maximal munch
   - [ ] Implement trivial register allocation
   - [ ] Figure out how to write a C runtime for Tiger
   - [ ] Clean up command-line interface
