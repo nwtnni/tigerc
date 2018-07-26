@@ -118,26 +118,6 @@ impl Reg {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub enum Scale {
-    One,
-    Two,
-    Four,
-    Eight,
-}
-
-impl Scale {
-    pub fn try_from(i: i32) -> Self {
-        match i {
-        | 1 => Scale::One,
-        | 2 => Scale::Two,
-        | 4 => Scale::Four,
-        | 8 => Scale::Eight,
-        | _ => panic!("Internal error: incorrect scale"),
-        }
-    }
-}
-
 pub trait Operand: fmt::Display + Copy + Clone + fmt::Debug + PartialEq + Eq + hash::Hash {}
 impl Operand for Temp {}
 impl Operand for Reg {}
@@ -146,8 +126,6 @@ impl Operand for Reg {}
 pub enum Mem<T: Operand> {
     R(T),
     RO(T, i32),
-    RSO(T, Scale, i32),
-    BRSO(T, T, Scale, i32),
 }
 
 impl fmt::Display for Temp {
@@ -197,24 +175,11 @@ impl fmt::Display for Label {
     }
 }
 
-impl fmt::Display for Scale {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-        | Scale::One   => write!(fmt, "{}", 1),
-        | Scale::Two   => write!(fmt, "{}", 2),
-        | Scale::Four  => write!(fmt, "{}", 4),
-        | Scale::Eight => write!(fmt, "{}", 8),
-        }
-    }
-}
-
 impl <T: Operand> fmt::Display for Mem<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
         | Mem::R(reg)                         => write!(fmt, "({})", reg),
         | Mem::RO(reg, offset)                => write!(fmt, "{}({})", offset, reg),
-        | Mem::RSO(reg, scale, offset)        => write!(fmt, "{}(,{},{})", offset, reg, scale),
-        | Mem::BRSO(base, reg, scale, offset) => write!(fmt, "{}({}, {}, {})", offset, base, reg, scale),
         }
     }
 }
