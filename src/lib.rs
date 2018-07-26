@@ -16,6 +16,7 @@ pub mod util;
 pub mod config;
 pub mod error;
 pub mod span;
+pub mod phase;
 
 pub mod lex;
 pub mod parse;

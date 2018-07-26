@@ -64,7 +64,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [ ] Implement trivial register allocation
   - [ ] Figure out how to write a C runtime for Tiger
   - [ ] Clean up command-line interface
-  - [ ] Organize compiler passes into distinct phases (maybe use a Phase trait?)
+  - [x] Organize compiler passes into distinct phases (maybe use a Phase trait?)
 
 ### Deviations
 

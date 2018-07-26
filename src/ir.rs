@@ -38,7 +38,7 @@ impl Unit {
         }
     }
 
-    pub fn and_then(self, f: impl Fn(Self) -> Self) -> Self {
+    pub fn and_then<T>(self, f: impl Fn(Self) -> T) -> T {
         f(self)
     }
 }

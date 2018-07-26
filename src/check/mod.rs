@@ -2,4 +2,10 @@ pub mod context;
 mod check;
 mod escape;
 
-pub use self::check::Checker;
+use ir;
+use ast;
+use error;
+
+pub fn check(mut ast: ast::Exp) -> Result<Vec<ir::Unit>, error::Error> {
+    self::check::Checker::check(&mut ast)
+}
