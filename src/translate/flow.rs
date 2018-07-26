@@ -174,3 +174,27 @@ pub fn condense(unit: Unit) -> Unit {
         escapes: unit.escapes,
     }
 }
+
+pub fn clean(unit: Unit) -> Unit {
+
+    let mut used = FnvHashSet::default();
+
+    for stm in &unit.body {
+        match stm {
+        | Stm::Jump(Exp::Name(label), _) => { used.insert(*label); },
+        | Stm::CJump(_, _, _, label, _)  => { used.insert(*label); },
+        | _ => (),
+        }
+    }
+
+    unit.map(|body| {
+        body.into_iter()
+            .filter(|stm| {
+                match stm {
+                | Stm::Label(label) => used.contains(&label),
+                | _ => true,
+                }
+            })
+            .collect()
+    })
+}
