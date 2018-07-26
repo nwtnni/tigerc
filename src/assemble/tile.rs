@@ -1,3 +1,5 @@
+use simple_symbol::store;
+
 use asm;
 use asm::Value;
 use config::WORD_SIZE;
@@ -38,7 +40,7 @@ impl Tiler {
         match stm {
         | Stm::Exp(_) => panic!("Internal error: no Exp statement in canonical IR"),
         | Stm::Seq(_) => panic!("Internal error: no Seq statement in canonical IR"),
-        | Stm::Comment(_) => unimplemented!(),
+        | Stm::Comment(s) => self.asm.push(asm::Asm::Comment(store(s))),
         | Stm::Label(l) => self.asm.push(asm::Asm::Label(*l)),
         | Stm::Jump(Exp::Name(label), _) => self.asm.push(asm::Asm::Jmp(*label)),
         | Stm::Jump(_, _) => panic!("Internal error: can only jump to labels"),

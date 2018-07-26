@@ -1,4 +1,5 @@
 use std::fmt;
+use simple_symbol::Symbol;
 
 use ir;
 use operand::*;
@@ -34,6 +35,7 @@ pub enum Asm<T: Operand> {
     Jcc(Relop, Label),
     Call(Label),
     Label(Label),
+    Comment(Symbol),
     Cqo,
     Ret,
 }
@@ -116,21 +118,22 @@ impl <'a> From<&'a ir::Relop> for Relop {
 impl <T: Operand> fmt::Display for Asm<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-        | Asm::Mov(bin)      => write!(fmt, "movq {}", bin),
-        | Asm::Bin(op, bin)  => write!(fmt, "{} {}", op, bin),
-        | Asm::Mul(un)       => write!(fmt, "imulq {}", un),
-        | Asm::Div(un)       => write!(fmt, "idivq {}", un),
-        | Asm::Un(op, un)    => write!(fmt, "{} {}", op, un),
-        | Asm::Pop(un)       => write!(fmt, "popq {}", un),
-        | Asm::Push(un)      => write!(fmt, "pushq {}", un),
-        | Asm::Lea(mem, reg) => write!(fmt, "leaq {}, {}", mem, reg),
-        | Asm::Cmp(bin)      => write!(fmt, "cmpq {}", bin),
-        | Asm::Jmp(name)     => write!(fmt, "jmp {}", name),
-        | Asm::Jcc(op, name) => write!(fmt, "j{} {}", op,  name),
-        | Asm::Call(name)    => write!(fmt, "callq {}", name),
-        | Asm::Label(label)  => write!(fmt, "{}:", label),
-        | Asm::Cqo           => write!(fmt, "cqo"),
-        | Asm::Ret           => write!(fmt, "retq"),
+        | Asm::Mov(bin)         => write!(fmt, "movq {}", bin),
+        | Asm::Bin(op, bin)     => write!(fmt, "{} {}", op, bin),
+        | Asm::Mul(un)          => write!(fmt, "imulq {}", un),
+        | Asm::Div(un)          => write!(fmt, "idivq {}", un),
+        | Asm::Un(op, un)       => write!(fmt, "{} {}", op, un),
+        | Asm::Pop(un)          => write!(fmt, "popq {}", un),
+        | Asm::Push(un)         => write!(fmt, "pushq {}", un),
+        | Asm::Lea(mem, reg)    => write!(fmt, "leaq {}, {}", mem, reg),
+        | Asm::Cmp(bin)         => write!(fmt, "cmpq {}", bin),
+        | Asm::Jmp(name)        => write!(fmt, "jmp {}", name),
+        | Asm::Jcc(op, name)    => write!(fmt, "j{} {}", op,  name),
+        | Asm::Call(name)       => write!(fmt, "callq {}", name),
+        | Asm::Label(label)     => write!(fmt, "{}:", label),
+        | Asm::Comment(comment) => write!(fmt, "# {}", comment),
+        | Asm::Cqo              => write!(fmt, "cqo"),
+        | Asm::Ret              => write!(fmt, "retq"),
         }
     }
 }
