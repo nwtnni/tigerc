@@ -111,7 +111,7 @@ macro_rules! impl_phase {
 pub struct Lex(bool);
 
 impl_phase! (Lex, "lexed", Item::Source(source) => {
-    lex::TokenStream::from(source).map(|tokens| Item::Tokens(tokens)) 
+    lex::lex(source).map(|tokens| Item::Tokens(tokens)) 
 });
 
 pub struct Parse(bool);

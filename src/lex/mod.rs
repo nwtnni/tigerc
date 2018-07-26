@@ -9,32 +9,25 @@ use self::lexer::Lexer;
 use error::Error;
 use token::Token;
 
+pub fn lex(source: Arc<FileMap>) -> Result<TokenStream, Error> {
+    let mut tokens = Vec::new();
+    {
+        let mut lexer = Lexer::new(&*source);
+        loop {
+            match lexer.next() {
+            | Some(Ok(token)) => tokens.push(token),
+            | Some(Err(err))  => return Err(err),
+            | None            => break,
+            };
+        }
+    }
+
+    Ok(TokenStream(tokens, source))
+}
+
 pub type Spanned = (ByteIndex, Token, ByteIndex);
 
 pub struct TokenStream(Vec<Spanned>, Arc<FileMap>);
-
-impl TokenStream {
-    pub fn from(source: Arc<FileMap>) -> Result<Self, Error> {
-        let mut tokens = Vec::new();
-
-        {
-            let mut lexer = Lexer::new(&*source);
-            loop {
-                match lexer.next() {
-                | Some(Ok(token)) => tokens.push(token),
-                | Some(Err(err))  => return Err(err),
-                | None            => break,
-                };
-            }
-        }
-
-        Ok(TokenStream(tokens, source))
-    }
-
-    pub fn tokens(&self) -> &[Spanned] {
-        &self.0
-    }
-}
 
 impl IntoIterator for TokenStream {
 
@@ -49,7 +42,7 @@ impl IntoIterator for TokenStream {
 impl fmt::Display for TokenStream {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 
-        for (start, token, _) in self.tokens() {
+        for (start, token, _) in &self.0 {
             let (row, col) = self.1.location(*start)
                 .expect("Internal error: missing location");
 
