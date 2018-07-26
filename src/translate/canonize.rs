@@ -5,11 +5,8 @@ pub fn canonize(unit: Unit) -> Unit {
     unit.map(|body| {
         body.into_iter()
             .map(|stm| canonize_stm(stm))
-            .map(|(_, stms)| stms)
-            .fold(vec![], |mut all_stms, mut stms| {
-                all_stms.append(&mut stms);
-                all_stms
-            })
+            .flat_map(|(_, stms)| stms.into_iter())
+            .collect()
         }
     )
 }
