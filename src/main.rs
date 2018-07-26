@@ -18,6 +18,7 @@ use tigerc::lex::TokenStream;
 use tigerc::error::Error;
 use tigerc::check::Checker;
 use tigerc::translate::{canonize, fold, Flow, reorder, condense, clean};
+use tigerc::assemble::tile;
 use tigerc::ir::Unit;
 
 #[derive(Debug, StructOpt)]
@@ -120,9 +121,7 @@ impl Compiler {
                 .and_then(reorder)
                 .and_then(condense)
                 .and_then(clean);
-            println!("{}", unit);
-            let flow = Flow::new(unit.label, unit.body);
-            println!("{}", flow.export());
+            println!("{}", tile(unit));
         }
     }
 

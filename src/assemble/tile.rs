@@ -7,11 +7,49 @@ use ir;
 use ir::*;
 use operand::*;
 
-pub fn tile(ir: &[Stm]) -> asm::Unit<Temp> {
+pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
 
-    unimplemented!()
+    let mut tiler = Tiler::default();
+    for stm in &ir.body { tiler.tile_stm(stm); }
+
+    let store_rbx = Temp::from_str("STORE_RBX");
+    let store_r12 = Temp::from_str("STORE_R12");
+    let store_r13 = Temp::from_str("STORE_R13");
+    let store_r14 = Temp::from_str("STORE_R14");
+    let store_r15 = Temp::from_str("STORE_R15");
+
+    let prologue = vec![
+        asm::Asm::Push(asm::Unary::R(Temp::Reg(Reg::RBP))),
+        asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RSP), Temp::Reg(Reg::RBP))),
+        asm::Asm::Comment(store("REPLACE WITH RSP SUBTRACTION")),
+        asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RBX), store_rbx)),
+        asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::R12), store_r12)),
+        asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::R13), store_r13)),
+        asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::R14), store_r14)),
+        asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::R15), store_r15)),
+    ];
+
+    let epilogue = vec![
+        asm::Asm::Mov(asm::Binary::RR(store_rbx, Temp::Reg(Reg::RBX))),
+        asm::Asm::Mov(asm::Binary::RR(store_r12, Temp::Reg(Reg::R12))),
+        asm::Asm::Mov(asm::Binary::RR(store_r13, Temp::Reg(Reg::R13))),
+        asm::Asm::Mov(asm::Binary::RR(store_r14, Temp::Reg(Reg::R14))),
+        asm::Asm::Mov(asm::Binary::RR(store_r15, Temp::Reg(Reg::R15))),
+        asm::Asm::Comment(store("REPLACE WITH RSP ADDITION")),
+        asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RBP), Temp::Reg(Reg::RSP))),
+        asm::Asm::Pop(asm::Unary::R(Temp::Reg(Reg::RBP))),
+        asm::Asm::Ret,
+    ];
+
+    asm::Unit {
+        asm: prologue.into_iter()
+            .chain(tiler.asm.into_iter())
+            .chain(epilogue.into_iter())
+            .collect()
+    }
 }
 
+#[derive(Default)]
 struct Tiler {
     asm: Vec<asm::Asm<Temp>>,
     spilled_args: usize,

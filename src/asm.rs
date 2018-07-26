@@ -5,7 +5,7 @@ use ir;
 use operand::*;
 
 pub struct Unit<T: Operand> {
-    asm: Vec<Asm<T>>,
+    pub asm: Vec<Asm<T>>,
 }
 
 impl <T: Operand> Unit<T> {
@@ -112,6 +112,15 @@ impl <'a> From<&'a ir::Relop> for Relop {
         | ir::Relop::Le => Relop::Le,
         | ir::Relop::Ge => Relop::Ge,
         }
+    }
+}
+
+impl <T: Operand> fmt::Display for Unit<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        for stm in &self.asm {
+            write!(fmt, "{}\n", stm);
+        }
+        Ok(())
     }
 }
 
