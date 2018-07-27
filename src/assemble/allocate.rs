@@ -139,6 +139,8 @@ impl Assigner for Trivial {
     }
 
     fn load_temp(&mut self, asm: &mut Vec<Asm<Reg>>, temp: Temp) -> Reg {
+
+        if let Temp::Reg(fixed) = temp { return fixed }
         
         if !self.temps.contains_key(&temp) {
             self.stack_size += 1;
@@ -146,9 +148,8 @@ impl Assigner for Trivial {
         }
 
         let mem = Mem::RO(Reg::RBP, -(self.temps[&temp] * WORD_SIZE));
-        let reg = if let Temp::Reg(fixed) = temp {
-            fixed
-        } else if self.stores.is_empty() {
+        
+        let reg = if self.stores.is_empty() {
             Reg::R10
         } else {
             Reg::R11
