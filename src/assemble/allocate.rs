@@ -25,6 +25,9 @@ pub fn allocate<A: Assigner>(asm: Unit<Temp>) -> Unit<Reg> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Dir { R, W, RW, }
+
 pub trait Assigner {
     fn new(stack_size: usize) -> Self;
 
@@ -32,12 +35,14 @@ pub trait Assigner {
 
     fn store_temps(&mut self, asm: &mut Vec<Asm<Reg>>);
 
-    fn load_temp(&mut self, asm: &mut Vec<Asm<Reg>>, temp: Temp) -> Reg;
+    fn load_temps(&mut self, asm: &mut Vec<Asm<Reg>>);
 
-    fn load_mem(&mut self, asm: &mut Vec<Asm<Reg>>, mem: Mem<Temp>) -> Mem<Reg> {
+    fn get_temp(&mut self, temp: Temp, dir: Dir) -> Reg;
+
+    fn get_mem(&mut self, mem: Mem<Temp>) -> Mem<Reg> {
         match mem {
-        | Mem::R(temp)          => Mem::R(self.load_temp(asm, temp)),
-        | Mem::RO(temp, offset) => Mem::RO(self.load_temp(asm, temp), offset),
+        | Mem::R(temp)          => Mem::R(self.get_temp(temp, Dir::R)),
+        | Mem::RO(temp, offset) => Mem::RO(self.get_temp(temp, Dir::R), offset),
         }
     }
 }
@@ -52,6 +57,7 @@ impl <A: Assigner> Allocator<A> {
     fn allocate(&mut self, asm: &[Asm<Temp>], sub_rsp: Symbol, add_rsp: Symbol) {
         for stm in asm {
             let stm = self.allocate_stm(stm);
+            self.assigner.load_temps(&mut self.allocated);
             self.allocated.push(stm);
             self.assigner.store_temps(&mut self.allocated);
         }
@@ -72,43 +78,43 @@ impl <A: Assigner> Allocator<A> {
             .collect()
     }
 
-    fn load_temp(&mut self, temp: Temp) -> Reg {
-        self.assigner.load_temp(&mut self.allocated, temp)
+    fn load_temp(&mut self, temp: Temp, dir: Dir) -> Reg {
+        self.assigner.get_temp(temp, dir)
     }
 
     fn load_mem(&mut self, mem: Mem<Temp>) -> Mem<Reg> {
-        self.assigner.load_mem(&mut self.allocated, mem)
+        self.assigner.get_mem(mem)
     }
 
     fn allocate_unary(&mut self, unary: &Unary<Temp>) -> Unary<Reg> {
         match unary {
-        | Unary::R(temp) => Unary::R(self.load_temp(*temp)),
+        | Unary::R(temp) => Unary::R(self.load_temp(*temp, Dir::RW)),
         | Unary::M(mem)  => Unary::M(self.load_mem(*mem)),
         }
     }
 
-    fn allocate_binary(&mut self, binary: &Binary<Temp>) -> Binary<Reg> {
+    fn allocate_binary(&mut self, binary: &Binary<Temp>, dest_dir: Dir) -> Binary<Reg> {
         match binary {
-        | Binary::IR(imm, temp)      => Binary::IR(*imm,                    self.load_temp(*temp)),
-        | Binary::IM(imm, mem)       => Binary::IM(*imm,                    self.load_mem(*mem)),
-        | Binary::RM(temp, mem)      => Binary::RM(self.load_temp(*temp),   self.load_mem(*mem)),
-        | Binary::MR(mem, temp)      => Binary::MR(self.load_mem(*mem),     self.load_temp(*temp)),
-        | Binary::LR(label, temp)    => Binary::LR(*label,                  self.load_temp(*temp)),
-        | Binary::RR(temp_a, temp_b) => Binary::RR(self.load_temp(*temp_a), self.load_temp(*temp_b)),
+        | Binary::IR(imm, temp)      => Binary::IR(*imm,                            self.load_temp(*temp, dest_dir)),
+        | Binary::IM(imm, mem)       => Binary::IM(*imm,                            self.load_mem(*mem)),
+        | Binary::RM(temp, mem)      => Binary::RM(self.load_temp(*temp, Dir::R),   self.load_mem(*mem)),
+        | Binary::MR(mem, temp)      => Binary::MR(self.load_mem(*mem),             self.load_temp(*temp, dest_dir)),
+        | Binary::LR(label, temp)    => Binary::LR(*label,                          self.load_temp(*temp, dest_dir)),
+        | Binary::RR(temp_a, temp_b) => Binary::RR(self.load_temp(*temp_a, Dir::R), self.load_temp(*temp_b, dest_dir)),
         }
     }
 
     fn allocate_stm(&mut self, stm: &Asm<Temp>) -> Asm<Reg> {
         match stm {
-        | Asm::Mov(binary)     => Asm::Mov(self.allocate_binary(binary)),
-        | Asm::Bin(op, binary) => Asm::Bin(*op, self.allocate_binary(binary)),
+        | Asm::Mov(binary)     => Asm::Mov(self.allocate_binary(binary, Dir::W)),
+        | Asm::Bin(op, binary) => Asm::Bin(*op, self.allocate_binary(binary, Dir::RW)),
         | Asm::Mul(unary)      => Asm::Mul(self.allocate_unary(unary)),
         | Asm::Div(unary)      => Asm::Div(self.allocate_unary(unary)),
         | Asm::Un(op, unary)   => Asm::Un(*op, self.allocate_unary(unary)),
         | Asm::Pop(unary)      => Asm::Pop(self.allocate_unary(unary)),
         | Asm::Push(unary)     => Asm::Push(self.allocate_unary(unary)),
-        | Asm::Lea(mem, temp)  => Asm::Lea(self.load_mem(*mem), self.load_temp(*temp)),
-        | Asm::Cmp(binary)     => Asm::Cmp(self.allocate_binary(binary)),
+        | Asm::Lea(mem, temp)  => Asm::Lea(self.load_mem(*mem), self.load_temp(*temp, Dir::W)),
+        | Asm::Cmp(binary)     => Asm::Cmp(self.allocate_binary(binary, Dir::R)),
         | stm                  => (*stm).into(),
         }
     }
@@ -117,6 +123,7 @@ impl <A: Assigner> Allocator<A> {
 pub struct Trivial {
     temps: FnvHashMap<Temp, i32>,
     stack_size: usize,
+    loads: Vec<Asm<Reg>>,
     stores: Vec<Asm<Reg>>,
 }
 
@@ -126,6 +133,7 @@ impl Assigner for Trivial {
         Trivial {
             temps: FnvHashMap::default(),
             stack_size,
+            loads: Vec::new(),
             stores: Vec::new(),
         }
     }
@@ -138,25 +146,35 @@ impl Assigner for Trivial {
         asm.append(&mut self.stores);
     }
 
-    fn load_temp(&mut self, asm: &mut Vec<Asm<Reg>>, temp: Temp) -> Reg {
+    fn load_temps(&mut self, asm: &mut Vec<Asm<Reg>>) {
+        asm.append(&mut self.loads);
+    }
+
+    fn get_temp(&mut self, temp: Temp, dir: Dir) -> Reg {
 
         if let Temp::Reg(fixed) = temp { return fixed }
-        
+
         if !self.temps.contains_key(&temp) {
             self.stack_size += 1;
             self.temps.insert(temp, self.stack_size as i32);
         }
 
+        // Temp offset from stack
         let mem = Mem::RO(Reg::RBP, -(self.temps[&temp] * WORD_SIZE));
-        
-        let reg = if self.stores.is_empty() {
-            Reg::R10
-        } else {
-            Reg::R11
-        };
-        
-        self.stores.push(Asm::Mov(Binary::RM(reg, mem)));
-        asm.push(Asm::Mov(Binary::MR(mem, reg)));
+
+        // Use neither caller nor callee saved registers
+        let reg = if self.stores.len() + self.loads.len() == 0 { Reg::R10 } else { Reg::R11 };
+
+        // Load temp from stack position
+        if dir == Dir::R || dir == Dir::RW {
+            self.loads.push(Asm::Mov(Binary::MR(mem, reg)));
+        }
+
+        // Write temp back to stack position
+        if dir == Dir::W || dir == Dir::RW {
+            self.stores.push(Asm::Mov(Binary::RM(reg, mem)));
+        }
+
         reg
     }
 }
