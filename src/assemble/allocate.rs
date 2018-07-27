@@ -1,7 +1,7 @@
 use asm::*;
 use operand::*;
 
-pub fn allocate<A: Assignment>(assignment: A, asm: Unit<Temp>) -> Unit<Reg> {
+pub fn allocate<A: Assigner>(assignment: A, asm: Unit<Temp>) -> Unit<Reg> {
     let mut allocator = Allocator {
         assignment,
         allocated: Vec::new(),
@@ -20,7 +20,7 @@ pub fn allocate<A: Assignment>(assignment: A, asm: Unit<Temp>) -> Unit<Reg> {
     }
 }
 
-pub trait Assignment {
+pub trait Assigner {
     fn new(stack_size: usize) -> Self;
 
     fn get_stack_size(&self) -> usize;
@@ -37,12 +37,12 @@ pub trait Assignment {
     }
 }
 
-struct Allocator<A: Assignment> {
+struct Allocator<A: Assigner> {
     assignment: A,
     allocated: Vec<Asm<Reg>>,
 }
 
-impl <A: Assignment> Allocator<A> {
+impl <A: Assigner> Allocator<A> {
 
     fn allocate(&mut self, asm: &[Asm<Temp>]) {
         for stm in asm {
