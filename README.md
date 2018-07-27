@@ -61,7 +61,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [x] Design instruction types for assembly
   - [ ] Implement AT&T and Intel syntax in separate traits for easy swapping
   - [x] Implement tiling using maximal munch
-  - [ ] Implement trivial register allocation
+  - [x] Implement trivial register allocation
   - [ ] Figure out how to write a C runtime for Tiger
   - [x] Clean up command-line interface
   - [x] Organize compiler passes into distinct phases (maybe use a Phase trait?)
