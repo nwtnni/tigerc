@@ -100,6 +100,15 @@ pub enum Unary<T: Operand> {
     M(Mem<T>),
 }
 
+impl <T: Operand> Unary<T> {
+    pub fn source(&self) -> Value<T> {
+        match self {
+        | Unary::R(temp) => Value::Reg(*temp),
+        | Unary::M(mem) => Value::Mem(*mem),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Unop {
     Inc,
