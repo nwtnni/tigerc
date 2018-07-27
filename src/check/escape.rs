@@ -58,7 +58,7 @@ fn trap_exp(depth: usize, escaped: &mut Escaped, exp: &mut Exp) {
         for field in fields { recurse!(&mut *field.exp) }
     },
     | Exp::Seq(statements, _) => {
-        for statement in statements { recurse!(statement) }
+        for statement in statements.into_iter().rev() { recurse!(statement) }
     },
     | Exp::Ass{name, exp, ..} => {
         trap_var(depth, escaped, name);
@@ -81,7 +81,7 @@ fn trap_exp(depth: usize, escaped: &mut Escaped, exp: &mut Exp) {
     },
     | Exp::Let{decs, body, ..} => {
         recurse!(body);
-        for dec in decs { trap_dec(depth, escaped, dec); }
+        for dec in decs.into_iter().rev() { trap_dec(depth, escaped, dec); }
     },
     | Exp::Arr{size, init, ..} => {
         recurse!(size);

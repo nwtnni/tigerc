@@ -1,0 +1,17 @@
+let
+    var x: int := 1
+
+    function f(): int = let
+        var y: int := 10
+
+        function g(): int = let
+            var z: int := 100
+        in
+            z - y - x
+        end
+    in
+        g()
+    end
+in
+    f()
+end
