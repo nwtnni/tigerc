@@ -56,16 +56,16 @@ impl <A: Assigner> Allocator<A> {
             self.assigner.store_temps(&mut self.allocated);
         }
 
+        let stack_size = self.assigner.get_stack_size();
+        let stack_size = if stack_size % 2 == 0 { stack_size } else { stack_size + 1 };
+        let stack_op = Binary::IR(Imm(stack_size as i32 * WORD_SIZE), Reg::RSP);
+
         self.allocated = mem::replace(&mut self.allocated, Vec::with_capacity(0))
             .into_iter()
             .map(|stm| {
                 match stm {
-                | Asm::Comment(sym) if sym == sub_rsp => {
-                    Asm::Bin(Binop::Sub, Binary::IR(Imm(WORD_SIZE * self.assigner.get_stack_size() as i32), Reg::RSP))
-                }
-                | Asm::Comment(sym) if sym == add_rsp => {
-                    Asm::Bin(Binop::Add, Binary::IR(Imm(WORD_SIZE * self.assigner.get_stack_size() as i32), Reg::RSP))
-                },
+                | Asm::Comment(sym) if sym == sub_rsp => Asm::Bin(Binop::Sub, stack_op),
+                | Asm::Comment(sym) if sym == add_rsp => Asm::Bin(Binop::Add, stack_op),
                 | stm => stm,
                 }
             })
@@ -145,7 +145,7 @@ impl Assigner for Trivial {
             self.temps.insert(temp, self.stack_size as i32);
         }
 
-        let mem = Mem::RO(Reg::RSP, -(self.temps[&temp] * WORD_SIZE));
+        let mem = Mem::RO(Reg::RBP, -(self.temps[&temp] * WORD_SIZE));
         let reg = if let Temp::Reg(fixed) = temp {
             fixed
         } else if self.stores.is_empty() {
