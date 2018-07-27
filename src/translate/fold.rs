@@ -48,6 +48,8 @@ fn fold_binop(lhs_exp: &Exp, op: &Binop, rhs_exp: &Exp) -> Exp {
     | (lhs,             Binop::Add,     Exp::Const(0))
     | (lhs,             Binop::Sub,     Exp::Const(0))
     | (lhs,             Binop::Or ,     Exp::Const(0)) => lhs,
+    | (Exp::Const(0),   Binop::Mod,     _            )
+    | (Exp::Const(0),   Binop::Div,     _            )
     | (Exp::Const(0),   Binop::Mul,     _            )
     | (_            ,   Binop::Mul,     Exp::Const(0))
     | (Exp::Const(0),   Binop::And,     _            )
@@ -59,6 +61,7 @@ fn fold_binop(lhs_exp: &Exp, op: &Binop, rhs_exp: &Exp) -> Exp {
         | Binop::Sub => lhs - rhs,
         | Binop::Mul => lhs * rhs,
         | Binop::Div => lhs / rhs,
+        | Binop::Mod => lhs % rhs,
         | Binop::And => lhs & rhs,
         | Binop::Or  => lhs | rhs,
         | Binop::XOr => lhs ^ rhs,

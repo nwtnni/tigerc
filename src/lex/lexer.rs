@@ -23,8 +23,8 @@ enum Mode {
 
 fn is_symbol(c: char) -> bool {
     match c {
-    | '|' | '&' | '>' | '=' | '<' | '/' | '*' | '-' | '+' | '.'
-    | '[' | ']' | '{' | '}' | '(' | ')' | ';' | ':' | ',' => true,
+    | '|' | '&' | '>' | '=' | '<' | '/' | '*' | '%' | '-' | '+'
+    | '.' | '[' | ']' | '{' | '}' | '(' | ')' | ';' | ':' | ',' => true,
     _ => false,
     }
 }
@@ -163,6 +163,7 @@ impl <'input> Iterator for Lexer<'input> {
                     | '-' => (false, Token::Sub),
                     | '+' => (false, Token::Add),
                     | '.' => (false, Token::Dot),
+                    | '%' => (false, Token::Mod),
                     | '[' => (false, Token::LBrace),
                     | ']' => (false, Token::RBrace),
                     | '{' => (false, Token::LBrack),

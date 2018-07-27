@@ -86,9 +86,9 @@ impl <A: Assigner> Allocator<A> {
         self.assigner.get_mem(mem)
     }
 
-    fn allocate_unary(&mut self, unary: &Unary<Temp>) -> Unary<Reg> {
+    fn allocate_unary(&mut self, unary: &Unary<Temp>, dir: Dir) -> Unary<Reg> {
         match unary {
-        | Unary::R(temp) => Unary::R(self.load_temp(*temp, Dir::RW)),
+        | Unary::R(temp) => Unary::R(self.load_temp(*temp, dir)),
         | Unary::M(mem)  => Unary::M(self.load_mem(*mem)),
         }
     }
@@ -108,11 +108,11 @@ impl <A: Assigner> Allocator<A> {
         match stm {
         | Asm::Mov(binary)     => Asm::Mov(self.allocate_binary(binary, Dir::W)),
         | Asm::Bin(op, binary) => Asm::Bin(*op, self.allocate_binary(binary, Dir::RW)),
-        | Asm::Mul(unary)      => Asm::Mul(self.allocate_unary(unary)),
-        | Asm::Div(unary)      => Asm::Div(self.allocate_unary(unary)),
-        | Asm::Un(op, unary)   => Asm::Un(*op, self.allocate_unary(unary)),
-        | Asm::Pop(unary)      => Asm::Pop(self.allocate_unary(unary)),
-        | Asm::Push(unary)     => Asm::Push(self.allocate_unary(unary)),
+        | Asm::Mul(unary)      => Asm::Mul(self.allocate_unary(unary, Dir::R)),
+        | Asm::Div(div, unary) => Asm::Div(*div, self.allocate_unary(unary, Dir::R)),
+        | Asm::Un(op, unary)   => Asm::Un(*op, self.allocate_unary(unary, Dir::RW)),
+        | Asm::Pop(unary)      => Asm::Pop(self.allocate_unary(unary, Dir::W)),
+        | Asm::Push(unary)     => Asm::Push(self.allocate_unary(unary, Dir::R)),
         | Asm::Lea(mem, temp)  => Asm::Lea(self.load_mem(*mem), self.load_temp(*temp, Dir::W)),
         | Asm::Cmp(binary)     => Asm::Cmp(self.allocate_binary(binary, Dir::R)),
         | stm                  => (*stm).into(),

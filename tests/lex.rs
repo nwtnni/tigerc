@@ -56,6 +56,7 @@ good!(test_operator_11, "operator_11");
 good!(test_operator_12, "operator_12");
 good!(test_operator_13, "operator_13");
 good!(test_operator_14, "operator_14");
+good!(test_operator_15, "operator_15");
 
 good!(test_symbol_01, "symbol_01");
 good!(test_symbol_02, "symbol_02");

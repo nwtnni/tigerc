@@ -221,15 +221,22 @@ impl Tiler {
             self.asm.push(asm::Asm::Mov(move_l_tile));
 
             match op {
-            | ir::Binop::Mul => self.asm.push(asm::Asm::Mul(use_r_tile)),
+            | ir::Binop::Mul => {
+                self.asm.push(asm::Asm::Mul(use_r_tile));
+                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RAX), res)));
+            }
             | ir::Binop::Div => {
                 self.asm.push(asm::Asm::Cqo);
-                self.asm.push(asm::Asm::Div(use_r_tile));
+                self.asm.push(asm::Asm::Div(asm::Div::Q, use_r_tile));
+                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RAX), res)));
+            }
+            | ir::Binop::Mod => {
+                self.asm.push(asm::Asm::Cqo);
+                self.asm.push(asm::Asm::Div(asm::Div::R, use_r_tile));
+                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RDX), res)));
             }
             | _ => unreachable!(),
             };
-
-            self.asm.push(asm::Asm::Mov(asm::Binary::RR(rax, res)));
 
             Value::Reg(res)
         }

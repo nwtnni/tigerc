@@ -94,6 +94,9 @@ pub enum Token {
     /// `*`
     Mul,
 
+    /// `%`
+    Mod,
+
     /// `-`
     Sub,
 
@@ -173,6 +176,7 @@ impl fmt::Display for Token {
         | Token::Eq            => write!(fmt, "OPERATOR ="),
         | Token::Div           => write!(fmt, "OPERATOR /"),
         | Token::Mul           => write!(fmt, "OPERATOR *"),
+        | Token::Mod           => write!(fmt, "OPERATOR %"),
         | Token::Sub           => write!(fmt, "OPERATOR -"),
         | Token::Add           => write!(fmt, "OPERATOR +"),
         | Token::Dot           => write!(fmt, "OPERATOR ."),

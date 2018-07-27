@@ -42,6 +42,7 @@ extern {
         EQ         => Token::Eq,
         DIV       => Token::Div,
         MUL       => Token::Mul,
+        MOD       => Token::Mod,
         SUB       => Token::Sub,
         ADD       => Token::Add,
         DOT       => Token::Dot,
@@ -416,6 +417,7 @@ Factor = Binary<FactorOp, Unary>;
 FactorOp: ast::Binop = {
     DIV => ast::Binop::Div,
     MUL => ast::Binop::Mul,
+    MOD => ast::Binop::Mod,
 }
 
 Unary: ast::Exp = {

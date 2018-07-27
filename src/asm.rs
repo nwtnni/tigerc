@@ -23,7 +23,7 @@ pub enum Asm<T: Operand> {
     Mov(Binary<T>),
     Bin(Binop, Binary<T>),
     Mul(Unary<T>),
-    Div(Unary<T>),
+    Div(Div, Unary<T>),
     Un(Unop, Unary<T>),
     Pop(Unary<T>),
     Push(Unary<T>),
@@ -54,6 +54,9 @@ impl Into<Asm<Reg>> for Asm<Temp> {
         }
     }
 }
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Div { Q, R }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Direct {
@@ -164,7 +167,7 @@ impl <T: Operand> fmt::Display for Asm<T> {
         | Asm::Mov(bin)         => write!(fmt, "    movq {}", bin),
         | Asm::Bin(op, bin)     => write!(fmt, "    {} {}", op, bin),
         | Asm::Mul(un)          => write!(fmt, "    imulq {}", un),
-        | Asm::Div(un)          => write!(fmt, "    idivq {}", un),
+        | Asm::Div(_, un)       => write!(fmt, "    idivq {}", un),
         | Asm::Un(op, un)       => write!(fmt, "    {} {}", op, un),
         | Asm::Pop(un)          => write!(fmt, "    popq {}", un),
         | Asm::Push(un)         => write!(fmt, "    pushq {}", un),

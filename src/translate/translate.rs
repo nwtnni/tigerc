@@ -492,6 +492,7 @@ fn translate_binop(op: &Binop) -> Option<ir::Binop> {
     | Binop::Sub  => Some(ir::Binop::Sub),
     | Binop::Mul  => Some(ir::Binop::Mul),
     | Binop::Div  => Some(ir::Binop::Div),
+    | Binop::Mod  => Some(ir::Binop::Mod),
     | Binop::LAnd => Some(ir::Binop::And),
     | Binop::LOr  => Some(ir::Binop::Or),
     _ => None,
