@@ -1,7 +1,32 @@
 use asm::*;
 use operand::*;
 
+pub fn allocate<A: Assignment>(assignment: A, asm: Unit<Temp>) -> Unit<Reg> {
+    let mut allocator = Allocator {
+        assignment,
+        allocated: Vec::new(),
+    };
+
+    allocator.allocate(&asm.asm);
+
+    Unit {
+        asm: allocator.allocated,
+
+        rodata: asm.rodata.into_iter()
+            .map(|stm| stm.into())
+            .collect(),
+
+        stack_size: 0, // TODO: set proper stack size after allocating
+    }
+}
+
 pub trait Assignment {
+    fn new(stack_size: usize) -> Self;
+
+    fn get_stack_size(&self) -> usize;
+
+    fn store(&mut self, stm: &Asm<Reg>);
+
     fn get_temp(&mut self, temp: Temp) -> Reg;
 
     fn get_mem(&mut self, mem: Mem<Temp>) -> Mem<Reg> {
@@ -12,12 +37,20 @@ pub trait Assignment {
     }
 }
 
-pub struct Allocator<A: Assignment> {
+struct Allocator<A: Assignment> {
     assignment: A,
-    allocated: Vec<Asm<Reg>>, 
+    allocated: Vec<Asm<Reg>>,
 }
 
 impl <A: Assignment> Allocator<A> {
+
+    fn allocate(&mut self, asm: &[Asm<Temp>]) {
+        for stm in asm {
+            let stm = self.allocate_stm(stm);
+            self.assignment.store(&stm);
+            self.allocated.push(stm);
+        }
+    }
 
     fn get_temp(&mut self, temp: Temp) -> Reg {
         self.assignment.get_temp(temp)
@@ -45,7 +78,7 @@ impl <A: Assignment> Allocator<A> {
         }
     }
 
-    pub fn allocate_stm(&mut self, stm: &Asm<Temp>) -> Asm<Reg> {
+    fn allocate_stm(&mut self, stm: &Asm<Temp>) -> Asm<Reg> {
         match stm {
         | Asm::Mov(binary)     => Asm::Mov(self.allocate_binary(binary)),
         | Asm::Bin(op, binary) => Asm::Bin(*op, self.allocate_binary(binary)),
@@ -56,14 +89,7 @@ impl <A: Assignment> Allocator<A> {
         | Asm::Push(unary)     => Asm::Push(self.allocate_unary(unary)),
         | Asm::Lea(mem, temp)  => Asm::Lea(self.get_mem(*mem), self.get_temp(*temp)),
         | Asm::Cmp(binary)     => Asm::Cmp(self.allocate_binary(binary)),
-        | Asm::Jmp(label)      => Asm::Jmp(*label),
-        | Asm::Jcc(op, label)  => Asm::Jcc(*op, *label),
-        | Asm::Call(label)     => Asm::Call(*label),
-        | Asm::Label(label)    => Asm::Label(*label),
-        | Asm::Comment(sym)    => Asm::Comment(*sym),
-        | Asm::Direct(direct)  => Asm::Direct(*direct),
-        | Asm::Cqo             => Asm::Cqo,
-        | Asm::Ret             => Asm::Ret,
+        | stm                  => (*stm).into(),
         }
     }
 }
