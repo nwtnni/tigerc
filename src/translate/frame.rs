@@ -116,7 +116,7 @@ impl Frame {
             );
 
             let offset = ir::Exp::Const(
-                i as i32 - 6
+                (i - 6) as i32 * WORD_SIZE
             );
 
             ir::Exp::Mem(
