@@ -1,0 +1,12 @@
+let
+    function hailstones(x: int, n: int): int =
+        if x = 1 then
+            n
+        else if x % 2 = 0 then
+            hailstones(x / 2, n + 1)
+        else
+            hailstones(3 * x + 1, n + 1)
+in
+    /* 118-length sequence */
+    hailstones(97, 0)
+end
