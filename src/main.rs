@@ -64,7 +64,8 @@ fn main() {
             .with_phase(Canonize::new(opt.canonize))
             .with_phase(Fold::maybe(opt.fold, opt.disable_fold))
             .with_phase(Reorder::new(opt.reorder))
-            .with_phase(Tile::new(opt.tile));
+            .with_phase(Tile::new(opt.tile))
+            .with_phase(Trivial::new(true));
 
         match compiler.run() {
         | Err(err) => emit(&mut stdout, compiler.code(), &err.into()).expect("Internal error: IO"),

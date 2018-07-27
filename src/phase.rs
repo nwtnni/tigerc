@@ -190,3 +190,13 @@ impl_phase! (Tile, "tiled", Item::Intermediate(units) => {
             .collect()
     ))
 });
+
+pub struct Trivial(pub bool, pub bool);
+
+impl_phase! (Trivial, "s", Item::Abstract(units) => {
+    Ok(Item::Assembly(
+        units.into_iter()
+            .map(|unit| assemble::allocate::<assemble::Trivial>(unit))
+            .collect()
+    ))
+});
