@@ -103,6 +103,16 @@ pub fn reorder(unit: Unit) -> Unit {
     let mut reordered = Vec::new();
     flow.trace(flow.start, &mut height, &mut seen);
 
+    // Remove unreachable nodes
+    for label in flow.blocks.keys() {
+        if !height.contains_key(label) {
+            flow.graph.remove_node(*label);
+        }
+    }
+    flow.blocks.retain(|label, _| {
+        height.contains_key(label)
+    });
+
     while !flow.blocks.is_empty() {
 
         let mut node_symbol = flow.blocks.keys()
