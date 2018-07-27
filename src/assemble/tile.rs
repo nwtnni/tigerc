@@ -108,8 +108,9 @@ impl Tiler {
             let binary = self.tile_binary(l, r);
             self.asm.push(asm::Asm::Mov(binary));
         },
+        // Reverse arguments of Cmp
         | Stm::CJump(l, op, r, t, _) => {
-            let binary = self.tile_binary(l, r);
+            let binary = self.tile_binary(r, l);
             self.asm.push(asm::Asm::Cmp(binary));
             self.asm.push(asm::Asm::Jcc(op.into(), *t));
         },
@@ -184,7 +185,14 @@ impl Tiler {
             self.tile_unop(r, asm::Unop::Dec)
         }
 
-        // Add, Sub, And, Or, XOr
+        // Reverse arguments of Sub
+        | Exp::Binop(box l, ir::Binop::Sub, box r) => {
+            let binary = self.tile_binary(r, l);
+            self.asm.push(asm::Asm::Bin(asm::Binop::Sub, binary));
+            binary.dest()
+        }
+
+        // Add, And, Or, XOr
         | Exp::Binop(box l, op, box r) if op.is_asm_binop() => {
             let binary = self.tile_binary(l, r);
             self.asm.push(asm::Asm::Bin(op.into_asm_binop(), binary));

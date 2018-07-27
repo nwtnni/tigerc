@@ -187,17 +187,6 @@ pub fn translate_bin(lhs_exp: ir::Tree, op: Binop, rhs_exp: ir::Tree) -> ir::Tre
         )
 
     },
-    | Binop::Sub => {
-
-        // Reversed order of lhs, rhs for AT&T syntax
-        // TODO: is this the best place to reorder operands?
-        ir::Exp::Binop(
-            Box::new(rhs_exp.into()),
-            translate_binop(&op).unwrap(),
-            Box::new(lhs_exp.into()),
-        ).into()
-
-    },
     | _ if translate_binop(&op).is_some() => {
 
         // Straightforward arithmetic operation
@@ -214,13 +203,12 @@ pub fn translate_bin(lhs_exp: ir::Tree, op: Binop, rhs_exp: ir::Tree) -> ir::Tre
         let rhs_exp: ir::Exp = rhs_exp.into();
 
         // Conditional operation
-        // Reversed order of LHS, RHS for AT&T syntax
         ir::Tree::Cx(
             Box::new(move |t, f| {
                 ir::Stm::CJump(
-                    rhs_exp.clone(),
-                    translate_relop(&op).unwrap(),
                     lhs_exp.clone(),
+                    translate_relop(&op).unwrap(),
+                    rhs_exp.clone(),
                     t,
                     f
                 )
