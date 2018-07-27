@@ -7,7 +7,7 @@ use operand::{Label, Temp, Reg};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Access {
-    Frame(i32),
+    Frame(usize),
     Reg(Temp),
 }
 
@@ -18,7 +18,7 @@ impl Access {
         | Access::Frame(n) => {
 
             let offset = ir::Exp::Const(
-                n * WORD_SIZE
+                n as i32 * WORD_SIZE
             );
 
             ir::Exp::Mem(
@@ -40,7 +40,6 @@ pub struct Frame {
     pub label: Label,
     pub prologue: Vec<ir::Stm>,
     pub escapes: usize,
-    offset: i32,
     map: FnvHashMap<Symbol, Access>,
 }
 
@@ -49,15 +48,13 @@ impl Frame {
         let rbp = ir::Exp::Temp(Temp::Reg(Reg::RBP));
         let mut map = FnvHashMap::default();
         let mut prologue = Vec::new();
-        let mut offset = 0;
         let mut escapes = 0;
 
         for (i, (name, escape)) in args.iter().enumerate() {
             let from = Frame::get_argument(i);
             let to = if *escape {
-                offset -= 1;
                 escapes += 1;
-                Access::Frame(offset)
+                Access::Frame(escapes)
             } else {
                 Access::Reg(Temp::from_str("ARG"))
             };
@@ -70,7 +67,6 @@ impl Frame {
             label,
             prologue,
             map,
-            offset,
             escapes,
         }
     }
@@ -82,9 +78,8 @@ impl Frame {
     pub fn allocate(&mut self, name: Symbol, escape: bool) -> ir::Exp {
         let rbp = ir::Exp::Temp(Temp::Reg(Reg::RBP));
         let access = if escape {
-            self.offset -= 1;
             self.escapes += 1;
-            Access::Frame(self.offset)
+            Access::Frame(self.escapes)
         } else {
             Access::Reg(
                 Temp::from_str("LOCAL")
