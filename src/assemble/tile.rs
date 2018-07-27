@@ -185,27 +185,25 @@ impl Tiler {
             self.tile_unop(r, asm::Unop::Dec)
         }
 
-        // Reverse arguments of Sub
-        | Exp::Binop(box l, ir::Binop::Sub, box r) => {
-            let binary = self.tile_binary(r, l);
-            self.asm.push(asm::Asm::Bin(asm::Binop::Sub, binary));
-            binary.dest()
-        }
-
-        // Add, And, Or, XOr
+        // Add, Sub, And, Or, XOr
         | Exp::Binop(box l, op, box r) if op.is_asm_binop() => {
-            let binary = self.tile_binary(l, r);
-            self.asm.push(asm::Asm::Bin(op.into_asm_binop(), binary));
-            binary.dest()
+
+            // NOTE: reversed order because Sub has backwards operands AND other operations commute
+            let result = ir::Exp::Temp(Temp::from_str("TILE_BINOP_RESULT"));
+            let binary_mv = self.tile_binary(l, &result);
+            let binary_op = self.tile_binary(r, &result);
+            self.asm.push(asm::Asm::Mov(binary_mv));
+            self.asm.push(asm::Asm::Bin(op.into_asm_binop(), binary_op));
+            binary_op.dest()
         }
 
-        // Mul, Div
+        // Mul, Div, Mod
         | Exp::Binop(box l, op, box r) => {
 
             let l_tile = self.tile_exp(l);
             let r_tile = self.tile_exp(r);
+            let result = Temp::from_str("TILE_DIV_MUL_RESULT");
             let rax = Temp::Reg(Reg::RAX);
-            let res = Temp::from_str("TILE_DIV_MUL");
 
             let move_l_tile = match l_tile {
             | Value::Imm(imm) => asm::Binary::IR(imm, rax),
@@ -223,22 +221,22 @@ impl Tiler {
             match op {
             | ir::Binop::Mul => {
                 self.asm.push(asm::Asm::Mul(use_r_tile));
-                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RAX), res)));
+                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RAX), result)));
             }
             | ir::Binop::Div => {
                 self.asm.push(asm::Asm::Cqo);
                 self.asm.push(asm::Asm::Div(asm::Div::Q, use_r_tile));
-                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RAX), res)));
+                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RAX), result)));
             }
             | ir::Binop::Mod => {
                 self.asm.push(asm::Asm::Cqo);
                 self.asm.push(asm::Asm::Div(asm::Div::R, use_r_tile));
-                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RDX), res)));
+                self.asm.push(asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RDX), result)));
             }
             | _ => unreachable!(),
             };
 
-            Value::Reg(res)
+            Value::Reg(result)
         }
         | Exp::Call(box Exp::Name(label), args) => {
 
@@ -308,7 +306,12 @@ impl Tiler {
     }
 
     fn tile_unop(&mut self, exp: &Exp, unop: asm::Unop) -> Value<Temp> {
-        match self.tile_exp(exp) {
+
+        let result = ir::Exp::Temp(Temp::from_str("TILE_UNARY_RESULT"));
+        let binary_mv = self.tile_binary(exp, &result);
+        self.asm.push(asm::Asm::Mov(binary_mv));
+
+        match self.tile_exp(&result) {
         | Value::Mem(mem) => {
             self.asm.push(asm::Asm::Un(unop, asm::Unary::M(mem)));
             Value::Mem(mem)
