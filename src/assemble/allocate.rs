@@ -1,5 +1,6 @@
 use std::mem;
 use simple_symbol::Symbol;
+use fnv::FnvHashMap;
 
 use config::WORD_SIZE;
 use asm::*;
@@ -29,14 +30,14 @@ pub trait Assigner {
 
     fn get_stack_size(&self) -> usize;
 
-    fn store(&mut self, stm: &Asm<Reg>);
+    fn store_temps(&mut self, asm: &mut Vec<Asm<Reg>>);
 
-    fn get_temp(&mut self, temp: Temp) -> Reg;
+    fn load_temp(&mut self, asm: &mut Vec<Asm<Reg>>, temp: Temp) -> Reg;
 
-    fn get_mem(&mut self, mem: Mem<Temp>) -> Mem<Reg> {
+    fn load_mem(&mut self, asm: &mut Vec<Asm<Reg>>, mem: Mem<Temp>) -> Mem<Reg> {
         match mem {
-        | Mem::R(temp)          => Mem::R(self.get_temp(temp)),
-        | Mem::RO(temp, offset) => Mem::RO(self.get_temp(temp), offset),
+        | Mem::R(temp)          => Mem::R(self.load_temp(asm, temp)),
+        | Mem::RO(temp, offset) => Mem::RO(self.load_temp(asm, temp), offset),
         }
     }
 }
@@ -51,8 +52,8 @@ impl <A: Assigner> Allocator<A> {
     fn allocate(&mut self, asm: &[Asm<Temp>], sub_rsp: Symbol, add_rsp: Symbol) {
         for stm in asm {
             let stm = self.allocate_stm(stm);
-            self.assigner.store(&stm);
             self.allocated.push(stm);
+            self.assigner.store_temps(&mut self.allocated);
         }
 
         self.allocated = mem::replace(&mut self.allocated, Vec::with_capacity(0))
@@ -71,29 +72,29 @@ impl <A: Assigner> Allocator<A> {
             .collect()
     }
 
-    fn get_temp(&mut self, temp: Temp) -> Reg {
-        self.assigner.get_temp(temp)
+    fn load_temp(&mut self, temp: Temp) -> Reg {
+        self.assigner.load_temp(&mut self.allocated, temp)
     }
 
-    fn get_mem(&mut self, mem: Mem<Temp>) -> Mem<Reg> {
-        self.assigner.get_mem(mem)
+    fn load_mem(&mut self, mem: Mem<Temp>) -> Mem<Reg> {
+        self.assigner.load_mem(&mut self.allocated, mem)
     }
 
     fn allocate_unary(&mut self, unary: &Unary<Temp>) -> Unary<Reg> {
         match unary {
-        | Unary::R(temp) => Unary::R(self.get_temp(*temp)),
-        | Unary::M(mem)  => Unary::M(self.get_mem(*mem)),
+        | Unary::R(temp) => Unary::R(self.load_temp(*temp)),
+        | Unary::M(mem)  => Unary::M(self.load_mem(*mem)),
         }
     }
 
     fn allocate_binary(&mut self, binary: &Binary<Temp>) -> Binary<Reg> {
         match binary {
-        | Binary::IR(imm, temp)      => Binary::IR(*imm, self.get_temp(*temp)),
-        | Binary::IM(imm, mem)       => Binary::IM(*imm, self.get_mem(*mem)),
-        | Binary::RM(temp, mem)      => Binary::RM(self.get_temp(*temp), self.get_mem(*mem)),
-        | Binary::MR(mem, temp)      => Binary::MR(self.get_mem(*mem), self.get_temp(*temp)),
-        | Binary::LR(label, temp)    => Binary::LR(*label, self.get_temp(*temp)),
-        | Binary::RR(temp_a, temp_b) => Binary::RR(self.get_temp(*temp_a), self.get_temp(*temp_b)),
+        | Binary::IR(imm, temp)      => Binary::IR(*imm,                    self.load_temp(*temp)),
+        | Binary::IM(imm, mem)       => Binary::IM(*imm,                    self.load_mem(*mem)),
+        | Binary::RM(temp, mem)      => Binary::RM(self.load_temp(*temp),   self.load_mem(*mem)),
+        | Binary::MR(mem, temp)      => Binary::MR(self.load_mem(*mem),     self.load_temp(*temp)),
+        | Binary::LR(label, temp)    => Binary::LR(*label,                  self.load_temp(*temp)),
+        | Binary::RR(temp_a, temp_b) => Binary::RR(self.load_temp(*temp_a), self.load_temp(*temp_b)),
         }
     }
 
@@ -106,9 +107,55 @@ impl <A: Assigner> Allocator<A> {
         | Asm::Un(op, unary)   => Asm::Un(*op, self.allocate_unary(unary)),
         | Asm::Pop(unary)      => Asm::Pop(self.allocate_unary(unary)),
         | Asm::Push(unary)     => Asm::Push(self.allocate_unary(unary)),
-        | Asm::Lea(mem, temp)  => Asm::Lea(self.get_mem(*mem), self.get_temp(*temp)),
+        | Asm::Lea(mem, temp)  => Asm::Lea(self.load_mem(*mem), self.load_temp(*temp)),
         | Asm::Cmp(binary)     => Asm::Cmp(self.allocate_binary(binary)),
         | stm                  => (*stm).into(),
         }
+    }
+}
+
+pub struct Trivial {
+    temps: FnvHashMap<Temp, i32>,
+    stack_size: usize,
+    stores: Vec<Asm<Reg>>,
+}
+
+impl Assigner for Trivial {
+
+    fn new(stack_size: usize) -> Self {
+        Trivial {
+            temps: FnvHashMap::default(),
+            stack_size,
+            stores: Vec::new(),
+        }
+    }
+
+    fn get_stack_size(&self) -> usize {
+        self.stack_size
+    }
+
+    fn store_temps(&mut self, asm: &mut Vec<Asm<Reg>>) {
+        asm.append(&mut self.stores);
+    }
+
+    fn load_temp(&mut self, asm: &mut Vec<Asm<Reg>>, temp: Temp) -> Reg {
+        
+        if !self.temps.contains_key(&temp) {
+            self.stack_size += 1;
+            self.temps.insert(temp, self.stack_size as i32);
+        }
+
+        let mem = Mem::RO(Reg::RSP, -(self.temps[&temp] * WORD_SIZE));
+        let reg = if let Temp::Reg(fixed) = temp {
+            fixed
+        } else if self.stores.is_empty() {
+            Reg::R10
+        } else {
+            Reg::R11
+        };
+        
+        self.stores.push(Asm::Mov(Binary::RM(reg, mem)));
+        asm.push(Asm::Mov(Binary::MR(mem, reg)));
+        reg
     }
 }
