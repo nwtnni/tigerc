@@ -1,13 +1,17 @@
+use std::mem;
+use simple_symbol::Symbol;
+
+use config::WORD_SIZE;
 use asm::*;
 use operand::*;
 
-pub fn allocate<A: Assigner>(assignment: A, asm: Unit<Temp>) -> Unit<Reg> {
+pub fn allocate<A: Assigner>(asm: Unit<Temp>) -> Unit<Reg> {
     let mut allocator = Allocator {
-        assignment,
+        assigner: A::new(asm.stack_info.0),
         allocated: Vec::new(),
     };
 
-    allocator.allocate(&asm.asm);
+    allocator.allocate(&asm.asm, asm.stack_info.1, asm.stack_info.2);
 
     Unit {
         asm: allocator.allocated,
@@ -16,7 +20,7 @@ pub fn allocate<A: Assigner>(assignment: A, asm: Unit<Temp>) -> Unit<Reg> {
             .map(|stm| stm.into())
             .collect(),
 
-        stack_size: 0, // TODO: set proper stack size after allocating
+        stack_info: asm.stack_info,
     }
 }
 
@@ -38,26 +42,41 @@ pub trait Assigner {
 }
 
 struct Allocator<A: Assigner> {
-    assignment: A,
+    assigner: A,
     allocated: Vec<Asm<Reg>>,
 }
 
 impl <A: Assigner> Allocator<A> {
 
-    fn allocate(&mut self, asm: &[Asm<Temp>]) {
+    fn allocate(&mut self, asm: &[Asm<Temp>], sub_rsp: Symbol, add_rsp: Symbol) {
         for stm in asm {
             let stm = self.allocate_stm(stm);
-            self.assignment.store(&stm);
+            self.assigner.store(&stm);
             self.allocated.push(stm);
         }
+
+        self.allocated = mem::replace(&mut self.allocated, Vec::with_capacity(0))
+            .into_iter()
+            .map(|stm| {
+                match stm {
+                | Asm::Comment(sym) if sym == sub_rsp => {
+                    Asm::Bin(Binop::Sub, Binary::IR(Imm(WORD_SIZE * self.assigner.get_stack_size() as i32), Reg::RSP))
+                }
+                | Asm::Comment(sym) if sym == add_rsp => {
+                    Asm::Bin(Binop::Add, Binary::IR(Imm(WORD_SIZE * self.assigner.get_stack_size() as i32), Reg::RSP))
+                },
+                | stm => stm,
+                }
+            })
+            .collect()
     }
 
     fn get_temp(&mut self, temp: Temp) -> Reg {
-        self.assignment.get_temp(temp)
+        self.assigner.get_temp(temp)
     }
 
     fn get_mem(&mut self, mem: Mem<Temp>) -> Mem<Reg> {
-        self.assignment.get_mem(mem)
+        self.assigner.get_mem(mem)
     }
 
     fn allocate_unary(&mut self, unary: &Unary<Temp>) -> Unary<Reg> {

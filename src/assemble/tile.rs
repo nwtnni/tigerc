@@ -19,13 +19,16 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
     let store_r14 = Temp::from_str("STORE_R14");
     let store_r15 = Temp::from_str("STORE_R15");
 
+    let sub_rsp = store("REPLACE WITH RSP SUBTRACTION");
+    let add_rsp = store("REPLACE WITH RSP ADDITION");
+
     let prologue = vec![
         asm::Asm::Direct(asm::Direct::Global(ir.label)),
         asm::Asm::Direct(asm::Direct::Align(4)),
         asm::Asm::Label(ir.label),
         asm::Asm::Push(asm::Unary::R(Temp::Reg(Reg::RBP))),
         asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RSP), Temp::Reg(Reg::RBP))),
-        asm::Asm::Comment(store("REPLACE WITH RSP SUBTRACTION")),
+        asm::Asm::Comment(sub_rsp),
         asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RBX), store_rbx)),
         asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::R12), store_r12)),
         asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::R13), store_r13)),
@@ -39,7 +42,7 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
         asm::Asm::Mov(asm::Binary::RR(store_r13, Temp::Reg(Reg::R13))),
         asm::Asm::Mov(asm::Binary::RR(store_r14, Temp::Reg(Reg::R14))),
         asm::Asm::Mov(asm::Binary::RR(store_r15, Temp::Reg(Reg::R15))),
-        asm::Asm::Comment(store("REPLACE WITH RSP ADDITION")),
+        asm::Asm::Comment(add_rsp),
         asm::Asm::Mov(asm::Binary::RR(Temp::Reg(Reg::RBP), Temp::Reg(Reg::RSP))),
         asm::Asm::Pop(asm::Unary::R(Temp::Reg(Reg::RBP))),
         asm::Asm::Ret,
@@ -60,7 +63,7 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
                     ))
             }).collect(),
 
-        stack_size: ir.escapes + tiler.spilled_args,
+        stack_info: (ir.escapes + tiler.spilled_args, sub_rsp, add_rsp),
     }
 }
 

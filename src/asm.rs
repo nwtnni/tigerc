@@ -7,7 +7,7 @@ use operand::*;
 pub struct Unit<T: Operand> {
     pub asm: Vec<Asm<T>>,
     pub rodata: Vec<Asm<T>>,
-    pub stack_size: usize,
+    pub stack_info: (usize, Symbol, Symbol),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
