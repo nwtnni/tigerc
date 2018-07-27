@@ -39,6 +39,22 @@ pub enum Asm<T: Operand> {
     Ret,
 }
 
+impl Into<Asm<Reg>> for Asm<Temp> {
+    fn into(self) -> Asm<Reg> {
+        match self {
+        | Asm::Jmp(label)      => Asm::Jmp(label),
+        | Asm::Jcc(op, label)  => Asm::Jcc(op, label),
+        | Asm::Call(label)     => Asm::Call(label),
+        | Asm::Label(label)    => Asm::Label(label),
+        | Asm::Comment(symbol) => Asm::Comment(symbol),
+        | Asm::Direct(direct)  => Asm::Direct(direct),
+        | Asm::Cqo             => Asm::Cqo,
+        | Asm::Ret             => Asm::Ret,
+        | _                    => panic!("Internal error: converting temp-dependent Asm to reg"),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Direct {
     Local(Label),
