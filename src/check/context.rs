@@ -22,16 +22,16 @@ impl Default for VarContext {
     fn default() -> Self {
         VarContext(vec![
             hashmap! {
-                store("print")     => Binding::Ext(vec![Ty::Str], Ty::Unit, Label::from_fixed("print")),
-                store("flush")     => Binding::Ext(vec![], Ty::Unit, Label::from_fixed("flush")),
-                store("getchar")   => Binding::Ext(vec![], Ty::Str, Label::from_fixed("getchar")),
-                store("ord")       => Binding::Ext(vec![Ty::Str], Ty::Int, Label::from_fixed("ord")),
-                store("chr")       => Binding::Ext(vec![Ty::Int], Ty::Str, Label::from_fixed("chr")),
-                store("size")      => Binding::Ext(vec![Ty::Str], Ty::Int, Label::from_fixed("size")),
-                store("substring") => Binding::Ext(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str, Label::from_fixed("substring")),
-                store("concat")    => Binding::Ext(vec![Ty::Str, Ty::Str], Ty::Str, Label::from_fixed("concat")),
-                store("not")       => Binding::Ext(vec![Ty::Int], Ty::Int, Label::from_fixed("not")),
-                store("exit")      => Binding::Ext(vec![Ty::Int], Ty::Unit, Label::from_fixed("exit"))
+                store("print")     => Binding::Ext(vec![Ty::Str], Ty::Unit, Label::from_fixed("__print__")),
+                store("flush")     => Binding::Ext(vec![], Ty::Unit, Label::from_fixed("__flush__")),
+                store("getchar")   => Binding::Ext(vec![], Ty::Str, Label::from_fixed("__getchar__")),
+                store("ord")       => Binding::Ext(vec![Ty::Str], Ty::Int, Label::from_fixed("__ord__")),
+                store("chr")       => Binding::Ext(vec![Ty::Int], Ty::Str, Label::from_fixed("__chr__")),
+                store("size")      => Binding::Ext(vec![Ty::Str], Ty::Int, Label::from_fixed("__size__")),
+                store("substring") => Binding::Ext(vec![Ty::Str, Ty::Int, Ty::Int], Ty::Str, Label::from_fixed("__substring__")),
+                store("concat")    => Binding::Ext(vec![Ty::Str, Ty::Str], Ty::Str, Label::from_fixed("__concat__")),
+                store("not")       => Binding::Ext(vec![Ty::Int], Ty::Int, Label::from_fixed("__not__")),
+                store("exit")      => Binding::Ext(vec![Ty::Int], Ty::Unit, Label::from_fixed("__exit__"))
             }
         ])
     }
