@@ -27,7 +27,7 @@ pub enum Item {
     Typed(Vec<ir::Unit>),
     Intermediate(Vec<ir::Unit>),
     Abstract(Vec<asm::Unit<Temp>>),
-    Assembly(Vec<asm::Unit<Reg>>),
+    Assembly(asm::Unit<Reg>),
 }
 
 impl fmt::Display for Item {
@@ -39,7 +39,7 @@ impl fmt::Display for Item {
         | Item::Typed(_) => write!(fmt, "Valid Tiger Program"),
         | Item::Intermediate(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
         | Item::Abstract(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
-        | Item::Assembly(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
+        | Item::Assembly(unit) => { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); Ok(()) },
         }
     }
 }
@@ -197,6 +197,6 @@ impl_phase! (Trivial, "s", Item::Abstract(units) => {
     Ok(Item::Assembly(
         units.into_iter()
             .map(|unit| assemble::allocate::<assemble::Trivial>(unit))
-            .collect()
+            .sum::<asm::Unit<Reg>>()
     ))
 });

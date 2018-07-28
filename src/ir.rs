@@ -7,16 +7,16 @@ use operand::*;
 
 #[derive(Debug)]
 pub struct Unit {
-    pub rodata: Vec<Static>,
+    pub data: Vec<Static>,
     pub label: Label,
     pub body: Vec<Stm>,
     pub escapes: usize,
 }
 
 impl Unit {
-    pub fn new(frame: Frame, rodata: Vec<Static>, body: Tree) -> Self {
+    pub fn new(frame: Frame, data: Vec<Static>, body: Tree) -> Self {
         Unit {
-            rodata,
+            data,
             label: frame.label,
             escapes: frame.escapes,
             body: vec![
@@ -31,7 +31,7 @@ impl Unit {
 
     pub fn map(self, f: impl Fn(Vec<Stm>) -> Vec<Stm>) -> Self {
         Unit {
-            rodata: self.rodata,
+            data: self.data,
             label: self.label,
             body: f(self.body),
             escapes: self.escapes,

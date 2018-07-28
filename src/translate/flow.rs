@@ -138,7 +138,7 @@ pub fn reorder(unit: Unit) -> Unit {
     }
 
     Unit {
-        rodata: unit.rodata,
+        data: unit.data,
         label: unit.label,
         body: reordered,
         escapes: unit.escapes,
@@ -177,7 +177,7 @@ pub fn condense(unit: Unit) -> Unit {
     }
 
     Unit {
-        rodata: unit.rodata,
+        data: unit.data,
         label: unit.label,
         body: condensed,
         escapes: unit.escapes,

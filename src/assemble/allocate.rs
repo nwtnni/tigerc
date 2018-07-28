@@ -17,7 +17,7 @@ pub fn allocate<A: Assigner>(asm: Unit<Temp>) -> Unit<Reg> {
     Unit {
         asm: allocator.allocated,
 
-        rodata: asm.rodata.into_iter()
+        data: asm.data.into_iter()
             .map(|stm| stm.into())
             .collect(),
 

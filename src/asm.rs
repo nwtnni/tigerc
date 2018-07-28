@@ -1,13 +1,38 @@
+use std::iter;
 use std::fmt;
-use simple_symbol::Symbol;
+use simple_symbol::{store, Symbol};
 
 use ir;
 use operand::*;
 
 pub struct Unit<T: Operand> {
     pub asm: Vec<Asm<T>>,
-    pub rodata: Vec<Asm<T>>,
+    pub data: Vec<Asm<T>>,
     pub stack_info: (usize, Symbol, Symbol),
+}
+
+impl iter::Sum for Unit<Reg> {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(
+            Unit {
+                asm: Vec::new(),
+                data: Vec::new(),
+                stack_info: (0, store(""), store(""))
+            },
+
+            |mut a, mut b| {
+
+                a.asm.append(&mut b.asm);
+                a.data.append(&mut b.data);
+
+                Unit {
+                    asm: a.asm,
+                    data: a.data,
+                    stack_info: a.stack_info,
+                }
+            }
+        )
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -62,7 +87,7 @@ pub enum Div { Q, R }
 pub enum Direct {
     Local(Label),
     Global(Label),
-    Align(i32), 
+    Align(i32),
     Ascii(Symbol),
     ROData,
     Text,
@@ -154,6 +179,11 @@ impl <'a> From<&'a ir::Relop> for Relop {
 
 impl <T: Operand> fmt::Display for Unit<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(fmt, ".data\n").expect("Internal error: IO");
+        for stm in &self.data {
+            write!(fmt, "{}\n", stm).expect("Internal error: IO")
+        }
+        write!(fmt, "\n.text\n").expect("Internal error: IO");
         for stm in &self.asm {
             write!(fmt, "{}\n", stm).expect("Internal error: IO")
         }
@@ -191,7 +221,7 @@ impl fmt::Display for Direct {
         | Direct::Local(label)  => write!(fmt, ".local {}", label),
         | Direct::Global(label) => write!(fmt, ".globl {}", label),
         | Direct::Align(n)      => write!(fmt, ".align {}", n),
-        | Direct::ROData        => write!(fmt, ".rodata"),
+        | Direct::ROData        => write!(fmt, ".data"),
         | Direct::Text          => write!(fmt, ".text"),
         | Direct::Ascii(s)      => write!(fmt, "    .asciz \"{}\0\"", s),
         }

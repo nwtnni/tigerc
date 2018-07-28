@@ -54,7 +54,7 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
             .chain(epilogue.into_iter())
             .collect(),
 
-        rodata: ir.rodata.into_iter()
+        data: ir.data.into_iter()
             .flat_map(|data| {
                 iter::once(
                         asm::Asm::Direct(asm::Direct::Local(data.label))
