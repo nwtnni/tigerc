@@ -223,7 +223,7 @@ impl fmt::Display for Direct {
         | Direct::Align(n)      => write!(fmt, ".align {}", n),
         | Direct::ROData        => write!(fmt, ".data"),
         | Direct::Text          => write!(fmt, ".text"),
-        | Direct::Ascii(s)      => write!(fmt, "    .asciz \"{}\0\"", s),
+        | Direct::Ascii(s)      => write!(fmt, "    .string \"{}\"", s),
         }
     }
 }
@@ -236,7 +236,7 @@ impl <T: Operand> fmt::Display for Binary<T> {
         | Binary::RM(reg, mem)     => write!(fmt, "{}, {}", reg, mem),
         | Binary::MR(mem, reg)     => write!(fmt, "{}, {}", mem, reg),
         | Binary::RR(reg_a, reg_b) => write!(fmt, "{}, {}", reg_a, reg_b),
-        | Binary::LR(label, reg)   => write!(fmt, "{}, {}", label, reg)
+        | Binary::LR(label, reg)   => write!(fmt, "${}, {}", label, reg)
         }
     }
 }
