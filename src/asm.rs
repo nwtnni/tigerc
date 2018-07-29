@@ -15,8 +15,8 @@ impl iter::Sum for Unit<Reg> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(
             Unit {
-                asm: Vec::new(),
-                data: Vec::new(),
+                asm: vec![Asm::Direct(Direct::Text)],
+                data: vec![Asm::Direct(Direct::Data)],
                 stack_info: (0, store(""), store(""))
             },
 
@@ -175,11 +175,10 @@ impl <'a> From<&'a ir::Relop> for Relop {
 
 impl <T: Operand> fmt::Display for Unit<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, ".data\n").expect("Internal error: IO");
         for stm in &self.data {
             write!(fmt, "{}\n", stm).expect("Internal error: IO")
         }
-        write!(fmt, "\n.text\n").expect("Internal error: IO");
+        write!(fmt, "\n\n").expect("Internal error: IO");
         for stm in &self.asm {
             write!(fmt, "{}\n", stm).expect("Internal error: IO")
         }
