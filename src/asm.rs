@@ -87,8 +87,8 @@ pub enum Direct {
     Local(Label),
     Global(Label),
     Align(i32),
-    Ascii(Symbol),
-    ROData,
+    Str(Symbol),
+    Data,
     Text,
 }
 
@@ -201,9 +201,9 @@ impl <T: Operand> fmt::Display for Asm<T> {
         | Asm::Cmp(bin)         => write!(fmt, "    cmpq {}", bin),
         | Asm::Jmp(name)        => write!(fmt, "    jmp {}", name),
         | Asm::Jcc(op, name)    => write!(fmt, "    j{} {}", op,  name),
-        | Asm::Call(name)       => write!(fmt, "    callq {}", name),
+        | Asm::Call(name)       => write!(fmt, "    call {}", name),
         | Asm::Cqo              => write!(fmt, "    cqo"),
-        | Asm::Ret              => write!(fmt, "    retq"),
+        | Asm::Ret              => write!(fmt, "    ret"),
         | Asm::Direct(direct)   => write!(fmt, "{}", direct),
         | Asm::Label(label)     => write!(fmt, "{}:", label),
         | Asm::Comment(comment) => write!(fmt, "# {}", comment),
@@ -217,9 +217,9 @@ impl fmt::Display for Direct {
         | Direct::Local(label)  => write!(fmt, ".local {}", label),
         | Direct::Global(label) => write!(fmt, ".globl {}", label),
         | Direct::Align(n)      => write!(fmt, ".align {}", n),
-        | Direct::ROData        => write!(fmt, ".data"),
+        | Direct::Data          => write!(fmt, ".data"),
         | Direct::Text          => write!(fmt, ".text"),
-        | Direct::Ascii(s)      => write!(fmt, "    .string \"{}\"", s),
+        | Direct::Str(s)      => write!(fmt, "    .string \"{}\"", s),
         }
     }
 }

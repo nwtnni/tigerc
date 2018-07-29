@@ -61,7 +61,7 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
                     ).chain(iter::once(
                         asm::Asm::Label(data.label)
                     )).chain(iter::once(
-                        asm::Asm::Direct(asm::Direct::Ascii(data.data))
+                        asm::Asm::Direct(asm::Direct::Str(data.data))
                     ))
             }).collect(),
 
