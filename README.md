@@ -16,7 +16,11 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 
 - [x] IR translation
 
-- [ ] Abstract assembly generation
+- [x] Abstract assembly generation
+
+- [ ] Register allocation
+
+- [ ] Optimization
 
 ### TODO
 
@@ -65,6 +69,16 @@ Using [LALRPOP][2] as an LR(1) parser generator.
   - [x] Figure out how to write a C runtime for Tiger
   - [x] Clean up command-line interface
   - [x] Organize compiler passes into distinct phases (maybe use a Phase trait?)
+  - [ ] Write assembly test suite
+
+- Register allocation
+  - [ ] Research different allocation algorithms
+  - [ ] Implement one
+
+- Optimization
+  - [ ] Implement dataflow analysis framework(s) (IR level? Assembly level? Basic blocks or individual statements?)
+  - [ ] Research different optimizations (e.g. constant propagation, dead code elimination, common subexpression elimination)
+  - [ ] Write benchmark Tiger programs
 
 ### Deviations
 
