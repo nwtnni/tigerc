@@ -1,10 +1,10 @@
 .PHONY: lib clean
 
-lib: tiger.o
-	ar rcs libtiger.a tiger.o
+lib: libtiger.o
+	ar rcs libtiger.a libtiger.o
 
-tiger.o : tiger.c tiger.h
-	gcc -O3 -o tiger.o -c tiger.c
+tiger.o : libtiger.c libtiger.h
+	gcc -O3 -o libtiger.o -c libtiger.c
 
 clean:
-	rm tiger.o libtiger.a
+	rm libtiger.o libtiger.a
