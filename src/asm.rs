@@ -40,7 +40,6 @@ pub enum Value<T: Operand> {
     Reg(T),
     Mem(Mem<T>),
     Imm(Imm),
-    Label(Label),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -100,7 +99,6 @@ pub enum Binary<T: Operand> {
     RM(T, Mem<T>),
     MR(Mem<T>, T),
     RR(T, T),
-    LR(Label, T),
 }
 
 impl <T: Operand> Binary<T> {
@@ -109,14 +107,12 @@ impl <T: Operand> Binary<T> {
         | Binary::IR(src, _) | Binary::IM(src, _) => Value::Imm(*src),
         | Binary::RM(src, _) | Binary::RR(src, _) => Value::Reg(*src),
         | Binary::MR(src, _) => Value::Mem(*src),
-        | Binary::LR(src, _) => Value::Label(*src),
         }
     }
 
     pub fn dest(&self) -> Value<T> {
         match self {
-        | Binary::IR(_, dest) | Binary::RR(_, dest)
-        | Binary::MR(_, dest) | Binary::LR(_, dest) => Value::Reg(*dest),
+        | Binary::IR(_, dest) | Binary::RR(_, dest) | Binary::MR(_, dest) => Value::Reg(*dest),
         | Binary::IM(_, dest) | Binary::RM(_, dest) => Value::Mem(*dest),
         }
     }
@@ -236,7 +232,6 @@ impl <T: Operand> fmt::Display for Binary<T> {
         | Binary::RM(reg, mem)     => write!(fmt, "{}, {}", reg, mem),
         | Binary::MR(mem, reg)     => write!(fmt, "{}, {}", mem, reg),
         | Binary::RR(reg_a, reg_b) => write!(fmt, "{}, {}", reg_a, reg_b),
-        | Binary::LR(label, reg)   => write!(fmt, "${}, {}", label, reg)
         }
     }
 }

@@ -7,7 +7,10 @@ generate_counter!(LabelID, usize);
 generate_counter!(TempID, usize);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Imm(pub i32);
+pub enum Imm {
+    Int(i32),    
+    Label(Label),
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Label {
@@ -162,7 +165,10 @@ impl fmt::Display for Reg {
 
 impl fmt::Display for Imm {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(fmt, "${}", self.0)
+        match self {
+        | Imm::Int(n) => write!(fmt, "${}", n),
+        | Imm::Label(l) => write!(fmt, "${}", l),
+        }
     }
 }
 

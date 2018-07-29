@@ -90,11 +90,6 @@ impl Tiler {
             self.asm.push(asm::Asm::Mov(asm::Binary::IR(imm, temp)));
             temp
         }
-        | Value::Label(label) => {
-            let temp = Temp::from_str("TILE_LABEL");
-            self.asm.push(asm::Asm::Mov(asm::Binary::LR(label, temp)));
-            temp
-        }
         }
     }
 
@@ -141,8 +136,8 @@ impl Tiler {
         use ir::Exp::{Binop, Const};
 
         match exp {
-        | Exp::Const(n) => Value::Imm(Imm(*n)),
-        | Exp::Name(l)  => Value::Label(*l),
+        | Exp::Const(n) => Value::Imm(Imm::Int(*n)),
+        | Exp::Name(l)  => Value::Imm(Imm::Label(*l)),
         | Exp::Temp(t)  => Value::Reg(*t),
         | Exp::ESeq(_, _) => panic!("Internal error: no ESeq expression in canonical IR"),
 

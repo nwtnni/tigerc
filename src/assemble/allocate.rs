@@ -64,7 +64,7 @@ impl <A: Assigner> Allocator<A> {
 
         let stack_size = self.assigner.get_stack_size();
         let stack_size = if stack_size % 2 == 0 { stack_size } else { stack_size + 1 };
-        let stack_op = Binary::IR(Imm(stack_size as i32 * WORD_SIZE), Reg::RSP);
+        let stack_op = Binary::IR(Imm::Int(stack_size as i32 * WORD_SIZE), Reg::RSP);
 
         self.allocated = mem::replace(&mut self.allocated, Vec::with_capacity(0))
             .into_iter()
@@ -99,7 +99,6 @@ impl <A: Assigner> Allocator<A> {
         | Binary::IM(imm, mem)       => Binary::IM(*imm,                            self.load_mem(*mem)),
         | Binary::RM(temp, mem)      => Binary::RM(self.load_temp(*temp, Dir::R),   self.load_mem(*mem)),
         | Binary::MR(mem, temp)      => Binary::MR(self.load_mem(*mem),             self.load_temp(*temp, dest_dir)),
-        | Binary::LR(label, temp)    => Binary::LR(*label,                          self.load_temp(*temp, dest_dir)),
         | Binary::RR(temp_a, temp_b) => Binary::RR(self.load_temp(*temp_a, Dir::R), self.load_temp(*temp_b, dest_dir)),
         }
     }
