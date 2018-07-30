@@ -3,8 +3,12 @@
 #include <string.h>
 #include <math.h>
 
-void __print__(char* s) {
+void __prints__(char* s) {
     printf("%s", s);
+}
+
+void __printi__(int i) {
+    printf("%i", i);
 }
 
 void __flush__() {

@@ -3,7 +3,9 @@
 
 #include <stdio.h>
 
-void __print__(char* s);
+void __prints__(char* s);
+
+void __printi__(int i);
 
 void __flush__();
 

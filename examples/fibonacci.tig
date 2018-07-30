@@ -7,6 +7,7 @@ let
         else
             fibonacci(n - 1) + fibonacci(n - 2)
 in
-    /* 233 */
-    fibonacci(13)
+    prints("fibonacci(40) is ");
+    printi(fibonacci(40));
+    prints("\n(Should be 102334155)\n")
 end

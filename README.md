@@ -85,6 +85,7 @@ Using [LALRPOP][2] as an LR(1) parser generator.
 - Allow comparison operators to associate (e.g. (a = b = c) evaluates as ((a = b) = c))
 - Allow assignment to for loop index variable (e.g. for i := 0 to 10 do i := i + 1)
 - Implement modulo operator (%)
+- Rename `print` runtime function to `prints`; implement `printi` function to print integers
 
 [1]: https://www.cs.princeton.edu/~appel/modern/ml/
 [2]: https://github.com/lalrpop/lalrpop

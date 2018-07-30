@@ -22,7 +22,8 @@ impl Default for VarContext {
     fn default() -> Self {
         VarContext(vec![
             hashmap! {
-                store("print")     => Binding::Ext(vec![Ty::Str], Ty::Unit, Label::from_fixed("__print__")),
+                store("prints")     => Binding::Ext(vec![Ty::Str], Ty::Unit, Label::from_fixed("__prints__")),
+                store("printi")    => Binding::Ext(vec![Ty::Int], Ty::Unit, Label::from_fixed("__printi__")),
                 store("flush")     => Binding::Ext(vec![], Ty::Unit, Label::from_fixed("__flush__")),
                 store("getchar")   => Binding::Ext(vec![], Ty::Str, Label::from_fixed("__getchar__")),
                 store("ord")       => Binding::Ext(vec![Ty::Str], Ty::Int, Label::from_fixed("__ord__")),

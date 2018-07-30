@@ -1,12 +1,13 @@
 let
-    function hailstones(x: int, n: int): int =
+    function hailstones(x: int): int =
         if x = 1 then
-            n
+            0
         else if x % 2 = 0 then
-            hailstones(x / 2, n + 1)
+            1 + hailstones(x / 2)
         else
-            hailstones(3 * x + 1, n + 1)
+            1 + hailstones(3 * x + 1)
 in
-    /* 118-length sequence */
-    hailstones(97, 0)
+    prints("The length of the hailstone sequence for 97 is: ");
+    printi(hailstones(97));
+    prints("\n(Should be 118)\n")
 end

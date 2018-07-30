@@ -13,5 +13,7 @@ let
         g()
     end
 in
-    f()
+    prints("100 - 10 - 1 is: ");
+    printi(f());
+    prints("\n(Should be 89)\n")
 end

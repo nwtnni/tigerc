@@ -5,6 +5,7 @@ let
         else
             n * factorial(n - 1)
 in
-    /* 120 */
-    factorial(5)
+    prints("factorial(10) is "); 
+    printi(factorial(10));
+    prints("\n(Should be 3628800)\n")
 end
