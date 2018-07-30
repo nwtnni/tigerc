@@ -22,6 +22,7 @@ pub mod parse;
 pub mod check;
 pub mod translate;
 pub mod assemble;
+pub mod optimize;
 
 pub mod token;
 pub mod ast;
