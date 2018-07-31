@@ -16,6 +16,7 @@ use parse;
 use check;
 use translate;
 use assemble;
+use optimize;
 
 use error::Error;
 use operand::{Temp, Reg};
@@ -199,4 +200,21 @@ impl_phase! (Trivial, "s", Item::Abstract(units) => {
             .map(|unit| assemble::allocate::<assemble::Trivial>(unit))
             .sum::<asm::Unit<Reg>>()
     ))
+});
+
+pub struct CoalesceAbstract(pub bool, pub bool);
+
+impl_phase! (CoalesceAbstract, "coalesced", Item::Abstract(units) => {
+    Ok(Item::Abstract(
+        units.into_iter()
+            .map(|unit| unit.and_then(optimize::coalesce))
+            .collect()
+    ))
+});
+
+pub struct CoalesceAssembly(pub bool, pub bool);
+
+//TODO: change file extension after adding more passes?
+impl_phase! (CoalesceAssembly, "s", Item::Assembly(unit) => {
+    Ok(Item::Assembly(unit.and_then(optimize::coalesce)))
 });

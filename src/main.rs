@@ -39,9 +39,21 @@ struct Opt {
     #[structopt(long = "o-no-cf")]
     disable_fold: bool,
 
+    /// Disable move coalescing.
+    #[structopt(long = "o-no-mc")]
+    disable_coalesce: bool,
+
     /// Write intermediate reordered IR to file.
     #[structopt(long = "reorder")]
     reorder: bool, 
+
+    /// Write move-coalesced abstract assembly to file.
+    #[structopt(long = "coalesce-abstract")]
+    coalesce_abstract: bool,
+    
+    /// Write move-coalesced assembly to file.
+    #[structopt(long = "coalesce-assembly")]
+    coalesce_assembly: bool,
 
     /// Write tiled abstract assembly to file.
     #[structopt(long = "tile")]
@@ -65,7 +77,9 @@ fn main() {
             .with_phase(Fold::maybe(opt.fold, opt.disable_fold))
             .with_phase(Reorder::new(opt.reorder))
             .with_phase(Tile::new(opt.tile))
-            .with_phase(Trivial::new(true));
+            .with_phase(CoalesceAbstract::maybe(opt.coalesce_abstract, opt.disable_coalesce))
+            .with_phase(Trivial::new(true))
+            .with_phase(CoalesceAssembly::maybe(true, opt.disable_coalesce));
 
         match compiler.run() {
         | Err(err) => emit(&mut stdout, compiler.code(), &err.into()).expect("Internal error: IO"),

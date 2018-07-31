@@ -271,15 +271,16 @@ impl Tiler {
                 | temp => {
 
                     let temp = self.into_temp(temp);
-                    arg_offset += 1;
-
-                    asm::Binary::RM(
+                    let moved = asm::Binary::RM(
                         temp,
                         Mem::RO(
                             Temp::Reg(Reg::RSP),
                             arg_offset as i32 * WORD_SIZE,
                         ),
-                    )
+                    );
+
+                    arg_offset += 1;
+                    moved
                 },
                 };
 

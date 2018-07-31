@@ -6,6 +6,7 @@
 *.parsed
 *.typed
 *.canonized
+*.coalesced
 *.folded
 *.reordered
 *.tiled

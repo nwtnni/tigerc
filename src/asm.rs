@@ -11,6 +11,12 @@ pub struct Unit<T: Operand> {
     pub stack_info: (usize, Symbol, Symbol),
 }
 
+impl <T: Operand> Unit<T> {
+    pub fn and_then<Y>(self, f: impl Fn(Self) -> Y) -> Y {
+        f(self)
+    }
+}
+
 impl iter::Sum for Unit<Reg> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(
