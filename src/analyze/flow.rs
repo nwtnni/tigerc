@@ -4,9 +4,15 @@ use fnv::{FnvHashSet, FnvHashMap};
 use petgraph::prelude::*;
 use petgraph::dot::*;
 
-use ir::*;
+use ir;
 use util::Void;
 use operand::Label;
+
+pub trait Flowing {
+    fn into_label(&self) -> Option<Label>;
+    fn into_jump(&self) -> Option<Label>;
+    fn into_cjump(&self) -> Option<(Label, Option<Label>)>;
+}
 
 #[derive(Debug)]
 pub struct Flow {
@@ -14,12 +20,12 @@ pub struct Flow {
     end: Label,
     escapes: usize,
     graph: DiGraphMap<Label, Void>,
-    blocks: FnvHashMap<Label, Vec<Stm>>,
+    blocks: FnvHashMap<Label, Vec<ir::Stm>>,
 }
 
 impl Flow {
 
-    pub fn new(ir: Function) -> Flow {
+    pub fn new(ir: ir::Function) -> Flow {
         let mut graph = DiGraphMap::default();
         let mut blocks = FnvHashMap::default();
 
@@ -29,12 +35,12 @@ impl Flow {
         for stm in ir.body {
 
             match stm {
-            | Stm::Label(label) => {
+            | ir::Stm::Label(label) => {
                 let symbol = label;
                 header = Some(symbol);
                 block.push(stm);
             },
-            | Stm::Jump(Exp::Name(label), _) => {
+            | ir::Stm::Jump(ir::Exp::Name(label), _) => {
 
                 let current = header
                     .expect("Internal error: missing header for block");
@@ -45,7 +51,7 @@ impl Flow {
                 block = Vec::new();
                 header = None;
             },
-            | Stm::CJump(_, _, _, t_label, f_label) => {
+            | ir::Stm::CJump(_, _, _, t_label, f_label) => {
 
                 let current = header
                     .expect("Internal error: missing header for block");
@@ -87,7 +93,7 @@ impl Flow {
         flow
     }
 
-    pub fn linearize(mut self) -> Function {
+    pub fn linearize(mut self) -> ir::Function {
 
         let mut height = FnvHashMap::default();
         let mut seen = FnvHashSet::default();
@@ -118,7 +124,7 @@ impl Flow {
             }
         }
 
-        Function {
+        ir::Function {
             label: self.start,
             body: reordered,
             escapes: self.escapes,
@@ -150,9 +156,32 @@ impl Flow {
         height
     }
 
-    pub fn remove(&mut self, node: Label) -> Option<Vec<Stm>> {
+    pub fn remove(&mut self, node: Label) -> Option<Vec<ir::Stm>> {
         self.graph.remove_node(node);
         self.blocks.remove(&node)
+    }
+}
+
+impl Flowing for ir::Stm {
+    fn into_label(&self) -> Option<Label> {
+        match self {
+        | ir::Stm::Label(label) => Some(*label),
+        | _ => None,
+        }
+    }
+
+    fn into_jump(&self) -> Option<Label> {
+        match self {
+        | ir::Stm::Jump(ir::Exp::Name(label), _) => Some(*label),
+        | _ => None,
+        }
+    }
+
+    fn into_cjump(&self) -> Option<(Label, Option<Label>)> {
+        match self {
+        | ir::Stm::CJump(_, _, _, t_label, f_label) => Some((*t_label, Some(*f_label))),
+        | _ => None,
+        }
     }
 }
 
