@@ -9,6 +9,25 @@ use ir::*;
 use operand::*;
 
 pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
+    asm::Unit {
+        data: ir.data.into_iter()
+            .flat_map(|data| {
+                iter::once(
+                        asm::Asm::Direct(asm::Direct::Local(data.label))
+                    ).chain(iter::once(
+                        asm::Asm::Label(data.label)
+                    )).chain(iter::once(
+                        asm::Asm::Direct(asm::Direct::Str(data.data))
+                    ))
+            }).collect(),
+
+        functions: ir.functions.into_iter()
+            .map(tile_function)
+            .collect()
+    }
+}
+
+pub fn tile_function(ir: ir::Function) -> asm::Function<Temp> {
 
     let mut tiler = Tiler::default();
     for stm in &ir.body { tiler.tile_stm(stm); }
@@ -48,22 +67,11 @@ pub fn tile(ir: ir::Unit) -> asm::Unit<Temp> {
         asm::Asm::Ret,
     ];
 
-    asm::Unit {
-        asm: prologue.into_iter()
+    asm::Function {
+        body: prologue.into_iter()
             .chain(tiler.asm.into_iter())
             .chain(epilogue.into_iter())
             .collect(),
-
-        data: ir.data.into_iter()
-            .flat_map(|data| {
-                iter::once(
-                        asm::Asm::Direct(asm::Direct::Local(data.label))
-                    ).chain(iter::once(
-                        asm::Asm::Label(data.label)
-                    )).chain(iter::once(
-                        asm::Asm::Direct(asm::Direct::Str(data.data))
-                    ))
-            }).collect(),
 
         stack_info: (ir.escapes + tiler.spilled_args, sub_rsp, add_rsp),
     }

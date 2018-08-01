@@ -6,6 +6,6 @@ use ir;
 use ast;
 use error;
 
-pub fn check(mut ast: ast::Exp) -> Result<Vec<ir::Unit>, error::Error> {
+pub fn check(mut ast: ast::Exp) -> Result<ir::Unit, error::Error> {
     self::check::Checker::check(&mut ast)
 }

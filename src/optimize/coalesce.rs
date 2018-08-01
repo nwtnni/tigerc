@@ -2,21 +2,30 @@ use asm::*;
 use operand::*;
 
 pub fn coalesce<T: Operand>(unit: Unit<T>) -> Unit<T> {
+    Unit {
+        data: unit.data,
+        functions: unit.functions.into_iter()
+            .map(coalesce_function)
+            .collect()
+    }
+}
+
+pub fn coalesce_function<T: Operand>(asm: Function<T>) -> Function<T> {
 
     use self::Binary::*;
 
     let mut coalesced = Vec::new();
     let mut i = 0;
-    let len = unit.asm.len();
+    let len = asm.body.len();
 
     while i < len {
         
         if i == len - 1 {
-            coalesced.push(unit.asm[i]);
+            coalesced.push(asm.body[i]);
             break;
         }
 
-        match (unit.asm[i], unit.asm[i + 1]) {
+        match (asm.body[i], asm.body[i + 1]) {
         | (Asm::Mov(IR(imm, reg_a)), Asm::Mov(RM(reg_b, mem))) if reg_a == reg_b => {
             coalesced.push(Asm::Mov(IM(imm, mem)));
         }
@@ -39,7 +48,7 @@ pub fn coalesce<T: Operand>(unit: Unit<T>) -> Unit<T> {
             coalesced.push(Asm::Mov(RM(reg_a, mem)));
         }
         | _ => {
-            coalesced.push(unit.asm[i]);
+            coalesced.push(asm.body[i]);
             i += 1;
             continue
         }
@@ -49,9 +58,8 @@ pub fn coalesce<T: Operand>(unit: Unit<T>) -> Unit<T> {
         i += 2;
     }
 
-    Unit {
-        data: unit.data,
-        asm: coalesced,
-        stack_info: unit.stack_info,
+    Function {
+        body: coalesced,
+        stack_info: asm.stack_info,
     }
 }

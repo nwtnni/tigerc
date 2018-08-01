@@ -2,10 +2,12 @@ use ir::*;
 use operand::Label;
 
 pub fn fold(unit: Unit) -> Unit {
-    unit.map(|body| {
-        body.into_iter()
-            .map(|stm| fold_stm(&stm))
-            .collect()
+    unit.map(|function| {
+        function.map(|body| {
+            body.into_iter()
+                .map(|stm| fold_stm(&stm))
+                .collect()
+        })
     })
 }
 

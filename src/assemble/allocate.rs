@@ -6,21 +6,28 @@ use config::WORD_SIZE;
 use asm::*;
 use operand::*;
 
-pub fn allocate<A: Assigner>(asm: Unit<Temp>) -> Unit<Reg> {
+pub fn allocate<A: Assigner>(unit: Unit<Temp>) -> Unit<Reg> {
+    Unit {
+        data: unit.data.into_iter()
+            .map(|directive| directive.into())
+            .collect(),
+        
+        functions: unit.functions.into_iter()
+            .map(allocate_function::<A>)
+            .collect(),
+    }
+}
+
+pub fn allocate_function<A: Assigner>(asm: Function<Temp>) -> Function<Reg> {
     let mut allocator = Allocator {
         assigner: A::new(asm.stack_info.0),
         allocated: Vec::new(),
     };
 
-    allocator.allocate(&asm.asm, asm.stack_info.1, asm.stack_info.2);
+    allocator.allocate(&asm.body, asm.stack_info.1, asm.stack_info.2);
 
-    Unit {
-        asm: allocator.allocated,
-
-        data: asm.data.into_iter()
-            .map(|stm| stm.into())
-            .collect(),
-
+    Function {
+        body: allocator.allocated,
         stack_info: asm.stack_info,
     }
 }

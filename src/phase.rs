@@ -25,9 +25,9 @@ pub enum Item {
     Source(Arc<FileMap>),
     Tokens(lex::TokenStream),
     Syntax(ast::Exp),
-    Typed(Vec<ir::Unit>),
-    Intermediate(Vec<ir::Unit>),
-    Abstract(Vec<asm::Unit<Temp>>),
+    Typed(ir::Unit),
+    Intermediate(ir::Unit),
+    Abstract(asm::Unit<Temp>),
     Assembly(asm::Unit<Reg>),
 }
 
@@ -38,9 +38,9 @@ impl fmt::Display for Item {
         | Item::Tokens(stream) => write!(fmt, "{}", stream),
         | Item::Syntax(ast) => write!(fmt, "{}", ast),
         | Item::Typed(_) => write!(fmt, "Valid Tiger Program"),
-        | Item::Intermediate(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
-        | Item::Abstract(units) => { for unit in units { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); } Ok(()) },
-        | Item::Assembly(unit) => { write!(fmt, "{}\n\n", unit).expect("Internal error: IO"); Ok(()) },
+        | Item::Intermediate(unit) => write!(fmt, "{}\n\n", unit),
+        | Item::Abstract(unit) => write!(fmt, "{}\n\n", unit),
+        | Item::Assembly(unit) => write!(fmt, "{}\n\n", unit),
         }
     }
 }
@@ -147,74 +147,48 @@ impl_phase! (Parse, "parsed", Item::Tokens(tokens) => {
 pub struct Type(pub bool, pub bool);
 
 impl_phase! (Type, "typed", Item::Syntax(ast) => {
-    check::check(ast).map(|ir| Item::Typed(ir))
+    check::check(ast).map(|unit| Item::Typed(unit))
 });
 
 pub struct Canonize(pub bool, pub bool);
 
-impl_phase! (Canonize, "canonized", Item::Typed(units) => {
-    Ok(Item::Intermediate(
-        units.into_iter()
-            .map(|unit| unit.and_then(translate::canonize))
-            .collect()
-    ))
+impl_phase! (Canonize, "canonized", Item::Typed(unit) => {
+    Ok(Item::Intermediate(translate::canonize(unit)))
 });
 
 pub struct Fold(pub bool, pub bool);
 
-impl_phase! (Fold, "folded", Item::Intermediate(units) => {
-    Ok(Item::Intermediate(
-        units.into_iter()
-            .map(|unit| unit.and_then(translate::fold))
-            .collect()
-    ))
+impl_phase! (Fold, "folded", Item::Intermediate(unit) => {
+    Ok(Item::Intermediate(translate::fold(unit)))
 });
 
 pub struct Reorder(pub bool, pub bool);
 
-impl_phase! (Reorder, "reordered", Item::Intermediate(units) => {
-    Ok(Item::Intermediate(
-        units.into_iter()
-            .map(|unit| unit.and_then(translate::reorder))
-            .map(|unit| unit.and_then(translate::condense))
-            .map(|unit| unit.and_then(translate::clean))
-            .collect()
-    ))
+impl_phase! (Reorder, "reordered", Item::Intermediate(unit) => {
+    Ok(Item::Intermediate(translate::reorder(unit)))
 });
 
 pub struct Tile(pub bool, pub bool);
 
-impl_phase! (Tile, "tiled", Item::Intermediate(units) => {
-    Ok(Item::Abstract(
-        units.into_iter()
-            .map(|unit| unit.and_then(assemble::tile))
-            .collect()
-    ))
+impl_phase! (Tile, "tiled", Item::Intermediate(unit) => {
+    Ok(Item::Abstract(assemble::tile(unit)))
 });
 
 pub struct Trivial(pub bool, pub bool);
 
-impl_phase! (Trivial, "s", Item::Abstract(units) => {
-    Ok(Item::Assembly(
-        units.into_iter()
-            .map(|unit| assemble::allocate::<assemble::Trivial>(unit))
-            .sum::<asm::Unit<Reg>>()
-    ))
+impl_phase! (Trivial, "s", Item::Abstract(unit) => {
+    Ok(Item::Assembly(assemble::allocate::<assemble::Trivial>(unit)))
 });
 
 pub struct CoalesceAbstract(pub bool, pub bool);
 
-impl_phase! (CoalesceAbstract, "coalesced", Item::Abstract(units) => {
-    Ok(Item::Abstract(
-        units.into_iter()
-            .map(|unit| unit.and_then(optimize::coalesce))
-            .collect()
-    ))
+impl_phase! (CoalesceAbstract, "coalesced", Item::Abstract(unit) => {
+    Ok(Item::Abstract(optimize::coalesce(unit)))
 });
 
 pub struct CoalesceAssembly(pub bool, pub bool);
 
 //TODO: change file extension after adding more passes?
 impl_phase! (CoalesceAssembly, "s", Item::Assembly(unit) => {
-    Ok(Item::Assembly(unit.and_then(optimize::coalesce)))
+    Ok(Item::Assembly(optimize::coalesce(unit)))
 });

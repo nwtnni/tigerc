@@ -7,16 +7,31 @@ use operand::*;
 
 #[derive(Debug)]
 pub struct Unit {
-    pub data: Vec<Static>,
+    pub data: Vec<Data>,
+    pub functions: Vec<Function>, 
+}
+
+impl Unit {
+    pub fn map<F>(self, f: F) -> Self where F: Fn(Function) -> Function {
+        Unit {
+            data: self.data, 
+            functions: self.functions.into_iter()
+                .map(f)
+                .collect()
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Function {
     pub label: Label,
     pub body: Vec<Stm>,
     pub escapes: usize,
 }
 
-impl Unit {
-    pub fn new(frame: Frame, data: Vec<Static>, body: Tree) -> Self {
-        Unit {
-            data,
+impl Function {
+    pub fn new(frame: Frame, body: Tree) -> Self {
+        Function {
             label: frame.label,
             escapes: frame.escapes,
             body: vec![
@@ -29,33 +44,28 @@ impl Unit {
         }
     }
 
-    pub fn map(self, f: impl Fn(Vec<Stm>) -> Vec<Stm>) -> Self {
-        Unit {
-            data: self.data,
+    pub fn map<F>(self, f: F) -> Self where F: Fn(Vec<Stm>) -> Vec<Stm> {
+        Function {
             label: self.label,
-            body: f(self.body),
             escapes: self.escapes,
+            body: f(self.body)
         }
-    }
-
-    pub fn and_then<T>(self, f: impl Fn(Self) -> T) -> T {
-        f(self)
     }
 }
 
-generate_counter!(StaticID, usize);
+generate_counter!(DataID, usize);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Static {
+pub struct Data {
     id: usize,
     pub label: Label,
     pub data: Symbol,
 }
 
-impl Static {
+impl Data {
     pub fn new(data: Symbol) -> Self {
-        Static {
-            id: StaticID::next(),
+        Data {
+            id: DataID::next(),
             label: Label::from_str("STRING"),
             data,
         }
@@ -229,13 +239,21 @@ impl Relop {
 
 impl fmt::Display for Unit {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        for function in &self.functions {
+            write!(fmt, "{}\n\n", function)?;
+        }
+        
+        Ok(())
+    }
+}
 
+impl fmt::Display for Function {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(fmt, "{}", self.label)?;
 
         for stm in &self.body {
             write!(fmt, "\n    {}", stm)?;
         }
-        
         Ok(())
     }
 }

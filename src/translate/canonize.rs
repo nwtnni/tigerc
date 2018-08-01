@@ -2,13 +2,14 @@ use ir::*;
 use operand::Temp;
 
 pub fn canonize(unit: Unit) -> Unit {
-    unit.map(|body| {
-        body.into_iter()
-            .map(|stm| canonize_stm(stm))
-            .flat_map(|(_, stms)| stms.into_iter())
-            .collect()
-        }
-    )
+    unit.map(|function| {
+        function.map(|body| {
+            body.into_iter()
+                .map(|stm| canonize_stm(stm))
+                .flat_map(|(_, stms)| stms.into_iter())
+                .collect()
+        })
+    })
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

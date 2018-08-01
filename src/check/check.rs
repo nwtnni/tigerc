@@ -1,7 +1,5 @@
-use std::mem;
-
 use fnv::{FnvHashSet, FnvHashMap};
-use simple_symbol::Symbol;
+use simple_symbol::{store, Symbol};
 
 use ast::*;
 use ir;
@@ -20,8 +18,8 @@ fn error<T>(span: &Span, err: TypeError) -> Result<T, Error> {
 }
 
 pub struct Checker {
-    done: Vec<ir::Unit>,
-    data: Vec<ir::Static>,
+    functions: Vec<ir::Function>,
+    data: Vec<ir::Data>,
     loops: Vec<Label>,
     frames: Vec<Frame>,
     vc: VarContext,
@@ -30,14 +28,14 @@ pub struct Checker {
 
 impl Checker {
 
-    pub fn check(ast: &mut Exp) -> Result<Vec<ir::Unit>, Error> {
+    pub fn check(ast: &mut Exp) -> Result<ir::Unit, Error> {
         let main = Frame::new(
             Label::from_fixed("main"),
             Vec::new(),
         );
 
         let mut checker = Checker {
-            done: Vec::new(),
+            functions: Vec::new(),
             data: Vec::new(),
             loops: Vec::new(),
             frames: vec![main],
@@ -45,15 +43,20 @@ impl Checker {
             tc: TypeContext::default(),
         };
 
-        let _ = trap_ast(ast);
+        trap_ast(ast);
+
         let (_, main_exp) = checker.check_exp(ast)?;
         let main_frame = checker.frames.pop()
             .expect("Internal error: missing frame");
 
-        let main_unit = ir::Unit::new(main_frame, checker.data, main_exp);
-        checker.done.push(main_unit);
+        checker.functions.push(
+            ir::Function::new(main_frame, main_exp)
+        );
 
-        Ok(checker.done)
+        Ok(ir::Unit {
+            data: checker.data,
+            functions: checker.functions,
+        })
     }
 
     fn check_var(&mut self, var: &Var) -> Result<Typed, Error> {
@@ -118,7 +121,7 @@ impl Checker {
         match exp {
         | Exp::Nil(_)      => Ok((Ty::Nil, translate_nil())),
         | Exp::Int(n, _)   => Ok((Ty::Int, translate_int(*n))),
-        | Exp::Str(s, _)   => Ok((Ty::Str, translate_str(&mut self.data, s))),
+        | Exp::Str(s, _)   => Ok((Ty::Str, translate_str(&mut self.data, store(s)))),
         | Exp::Var(var, _) => self.check_var(var),
         | Exp::Break(span) => {
             if self.loops.is_empty() {
@@ -490,8 +493,9 @@ impl Checker {
                     return error(&fun.body.into_span(), TypeError::ReturnMismatch)
                 }
 
-                let data = mem::replace(&mut self.data, Vec::new());
-                self.done.push(translate_fun_dec(frame, data, body_exp));
+                self.functions.push(
+                    translate_fun_dec(frame, body_exp)
+                );
             }
 
             Ok(None)

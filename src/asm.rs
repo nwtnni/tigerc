@@ -1,44 +1,17 @@
-use std::iter;
 use std::fmt;
-use simple_symbol::{store, Symbol};
+use simple_symbol::Symbol;
 
 use ir;
 use operand::*;
 
 pub struct Unit<T: Operand> {
-    pub asm: Vec<Asm<T>>,
     pub data: Vec<Asm<T>>,
+    pub functions: Vec<Function<T>>,
+}
+
+pub struct Function<T: Operand> {
+    pub body: Vec<Asm<T>>,
     pub stack_info: (usize, Symbol, Symbol),
-}
-
-impl <T: Operand> Unit<T> {
-    pub fn and_then<Y>(self, f: impl Fn(Self) -> Y) -> Y {
-        f(self)
-    }
-}
-
-impl iter::Sum for Unit<Reg> {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(
-            Unit {
-                asm: vec![Asm::Direct(Direct::Text)],
-                data: vec![Asm::Direct(Direct::Data)],
-                stack_info: (0, store(""), store(""))
-            },
-
-            |mut a, mut b| {
-
-                a.asm.append(&mut b.asm);
-                a.data.append(&mut b.data);
-
-                Unit {
-                    asm: a.asm,
-                    data: a.data,
-                    stack_info: a.stack_info,
-                }
-            }
-        )
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -185,8 +158,17 @@ impl <T: Operand> fmt::Display for Unit<T> {
             write!(fmt, "{}\n", stm).expect("Internal error: IO")
         }
         write!(fmt, "\n\n").expect("Internal error: IO");
-        for stm in &self.asm {
-            write!(fmt, "{}\n", stm).expect("Internal error: IO")
+        for function in &self.functions {
+            write!(fmt, "{}\n", function).expect("Internal error: IO")
+        }
+        Ok(())
+    }
+}
+
+impl <T: Operand> fmt::Display for Function<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        for stm in &self.body {
+            write!(fmt, "    {}\n", stm).expect("Internal error: IO")
         }
         Ok(())
     }
@@ -195,20 +177,20 @@ impl <T: Operand> fmt::Display for Unit<T> {
 impl <T: Operand> fmt::Display for Asm<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-        | Asm::Mov(bin)         => write!(fmt, "    movq {}", bin),
-        | Asm::Bin(op, bin)     => write!(fmt, "    {} {}", op, bin),
-        | Asm::Mul(un)          => write!(fmt, "    imulq {}", un),
-        | Asm::Div(_, un)       => write!(fmt, "    idivq {}", un),
-        | Asm::Un(op, un)       => write!(fmt, "    {} {}", op, un),
-        | Asm::Pop(un)          => write!(fmt, "    popq {}", un),
-        | Asm::Push(un)         => write!(fmt, "    pushq {}", un),
-        | Asm::Lea(mem, reg)    => write!(fmt, "    leaq {}, {}", mem, reg),
-        | Asm::Cmp(bin)         => write!(fmt, "    cmpq {}", bin),
-        | Asm::Jmp(name)        => write!(fmt, "    jmp {}", name),
-        | Asm::Jcc(op, name)    => write!(fmt, "    j{} {}", op,  name),
-        | Asm::Call(name)       => write!(fmt, "    call {}", name),
-        | Asm::Cqo              => write!(fmt, "    cqo"),
-        | Asm::Ret              => write!(fmt, "    ret"),
+        | Asm::Mov(bin)         => write!(fmt, "movq {}", bin),
+        | Asm::Bin(op, bin)     => write!(fmt, "{} {}", op, bin),
+        | Asm::Mul(un)          => write!(fmt, "imulq {}", un),
+        | Asm::Div(_, un)       => write!(fmt, "idivq {}", un),
+        | Asm::Un(op, un)       => write!(fmt, "{} {}", op, un),
+        | Asm::Pop(un)          => write!(fmt, "popq {}", un),
+        | Asm::Push(un)         => write!(fmt, "pushq {}", un),
+        | Asm::Lea(mem, reg)    => write!(fmt, "leaq {}, {}", mem, reg),
+        | Asm::Cmp(bin)         => write!(fmt, "cmpq {}", bin),
+        | Asm::Jmp(name)        => write!(fmt, "jmp {}", name),
+        | Asm::Jcc(op, name)    => write!(fmt, "j{} {}", op,  name),
+        | Asm::Call(name)       => write!(fmt, "call {}", name),
+        | Asm::Cqo              => write!(fmt, "cqo"),
+        | Asm::Ret              => write!(fmt, "ret"),
         | Asm::Direct(direct)   => write!(fmt, "{}", direct),
         | Asm::Label(label)     => write!(fmt, "{}:", label),
         | Asm::Comment(comment) => write!(fmt, "# {}", comment),

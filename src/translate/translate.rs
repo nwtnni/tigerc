@@ -9,8 +9,8 @@ use config::WORD_SIZE;
 use translate::Frame;
 use check::context::Binding;
 
-pub fn translate_fun_dec(frame: Frame, data: Vec<ir::Static>, body_exp: ir::Tree) -> ir::Unit {
-    ir::Unit::new(frame, data, body_exp)
+pub fn translate_fun_dec(frame: Frame, body_exp: ir::Tree) -> ir::Function {
+    ir::Function::new(frame, body_exp)
 }
 
 pub fn translate_var_dec(frames: &mut [Frame], name: Symbol, escape: bool, init_exp: ir::Tree) -> ir::Tree {
@@ -110,8 +110,14 @@ pub fn translate_int(n: i32) -> ir::Tree {
     ir::Exp::Const(n).into()
 }
 
-pub fn translate_str(data: &mut Vec<ir::Static>, string: &str) -> ir::Tree {
-    let string = ir::Static::new(store(string));
+pub fn translate_str(data: &mut Vec<ir::Data>, string: Symbol) -> ir::Tree {
+
+    // Look for identical strings in data section
+    if let Some(datum) = data.iter().find(|datum| datum.data == string) {
+        return ir::Exp::Name(datum.label).into()
+    }
+
+    let string = ir::Data::new(string);
     let label = string.label;
     data.push(string);
     ir::Exp::Name(label).into()
