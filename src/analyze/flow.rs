@@ -18,21 +18,20 @@ pub trait Flowing {
 pub struct Flow {
     start: Label,
     end: Label,
-    escapes: usize,
     graph: DiGraphMap<Label, Void>,
     blocks: FnvHashMap<Label, Vec<ir::Stm>>,
 }
 
 impl Flow {
 
-    pub fn new(ir: ir::Function) -> Flow {
+    pub fn new(start: Label, ir: Vec<ir::Stm>) -> Flow {
         let mut graph = DiGraphMap::default();
         let mut blocks = FnvHashMap::default();
 
-        let mut header: Option<Label> = Some(ir.label);
+        let mut header: Option<Label> = Some(start);
         let mut block = Vec::new();
 
-        for stm in ir.body {
+        for stm in ir {
 
             match stm {
             | ir::Stm::Label(label) => {
@@ -73,9 +72,8 @@ impl Flow {
         let mut height = FnvHashMap::default();
         let mut seen = FnvHashSet::default();
         let mut flow = Flow {
-            start: ir.label,
+            start,
             end,
-            escapes: ir.escapes,
             graph,
             blocks
         };
@@ -93,7 +91,7 @@ impl Flow {
         flow
     }
 
-    pub fn linearize(mut self) -> ir::Function {
+    pub fn linearize(mut self) -> Vec<ir::Stm> {
 
         let mut height = FnvHashMap::default();
         let mut seen = FnvHashSet::default();
@@ -124,11 +122,7 @@ impl Flow {
             }
         }
 
-        ir::Function {
-            label: self.start,
-            body: reordered,
-            escapes: self.escapes,
-        }
+        reordered
     }
 
     pub fn start(&self) -> Label {

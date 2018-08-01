@@ -5,7 +5,13 @@ use ir::*;
 use operand::Label;
 
 pub fn reorder(unit: Unit) -> Unit {
-    unit.map(|function| Flow::new(function).linearize())
+    unit.map(|function| {
+            Function {
+                label: function.label,
+                body: Flow::new(function.label, function.body).linearize(),
+                escapes: function.escapes,
+            }
+        })
         .map(condense)
         .map(clean)
 }
