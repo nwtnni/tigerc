@@ -8,12 +8,6 @@ use ir;
 use util::Void;
 use operand::Label;
 
-pub trait Flowing {
-    fn into_label(&self) -> Option<Label>;
-    fn into_jump(&self) -> Option<Label>;
-    fn into_cjump(&self) -> Option<(Label, Option<Label>)>;
-}
-
 #[derive(Debug)]
 pub struct Flow {
     start: Label,
@@ -153,29 +147,6 @@ impl Flow {
     pub fn remove(&mut self, node: Label) -> Option<Vec<ir::Stm>> {
         self.graph.remove_node(node);
         self.blocks.remove(&node)
-    }
-}
-
-impl Flowing for ir::Stm {
-    fn into_label(&self) -> Option<Label> {
-        match self {
-        | ir::Stm::Label(label) => Some(*label),
-        | _ => None,
-        }
-    }
-
-    fn into_jump(&self) -> Option<Label> {
-        match self {
-        | ir::Stm::Jump(ir::Exp::Name(label), _) => Some(*label),
-        | _ => None,
-        }
-    }
-
-    fn into_cjump(&self) -> Option<(Label, Option<Label>)> {
-        match self {
-        | ir::Stm::CJump(_, _, _, t_label, f_label) => Some((*t_label, Some(*f_label))),
-        | _ => None,
-        }
     }
 }
 
