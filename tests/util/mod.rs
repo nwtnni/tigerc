@@ -19,7 +19,6 @@ use self::regex::Regex;
 /// [$compare] is the function used to compare the solution and generated files as Strings
 macro_rules! generate {
     ($macro:ident, $dir:expr, $flag:expr, $sol_ext:expr, $act_ext:expr, $compare:expr) => {
-
         /// Test-generating macro.
         /// [$name] is the name of the generated test function
         /// [$file] is the name of the test file, without extensions
@@ -29,14 +28,10 @@ macro_rules! generate {
                 pub fn $name() {
                     let Unit { file, solution, actual } = get_unit($file, $dir, $sol_ext, $act_ext);
                     run($flag, &file);
-                    let exp = read_to_string(&solution);
-                    let act = read_to_string(&actual);
-                    remove_file(actual).unwrap();
-                    $compare(exp, act);
+                    $compare(solution, actual);
                 }
             }
         }
-
     }
 }
 
@@ -55,7 +50,7 @@ pub struct Unit {
 
 /// Read the contents of the file into a String
 pub fn read_to_string(path: &PathBuf) -> String {
-	let mut file = File::open(path).unwrap();
+    let mut file = File::open(path).unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
     contents
@@ -84,4 +79,14 @@ pub fn get_location(text: String) -> (usize, usize) {
     let re = Regex::new(r"^(\d+):(\d+)").unwrap();
     let caps = re.captures(&text).unwrap();
     (usize::from_str(&caps[1]).unwrap(), usize::from_str(&caps[2]).unwrap())
+}
+
+pub fn compare_content(exp: PathBuf, act: PathBuf) -> bool {
+    read_to_string(&exp).chars().filter(|c| !c.is_whitespace()).eq(
+        read_to_string(&act).chars().filter(|c| !c.is_whitespace())
+    )
+}
+
+pub fn compare_location(exp: PathBuf, act: PathBuf) -> bool {
+    get_location(read_to_string(&exp)) == get_location(read_to_string(&act))
 }

@@ -5,16 +5,9 @@ use std::fs::remove_file;
 
 use util::*;
 
-generate!(good, "lex", "-l", "lexedsol", "lexed", |exp: String, act: String| {
-    assert_eq!(
-        exp.chars().filter(|c| !c.is_whitespace()).collect::<String>(),
-        act.chars().filter(|c| !c.is_whitespace()).collect::<String>(),
-    )
-});
+generate!(good, "lex", "-l", "lexedsol", "lexed", compare_content);
 
-generate!(bad, "lex", "-l", "lexedsol", "lexed", |exp: String, act: String| {
-    assert_eq!(get_location(exp), get_location(act))
-});
+generate!(bad, "lex", "-l", "lexedsol", "lexed", compare_location);
 
 good!(test_ident_01, "ident_01");
 good!(test_ident_02, "ident_02");
