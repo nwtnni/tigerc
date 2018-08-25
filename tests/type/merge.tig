@@ -36,15 +36,15 @@ function readint(any: any) : int =
 
  function printint(i: int) =
   let function f(i:int) = if i>0 
-	     then (f(i/10); print(chr(i-i/10*10+ord("0"))))
-   in if i<0 then (print("-"); f(-i))
+	     then (f(i/10); prints(chr(i-i/10*10+ord("0"))))
+   in if i<0 then (prints("-"); f(-i))
       else if i>0 then f(i)
-      else print("0")
+      else prints("0")
   end
 
  function printlist(l: list) =
-   if l=nil then print("\n")
-   else (printint(l.first); print(" "); printlist(l.rest))
+   if l=nil then prints("\n")
+   else (printint(l.first); prints(" "); printlist(l.rest))
 
    var list1 := readlist()
    var list2 := (buffer:=getchar(); readlist())

@@ -13,9 +13,9 @@ let
     function printboard() =
        (for i := 0 to N-1
 	 do (for j := 0 to N-1 
-	      do print(if col[i]=j then " O" else " .");
-	     print("\n"));
-         print("\n"))
+	      do prints(if col[i]=j then " O" else " .");
+	     prints("\n"));
+         prints("\n"))
 
     function try(c:int) = 
 ( /*  for i:= 0 to c do print("."); print("\n"); flush();*/
